@@ -1,155 +1,109 @@
-# AI Website Cloner Template
+# Duskfall Survivors
 
-<a href="https://github.com/JCodesMore/ai-website-cloner-template/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a> <a href="https://github.com/JCodesMore/ai-website-cloner-template/stargazers"><img src="https://img.shields.io/github/stars/JCodesMore/ai-website-cloner-template?style=flat" alt="Stars" /></a> <a href="https://discord.gg/hrTSX5yTpB"><img src="https://img.shields.io/discord/1400896964597383279?label=discord" alt="Discord" /></a>
+A complete, original **16-bit pixel-art horde-survival game** that runs entirely in the
+browser. Auto-firing weapons, fifteen minutes of escalating waves, screen-filling bosses,
+roguelite upgrade drafts, a persistent vault and a full bestiary — built on Next.js 16,
+React 19 and the **Canvas 2D API** (no Three.js, no DOM-rectangle "models").
 
-A reusable template for reverse-engineering any website into a clean, modern Next.js codebase using AI coding agents. 
+> Every sprite is authored as an explicit pixel map and rendered nearest-neighbour
+> (see [`src/game/sprites.ts`](src/game/sprites.ts)); every sound and the adaptive
+> soundtrack are synthesized at runtime with the Web Audio API
+> ([`src/game/audio.ts`](src/game/audio.ts)). No third-party game art, audio or names
+> are bundled — characters, enemies, weapons and lore are all original.
 
-**Recommended: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with Opus 4.6 for best results** — but works with a variety of AI coding agents.
+## Play
 
-Point it at a URL, run `/clone-website`, and your AI agent will inspect the site, extract design tokens and assets, write component specs, and dispatch parallel builders to reconstruct every section.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
 
-## Demo
+### Controls
 
-[![Watch the demo](docs/design-references/comparison.png)](https://youtu.be/O669pVZ_qr0)
+| Input | Action |
+| --- | --- |
+| `WASD` / arrow keys | Move |
+| `Esc` / `P` | Pause |
+| `1`–`4` | Pick a level-up upgrade |
+| Touch | Drag anywhere for the virtual joystick |
 
-> Click the image above to watch the full demo on YouTube.
+Weapons fire automatically. Collect XP gems to level up, draft three upgrades per level,
+and survive the bosses at **05:00 / 10:00 / 14:00** until the stage clears at **15:00**.
+Cleared runs can continue in endless mode with continuously scaling difficulty.
 
-## Quick Start
+## Features
 
-1. **Clone this repository**
-   ```bash
-   git clone https://github.com/JCodesMore/ai-website-cloner-template.git my-clone
-   cd my-clone
-   ```
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-3. **Start your AI agent** — Claude Code recommended:
-   ```bash
-   claude --chrome
-   ```
-4. **Run the skill**:
-   ```
-   /clone-website <target-url1> [<target-url2> ...]
-   ```
-5. **Customize** (optional) — after the base clone is built, modify as needed
+- **8 weapons, 8 ranks each** — homing bolts, arcing whips, lobbing axes, directional
+  daggers, a damage aura, orbiting tomes, called lightning and a nova ring, each with
+  distinct projectile/zone/behaviour code.
+- **10 passive relics** (might, cooldown, area, speed, health, magnet, regen, armor,
+  growth, luck) and weighted upgrade drafts so builds cohere.
+- **4 playable survivors** (two unlockable with vault coins) and **3 hand-built stages**
+  with palettes, props, enemy rosters, tinted variant monsters and three bosses each.
+- **Full game loop** — title, character/stage select, field manual, bestiary & records,
+  run HUD, level-up modals, boss chests, pause, defeat/victory screens, achievements and
+  `localStorage` persistence.
+- **Procedural presentation** — pixel sprites generated in code, ground tiles, fog
+  vignette, particles, damage numbers, screen shake, chiptune music that intensifies
+  with the clock and ~16 synthesized SFX.
+- **Headless test harness** — a DOM/canvas stub drives the real engine through thousands
+  of frames (sprite integrity, every character × stage combo, upgrades, chests, death,
+  victory, endless continuation and achievements).
 
-> Using a different agent? Open `AGENTS.md` for project instructions — most agents pick it up automatically.
-
-## Supported Platforms
-
-| Agent                                                         | Status                     |
-| ------------------------------------------------------------- | -------------------------- |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | **Recommended** — Opus 4.6 |
-| [Codex CLI](https://github.com/openai/codex)                  | Supported                  |
-| [OpenCode](https://opencode.ai/)                              | Supported                  |
-| [GitHub Copilot](https://github.com/features/copilot)         | Supported                  |
-| [Cursor](https://cursor.com/)                                 | Supported                  |
-| [Windsurf](https://codeium.com/windsurf)                      | Supported                  |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli)     | Supported                  |
-| [Cline](https://github.com/cline/cline)                       | Supported                  |
-| [Roo Code](https://github.com/RooCodeInc/Roo-Code)            | Supported                  |
-| [Continue](https://continue.dev/)                             | Supported                  |
-| [Amazon Q](https://aws.amazon.com/q/developer/)               | Supported                  |
-| [Augment Code](https://www.augmentcode.com/)                  | Supported                  |
-| [Aider](https://aider.chat/)                                  | Supported                  |
-
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) 24+
-- An AI coding agent (see [Supported Platforms](#supported-platforms))
-
-## Tech Stack
-
-- **Next.js 16** — App Router, React 19, TypeScript strict
-- **shadcn/ui** — Radix primitives + Tailwind CSS v4
-- **Tailwind CSS v4** — oklch design tokens
-- **Lucide React** — default icons (replaced by extracted SVGs during cloning)
-
-## How It Works
-
-The `/clone-website` skill runs a multi-phase pipeline:
-
-1. **Reconnaissance** — screenshots, design token extraction, interaction sweep (scroll, click, hover, responsive)
-2. **Foundation** — updates fonts, colors, globals, downloads all assets
-3. **Component Specs** — writes detailed spec files (`docs/research/components/`) with exact computed CSS values, states, behaviors, and content
-4. **Parallel Build** — dispatches builder agents in git worktrees, one per section/component
-5. **Assembly & QA** — merges worktrees, wires up the page, runs visual diff against the original
-
-Each builder agent receives the full component specification inline — exact `getComputedStyle()` values, interaction models, multi-state content, responsive breakpoints, and asset paths. No guessing.
-
-## Use Cases
-
-- **Platform migration** — rebuild a site you own from WordPress/Webflow/Squarespace into a modern Next.js codebase
-- **Lost source code** — your site is live but the repo is gone, the developer left, or the stack is legacy. Get the code back in a modern format
-- **Learning** — deconstruct how production sites achieve specific layouts, animations, and responsive behavior by working with real code
-
-## Not Intended For
-
-- **Phishing or impersonation** — this project must not be used for deceptive purposes, impersonation, or any activity that breaks the law.
-- **Passing off someone's design as your own** — logos, brand assets, and original copy belong to their owners.
-- **Violating terms of service** — some sites explicitly prohibit scraping or reproduction. Check first.
-
-## Project Structure
+## Project structure
 
 ```
 src/
-  app/              # Next.js routes
-  components/       # React components
-    ui/             # shadcn/ui primitives
-    icons.tsx       # Extracted SVG icons
-  lib/utils.ts      # cn() utility
-  types/            # TypeScript interfaces
-  hooks/            # Custom React hooks
-public/
-  images/           # Downloaded images from target
-  videos/           # Downloaded videos from target
-  seo/              # Favicons, OG images
-docs/
-  research/         # Extraction output & component specs
-  design-references/ # Screenshots
+  app/                     Next.js App Router (single state-driven screen machine)
+    page.tsx               routing between title / select / manual / collection / game
+    layout.tsx, globals.css  dark gothic pixel theme, scanlines, chunky UI buttons
+  components/game/
+    GameView.tsx           canvas host + HUD + all modals + touch joystick
+    TitleScreen.tsx        animated pixel-diorama landing screen
+    SelectScreen.tsx       survivor & stage selection, coin purchases
+    HowToPlay.tsx          weapon / relic / pickup field manual
+    CollectionScreen.tsx  bestiary, stage records, achievements
+    AmbientCanvas.tsx      menu background diorama
+    SpriteIcon.tsx         renders any pixel sprite into React
+  game/
+    engine.ts              fixed-step game engine: spawning director, combat, AI,
+                           collision, pickups, particles, camera, full renderer
+    sprites.ts             pixel-map sprite factory + recolor + ground tile generator
+    content.ts             weapons, relics, characters, enemies, stages, achievements
+    audio.ts               Web Audio chiptune music + synthesized SFX
+    storage.ts             save/load, run settlement, achievement evaluation
+    types.ts               shared types
+  lib/format.ts            time / number formatting
 scripts/
-  sync-agent-rules.sh  # Regenerate agent instruction files
-  sync-skills.mjs      # Regenerate /clone-website for all platforms
-AGENTS.md           # Agent instructions (single source of truth)
-CLAUDE.md           # Claude Code config (imports AGENTS.md)
-GEMINI.md           # Gemini CLI config (imports AGENTS.md)
+  smoke-test.cjs           headless engine smoke tests (npm run smoke)
+  render-sprites.cjs       exports every sprite to a PNG contact sheet for art review
+  render-scene.cjs         exports a simulated in-engine frame to PNG
+  longrun.cjs / endgame.cjs  AI-kite balance simulations (15-minute runs)
 ```
 
-## Commands
+## Design references
+
+The build applies the visual language catalogued by the three reference sites rather
+than copying any protected assets:
+
+- **gameartstyle.loopyhop.com** — the "16-bit-inspired" and "top-down tile-based pixel"
+  styles drive the authored pixel maps, limited palettes, hard outlines and ground tiles.
+- **gameplayatlas.loopyhop.com** — its *Defense & waves*, *Aiming & projectiles*,
+  *Progression & legacy* and *Inventory & resources* mechanic groups map directly onto
+  the wave director, eight weapon behaviours and roguelite upgrade economy.
+- **collectui.com** — dark-mode card/modal/navigation patterns inform the menu chrome,
+  upgrade draft cards and HUD chips.
+
+## Scripts
 
 ```bash
-npm run dev    # Start dev server
-npm run build  # Production build
-npm run lint   # ESLint check
-npm run typecheck # TypeScript check
-npm run check  # Run lint + typecheck + build
+npm run dev        # development server
+npm run build      # production build
+npm run check      # eslint + typecheck + build
+npm run smoke      # compile the engine and run headless smoke tests
 ```
-
-### If using docker
-
-```bash
-docker compose up app --build # build and run the app
-docker compose up dev --build # run the app in dev mode on port 3001
-```
-
-## Updating for Other Platforms
-
-Two source-of-truth files power all platform support. Edit the source, then run the sync script:
-
-| What                   | Source of truth                         | Sync command                       |
-| ---------------------- | --------------------------------------- | ---------------------------------- |
-| Project instructions   | `AGENTS.md`                             | `bash scripts/sync-agent-rules.sh` |
-| `/clone-website` skill | `.claude/skills/clone-website/SKILL.md` | `node scripts/sync-skills.mjs`     |
-
-Each script regenerates the platform-specific copies automatically. Agents that read the source files natively need no regeneration.
-
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=JCodesMore/ai-website-cloner-template&type=Date)](https://star-history.com/#JCodesMore/ai-website-cloner-template&Date)
 
 ## License
 
-MIT
+MIT — original code and original art/audio only. All game names, characters and assets
+in this repository are fictional and created for this project.
