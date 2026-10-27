@@ -6,6 +6,7 @@ import { GameView } from "@/components/game/GameView";
 import { HowToPlay } from "@/components/game/HowToPlay";
 import { SelectScreen } from "@/components/game/SelectScreen";
 import { TitleScreen } from "@/components/game/TitleScreen";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { audio } from "@/game/audio";
 import { CHARACTERS } from "@/game/content";
 import { commitRun, defaultSave, loadSave, persistSave } from "@/game/storage";
@@ -48,7 +49,7 @@ function screenFromHash(): ScreenId {
   return HASH_SCREENS.includes(h) ? h : "title";
 }
 
-export default function Home() {
+function GameShell() {
   const save = useSyncExternalStore(subscribeSave, getSaveSnapshot, getServerSnapshot);
   const [screen, setScreen] = useState<ScreenId>(screenFromHash);
   const [run, setRun] = useState<RunConfig | null>(null);
@@ -205,4 +206,12 @@ export default function Home() {
   }
 
   return <TitleScreen save={save} onNavigate={navigate} onSfx={handleSfx} onMusic={handleMusic} />;
+}
+
+export default function Home() {
+  return (
+    <I18nProvider>
+      <GameShell />
+    </I18nProvider>
+  );
 }

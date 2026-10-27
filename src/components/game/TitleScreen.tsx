@@ -2,6 +2,7 @@
 
 import { AmbientCanvas } from "./AmbientCanvas";
 import { SpriteIcon } from "./SpriteIcon";
+import { LocaleSwitcher, useI18n } from "@/i18n/I18nProvider";
 import type { SaveData, ScreenId } from "@/game/types";
 import { formatCoins } from "@/lib/format";
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function TitleScreen({ save, onNavigate, onSfx, onMusic }: Props) {
+  const { t } = useI18n();
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0b0f14]">
       <AmbientCanvas />
@@ -22,9 +24,10 @@ export function TitleScreen({ save, onNavigate, onSfx, onMusic }: Props) {
         <div className="hud-chip pixel-corners flex items-center gap-2 px-4 py-2">
           <SpriteIcon name="icon_coin" size={20} />
           <span className="font-pixel text-sm font-bold text-amber-300">{formatCoins(save.coins)}</span>
-          <span className="font-pixel text-[10px] text-slate-400">vault</span>
+          <span className="font-pixel text-[10px] text-slate-400">{t("game.title.vault")}</span>
         </div>
         <div className="hud-chip pixel-corners hidden items-center gap-4 px-4 py-2 sm:flex">
+          <LocaleSwitcher compact />
           <label className="flex items-center gap-2">
             <span className="font-pixel text-[10px] text-slate-400">SFX</span>
             <input
@@ -54,7 +57,7 @@ export function TitleScreen({ save, onNavigate, onSfx, onMusic }: Props) {
 
       <main className="relative z-10 flex min-h-[calc(100vh-160px)] flex-col items-center justify-center px-6 text-center">
         <p className="font-pixel mb-4 text-xs tracking-[0.4em] text-emerald-300/90 anim-fade-in">
-          A 16-bit horde survival
+          {t("game.title.tagline")}
         </p>
         <h1 className="font-pixel text-5xl font-black leading-none text-hard-shadow sm:text-7xl md:text-8xl">
           <span className="shimmer-text">DUSKFALL</span>
@@ -62,46 +65,42 @@ export function TitleScreen({ save, onNavigate, onSfx, onMusic }: Props) {
         <h2 className="font-pixel mt-3 text-2xl font-black tracking-[0.35em] text-slate-200 text-hard-shadow sm:text-4xl">
           SURVIVORS
         </h2>
-        <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-300/90 sm:text-base">
-          The dead rise at dusk and they do not stop coming. Survive fifteen minutes of
-          escalating waves, master eight auto-firing weapons, and fell the bosses that
-          hunt you through the dark.
-        </p>
+        <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-300/90 sm:text-base">{t("game.title.desc")}</p>
 
         <div className="mt-10 flex w-full max-w-xs flex-col gap-4 anim-fade-up">
           <button
             onClick={() => onNavigate("select")}
             className="pixel-btn pixel-corners btn-gold px-8 py-4 text-base"
           >
-            ⚔ Start Run
+            {t("game.title.start")}
           </button>
           <button
             onClick={() => onNavigate("howto")}
             className="pixel-btn pixel-corners btn-slate px-8 py-3 text-sm"
           >
-            How to Play
+            {t("game.title.howto")}
           </button>
           <button
             onClick={() => onNavigate("collection")}
             className="pixel-btn pixel-corners btn-ghost px-8 py-3 text-sm"
           >
-            Bestiary &amp; Records
+            {t("game.title.collection")}
           </button>
         </div>
 
         <div className="mt-10 flex items-center gap-6 font-pixel text-[10px] text-slate-400">
           <span className="flex items-center gap-2">
-            <kbd className="hud-chip pixel-corners px-2 py-1 text-slate-200">WASD</kbd> move
+            <kbd className="hud-chip pixel-corners px-2 py-1 text-slate-200">WASD</kbd> {t("game.title.moveHint")}
           </span>
           <span className="flex items-center gap-2">
-            <kbd className="hud-chip pixel-corners px-2 py-1 text-slate-200">ESC</kbd> pause
+            <kbd className="hud-chip pixel-corners px-2 py-1 text-slate-200">ESC</kbd> {t("game.title.pauseHint")}
           </span>
-          <span className="hidden sm:inline">weapons fire automatically</span>
+          <span className="hidden sm:inline">{t("game.title.autoFire")}</span>
         </div>
       </main>
 
       <footer className="relative z-10 pb-5 text-center font-pixel text-[10px] text-slate-500">
-        Original pixel art, code and audio synthesis — no third-party game assets · v1.0
+        {t("game.title.footer")}
       </footer>
     </div>
   );

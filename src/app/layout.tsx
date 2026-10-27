@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://duskfall-survivors.example.com";
 
@@ -46,7 +47,6 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
-  alternates: { canonical: "/" },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -77,7 +77,7 @@ const JSON_LD = {
   operatingSystem: "Any modern web browser",
   applicationCategory: "Game",
   playableMode: "SinglePlayer",
-  inLanguage: "en",
+  inLanguage: ["en", "zh-CN", "ja", "es"],
   isAccessibleForFree: true,
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
   contentRating: "Fantasy violence",
@@ -85,11 +85,17 @@ const JSON_LD = {
   keywords: "horde survival, roguelite, pixel art, browser game, indie",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale?: string }>;
 }>) {
+  // Note: under static export the root layout does not receive child dynamic
+  // segments in params, so localized <html lang> is applied by an inline
+  // script in [locale]/layout.tsx; hreflang alternates carry the SEO signal.
+  void params;
   return (
     <html lang="en" className="dark h-full">
       <body className="min-h-full flex flex-col bg-[#0b0f14] text-slate-100 antialiased">
@@ -99,6 +105,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
         {children}
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

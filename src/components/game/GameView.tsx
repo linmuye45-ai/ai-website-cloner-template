@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { audio } from "@/game/audio";
-import { ACHIEVEMENTS, PASSIVES, STAGES, WEAPONS } from "@/game/content";
+import { STAGES } from "@/game/content";
 import { GameEngine, type ChestReward } from "@/game/engine";
 import type { HudState, RunStats, SaveData, UpgradeChoice } from "@/game/types";
 import { formatCoins, formatTime } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import { SpriteIcon } from "./SpriteIcon";
 
 type ModalKind = "levelup" | "chest" | "pause" | "end" | null;
@@ -67,6 +68,19 @@ export function GameView(props: Props) {
   });
   const toastId = useRef(0);
   const stage = STAGES.find((s) => s.id === props.stageId)!;
+  const i18n = useI18n();
+  const { t, weaponName, weaponDesc, passiveName, passiveDesc } = i18n;
+  // Engine callbacks are created once on mount; read helpers through a ref so
+  // a language switch mid-run still localizes achievement popups.
+  const i18nRef = useRef(i18n);
+  i18nRef.current = i18n;
+
+  // Engine choices carry English fallback strings; resolve localized labels
+  // from the content id so the draft modal matches the active language.
+  const choiceLabel = (c: UpgradeChoice): string =>
+    c.kind === "weapon" ? weaponName(c.id) : c.id === "heal_salve" ? c.name : passiveName(c.id);
+  const choiceDesc = (c: UpgradeChoice): string =>
+    c.kind === "weapon" ? weaponDesc(c.id) : c.id === "heal_salve" ? c.desc : passiveDesc(c.id);
 
   const pushToast = useCallback((text: string) => {
     const id = ++toastId.current;
@@ -115,10 +129,7 @@ export function GameView(props: Props) {
         onToast: pushToast,
         onAchievement: (id) => {
           const isNew = props.onAchievement(id);
-          if (isNew) {
-            const def = ACHIEVEMENTS.find((a) => a.id === id);
-            pushPopup(`Achievement unlocked — ${def?.name ?? id}`);
-          }
+          if (isNew) pushPopup(i18nRef.current.achievementName(id));
         },
         onSeen: props.onSeen,
         onPauseChange: (paused) => {
@@ -266,7 +277,9 @@ export function GameView(props: Props) {
             <div className="mt-1 w-44 sm:w-64">
               <p className="font-pixel mb-1 text-[9px] tracking-[0.25em] text-red-300">
                 {hud.bossName}
-                {hud.bossEnraged && <span className="ml-2 animate-pulse text-red-400">ENRAGED</span>}
+                {hud.bossEnraged && (
+                  <span className="ml-2 animate-pulse text-red-400">{t("game.hud.enraged")}</span>
+                )}
               </p>
               <div className="h-2 border border-black/60 bg-black/60">
                 <div
@@ -296,7 +309,7 @@ export function GameView(props: Props) {
       <div className="pointer-events-none absolute bottom-3 left-4 z-20 flex flex-col gap-1.5">
         <div className="flex flex-wrap gap-1.5">
           {hud.weapons.map((w) => (
-            <div key={w.id} className="hud-chip pixel-corners relative p-1.5" title={WEAPONS[w.id]?.name}>
+            <div key={w.id} className="hud-chip pixel-corners relative p-1.5" title={weaponName(w.id)}>
               <SpriteIcon name={w.icon} size={22} />
               <span className="font-pixel absolute -bottom-1 -right-1 rounded bg-amber-400 px-1 text-[8px] font-black text-black">
                 {w.level}
@@ -306,7 +319,7 @@ export function GameView(props: Props) {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {hud.passives.map((p) => (
-            <div key={p.id} className="hud-chip pixel-corners relative p-1" title={PASSIVES[p.id]?.name}>
+            <div key={p.id} className="hud-chip pixel-corners relative p-1" title={passiveName(p.id)}>
               <SpriteIcon name={p.icon} size={18} />
               <span className="font-pixel absolute -bottom-1 -right-1 rounded bg-sky-400 px-1 text-[8px] font-black text-black">
                 {p.level}
@@ -363,9 +376,11 @@ export function GameView(props: Props) {
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm anim-fade-in">
           <div className="w-full max-w-3xl">
             <h2 className="font-pixel mb-1 text-center text-3xl font-black tracking-[0.25em] text-sky-300 text-glow-blue">
-              Level Up
+              {t("game.hud.levelUp")}
             </h2>
-            <p className="font-pixel mb-6 text-center text-[10px] tracking-[0.3em] text-slate-400">Choose an upgrade</p>
+            <p className="font-pixel mb-6 text-center text-[10px] tracking-[0.3em] text-slate-400">
+              {t("game.hud.chooseUpgrade")}
+            </p>
             <div className="grid gap-4 sm:grid-cols-3">
               {choices.map((c, i) => (
                 <button
@@ -381,12 +396,12 @@ export function GameView(props: Props) {
                   <span className="font-pixel absolute left-2 top-2 text-[10px] text-slate-500">{i + 1}</span>
                   {c.evolution ? (
                     <span className="font-pixel absolute right-2 top-2 animate-pulse rounded bg-amber-400 px-1.5 py-0.5 text-[8px] font-black text-black">
-                      EVOLUTION
+                      {t("game.hud.evoTag")}
                     </span>
                   ) : (
                     c.isNew && (
                       <span className="font-pixel absolute right-2 top-2 rounded bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black text-black">
-                        NEW
+                        {t("game.hud.newTag")}
                       </span>
                     )
                   )}
@@ -395,15 +410,15 @@ export function GameView(props: Props) {
                   </div>
                   <div>
                     <p className="font-pixel text-sm font-bold" style={{ color: c.color }}>
-                      {c.name}
+                      {choiceLabel(c)}
                     </p>
                     {!c.isNew && (
                       <p className="font-pixel mt-0.5 text-[9px] text-slate-400">
-                        Rank {c.level}{c.maxLevel > 1 ? ` / ${c.maxLevel}` : ""}
+                        {t("game.hud.rank")} {c.level}{c.maxLevel > 1 ? ` / ${c.maxLevel}` : ""}
                       </p>
                     )}
                   </div>
-                  <p className="text-[11px] leading-relaxed text-slate-400">{c.desc}</p>
+                  <p className="text-[11px] leading-relaxed text-slate-400">{choiceDesc(c)}</p>
                 </button>
               ))}
             </div>
@@ -413,11 +428,11 @@ export function GameView(props: Props) {
                 disabled={hud.rerolls <= 0}
                 className="pixel-btn pixel-corners btn-slate px-5 py-2.5 text-xs"
               >
-                ↻ Reroll ({hud.rerolls})
+                {t("game.hud.reroll")} ({hud.rerolls})
               </button>
-              <span className="font-pixel text-[9px] text-slate-500">1–3 pick · R reroll</span>
+              <span className="font-pixel text-[9px] text-slate-500">{t("game.hud.pickHint")}</span>
               <button onClick={skip} className="pixel-btn pixel-corners btn-ghost px-5 py-2.5 text-xs">
-                Skip → +25% XP
+                {t("game.hud.skip")}
               </button>
             </div>
           </div>
@@ -432,24 +447,24 @@ export function GameView(props: Props) {
               <SpriteIcon name="chest_open" size={88} />
             </div>
             <h2 className="font-pixel mt-4 text-2xl font-black tracking-[0.2em] text-amber-300 text-glow-gold">
-              Treasure!
+              {t("game.hud.treasure")}
             </h2>
             <div className="mt-5 space-y-2.5">
               <div className="flex items-center justify-center gap-2 font-pixel text-sm text-slate-200">
-                <SpriteIcon name="icon_coin" size={20} /> +{chest.coins} coins
+                <SpriteIcon name="icon_coin" size={20} /> +{chest.coins} {t("game.hud.coins")}
               </div>
               <div className="flex items-center justify-center gap-2 font-pixel text-sm text-emerald-300">
-                <SpriteIcon name="icon_heart" size={20} /> +{chest.heal} health
+                <SpriteIcon name="icon_heart" size={20} /> +{chest.heal} {t("game.hud.health")}
               </div>
               {chest.upgrade && (
                 <div className="flex items-center justify-center gap-2 font-pixel text-sm text-sky-300">
                   <SpriteIcon name={chest.upgrade.icon} size={20} />
-                  {chest.upgrade.name} → rank {chest.upgrade.level}
+                  {weaponName(chest.upgrade.id)} → {t("game.hud.rankTo")} {chest.upgrade.level}
                 </div>
               )}
             </div>
             <button onClick={closeChest} className="pixel-btn pixel-corners btn-gold mt-7 w-full py-3 text-sm">
-              Collect
+              {t("game.hud.collect")}
             </button>
           </div>
         </div>
@@ -459,13 +474,15 @@ export function GameView(props: Props) {
       {modal === "pause" && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm anim-fade-in">
           <div className="pixel-panel pixel-corners anim-pop w-full max-w-sm p-7">
-            <h2 className="font-pixel mb-6 text-center text-2xl font-black tracking-[0.3em] text-slate-100">Paused</h2>
+            <h2 className="font-pixel mb-6 text-center text-2xl font-black tracking-[0.3em] text-slate-100">
+              {t("game.hud.paused")}
+            </h2>
             <div className="flex flex-col gap-3">
               <button onClick={resume} className="pixel-btn pixel-corners btn-gold py-3 text-sm">
-                Resume
+                {t("game.hud.resume")}
               </button>
               <button onClick={() => props.onRestart(props.endless)} className="pixel-btn pixel-corners btn-slate py-3 text-sm">
-                Restart Run
+                {t("game.hud.restart")}
               </button>
               <div className="hud-chip pixel-corners flex items-center justify-between gap-3 px-4 py-2.5">
                 <span className="font-pixel text-[10px] text-slate-400">SFX</span>
@@ -492,7 +509,7 @@ export function GameView(props: Props) {
                 />
               </div>
               <button onClick={props.onQuit} className="pixel-btn pixel-corners btn-danger py-3 text-sm">
-                Quit to Menu
+                {t("game.hud.quit")}
               </button>
             </div>
           </div>
@@ -531,34 +548,35 @@ function EndScreen({
   onEndless: () => void;
   onQuit: () => void;
 }) {
+  const { t } = useI18n();
   const { stats: s, newAch } = data;
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm anim-fade-in">
       <div className="pixel-panel pixel-corners anim-pop w-full max-w-lg p-8 text-center">
         <p className="font-pixel text-[10px] tracking-[0.4em] text-slate-400">
-          {s.victory ? "Stage cleared" : "You were consumed by the dusk"}
+          {s.victory ? t("game.hud.stageCleared") : t("game.hud.consumed")}
         </p>
         <h2
           className={`font-pixel mt-2 text-4xl font-black tracking-[0.15em] ${
             s.victory ? "shimmer-text" : "text-red-400 text-hard-shadow"
           }`}
         >
-          {s.victory ? "VICTORY" : "DEFEAT"}
+          {s.victory ? t("game.hud.victory") : t("game.hud.defeat")}
         </h2>
 
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <StatBox icon="icon_clock" label="Time" value={formatTime(s.time)} />
-          <StatBox icon="icon_skull" label="Kills" value={s.kills} />
-          <StatBox icon="icon_star" label="Level" value={s.level} />
-          <StatBox icon="icon_coin" label="Coins" value={formatCoins(s.coins)} />
-          <StatBox icon="icon_heart" label="Damage taken" value={s.damageTaken} />
-          <StatBox icon="icon_growth" label="Gems" value={s.gems} />
+          <StatBox icon="icon_clock" label={t("game.hud.time")} value={formatTime(s.time)} />
+          <StatBox icon="icon_skull" label={t("game.hud.kills")} value={s.kills} />
+          <StatBox icon="icon_star" label={t("game.hud.level")} value={s.level} />
+          <StatBox icon="icon_coin" label={t("game.hud.coins")} value={formatCoins(s.coins)} />
+          <StatBox icon="icon_heart" label={t("game.hud.damageTaken")} value={s.damageTaken} />
+          <StatBox icon="icon_growth" label={t("game.hud.gems")} value={s.gems} />
         </div>
 
         {newAch.length > 0 && (
           <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3">
             <p className="font-pixel text-[10px] tracking-[0.2em] text-amber-300">
-              New achievements · {newAch.length}
+              {t("game.hud.newAch")} · {newAch.length}
             </p>
           </div>
         )}
@@ -566,14 +584,14 @@ function EndScreen({
         <div className="mt-7 flex flex-col gap-3">
           {s.victory && !endless && (
             <button onClick={onEndless} className="pixel-btn pixel-corners btn-gold py-3 text-sm">
-              ∞ Continue in Endless Mode
+              {t("game.hud.endless")}
             </button>
           )}
           <button onClick={onRetry} className="pixel-btn pixel-corners btn-slate py-3 text-sm">
-            Retry Run
+            {t("game.hud.retry")}
           </button>
           <button onClick={onQuit} className="pixel-btn pixel-corners btn-ghost py-3 text-sm">
-            Back to Title
+            {t("game.hud.backToTitle")}
           </button>
         </div>
       </div>

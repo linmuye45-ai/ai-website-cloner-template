@@ -1,4 +1,5 @@
 import { audio } from "./audio";
+import { tBossName, tEngine, tEvoWeaponName, tStageName } from "./i18n";
 import {
   CHARACTERS,
   ENEMIES,
@@ -432,7 +433,7 @@ export class GameEngine {
         this.burst(this.px, this.py, 16, "#fde68a", 150);
         this.shake = 12;
         audio.play("unlock");
-        this.cb.onBanner(evoDef.name, "Weapon evolved");
+        this.cb.onBanner(tEvoWeaponName(evoDef.id, evoDef.name), tEngine("evoBanner"));
         this.cb.onAchievement("evolve_weapon");
       } else {
         const existing = this.weaponStates.get(choice.id);
@@ -777,7 +778,7 @@ export class GameEngine {
     this.bossRef = boss;
     this.shake = 14;
     audio.play("boss");
-    this.cb.onBanner(def.name, "A boss approaches");
+    this.cb.onBanner(tBossName(def.id, def.name), tEngine("bossApproaches"));
   }
 
   // -------------------------------------------------------------------------
@@ -1142,7 +1143,7 @@ export class GameEngine {
           audio.play("lightning");
           if (this.time - this.lastFuseToast > 2.5) {
             this.lastFuseToast = this.time;
-            this.cb.onToast("Something is about to blow!");
+            this.cb.onToast(tEngine("fuseWarn"));
           }
         }
         if (e.fuse !== undefined) {
@@ -1276,7 +1277,10 @@ export class GameEngine {
     e.castTimer = 2.4;
     this.shake = 16;
     audio.play("boss");
-    this.cb.onBanner(`${e.def.name} enrages`, "Phase 2 — swarm and bullet hell");
+    this.cb.onBanner(
+      tEngine("enrageTitle", { name: tBossName(e.def.id, e.def.name) }),
+      tEngine("enrageSub"),
+    );
     this.spawnRing(e.x, e.y, 140, "#f87171");
     this.burst(e.x, e.y, 36, "#f87171", 240);
     this.burst(e.x, e.y, 14, "#fde047", 160);
@@ -1553,7 +1557,7 @@ export class GameEngine {
         break;
       case "magnet":
         this.magnetTimer = 6;
-        this.cb.onToast("Lodestone surge — all gems drawn in!");
+        this.cb.onToast(tEngine("magnetSurge"));
         audio.play("unlock");
         break;
       case "chest":
@@ -1832,7 +1836,7 @@ export class GameEngine {
       characterId: this.character.id,
       weapons: [...this.weaponStates.keys()],
     };
-    if (victory) this.cb.onBanner("Stage Cleared", this.stage.name);
+    if (victory) this.cb.onBanner(tEngine("stageCleared"), tStageName(this.stage.id, this.stage.name));
   }
 
   continueEndless(): void {

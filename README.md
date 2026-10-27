@@ -16,7 +16,35 @@ React 19 and the **Canvas 2D API** (no Three.js, no DOM-rectangle "models").
 ```bash
 npm install
 npm run dev      # http://localhost:3000
+npm run build    # emits a fully static site into out/ (no server needed)
 ```
+
+The production build is a **self-contained static export** in `out/`. It runs from
+any static host (GitHub Pages, Cloudflare Pages, Netlify, S3, nginx) and never
+depends on a long-lived Node process. A service worker (`public/sw.js`) caches the
+app shell after the first visit, so the game also works **offline** and can be
+installed as a PWA. No external fonts, CDNs or trackers are loaded, so the site
+behaves identically across regions.
+
+### Languages
+
+Four fully localized experiences — English, 简体中文, 日本語 and Español — with
+`hreflang` alternates, localized OG metadata and an in-game language switcher
+(preference persisted in `localStorage`, browser language auto-detected on first
+visit). Marketing/legal pages live under `/en/`, `/zh/`, `/ja/`, `/es/`; the game
+itself is `/play` and switches language client-side.
+
+### Permanent deployment
+
+**GitHub Pages (recommended, zero cost):** push to `master` (or an `arena/**`
+branch) and the `Deploy to GitHub Pages` workflow publishes `out/` automatically.
+One-time setup: repository **Settings → Pages → Source: GitHub Actions**. The
+workflow sets `NEXT_PUBLIC_BASE_PATH=/<repo-name>` automatically for project
+sites; for a custom domain set repository variables `BASE_PATH` (empty) and
+`SITE_URL`.
+
+**Any other static host:** upload the contents of `out/`. For sub-path hosting,
+build with `NEXT_PUBLIC_BASE_PATH=/your-path`; for an apex domain leave it empty.
 
 ### Controls
 
@@ -75,13 +103,17 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
 
 ```
 src/
-  app/                     Next.js App Router
-    page.tsx               SSR marketing landing page (hero, features, FAQ, footer)
-    layout.tsx, globals.css  metadata, JSON-LD, PWA icons, dark gothic pixel theme
+  app/                     Next.js App Router (static export, no server runtime)
+    page.tsx               root redirect to the visitor's localized landing
+    [locale]/              /en /zh /ja /es marketing + legal pages (hreflang)
     play/page.tsx          state-driven screen machine: title / select / manual /
                            collection / game, with hash deep-linking
-    privacy/, terms/       first-party legal pages (localStorage-only data model)
+    layout.tsx, globals.css  metadata, JSON-LD, PWA icons, dark gothic pixel theme
     sitemap.ts, robots.ts, manifest.ts  SEO/GEO and PWA MetadataRoute files
+  i18n/
+    config.ts              locale list, detection, persistence, BCP-47 tags
+    dictionaries/          en/zh/ja/es full dictionaries (type-checked key parity)
+    I18nProvider.tsx       client provider, useI18n hook, language switcher
   components/game/
     GameView.tsx           canvas host + HUD + all modals + touch joystick
     TitleScreen.tsx        animated pixel-diorama landing screen
@@ -89,16 +121,21 @@ src/
     HowToPlay.tsx          weapon / relic / evolution / pickup field manual
     CollectionScreen.tsx  bestiary, stage records, achievements
     AmbientCanvas.tsx      hero firefly/night-fog particle backdrop
+    ServiceWorkerRegistrar.tsx  offline PWA registration
     SpriteIcon.tsx         renders any pixel sprite into React
   game/
     engine.ts              fixed-step game engine: spawning director, combat, AI,
                            collision, pickups, particles, camera, full renderer
+    i18n.ts                self-contained engine-side banner/toast localization
     sprites.ts             pixel-map sprite factory + recolor + ground tile generator
     content.ts             weapons, relics, characters, enemies, stages, achievements
     audio.ts               Web Audio chiptune music + synthesized SFX
     storage.ts             save/load, run settlement, achievement evaluation
     types.ts               shared types
   lib/format.ts            time / number formatting
+public/
+  sw.js                   offline-first cache-first service worker
+  og.png, icon-192/512.png original share card and PWA icons
 scripts/
   smoke-test.cjs           headless engine smoke tests (npm run smoke)
   render-sprites.cjs       exports every sprite to a PNG contact sheet for art review

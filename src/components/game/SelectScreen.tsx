@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CHARACTERS, STAGES, WEAPONS } from "@/game/content";
 import type { SaveData } from "@/game/types";
 import { formatCoins, formatTime } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
+import { LocaleSwitcher } from "@/i18n/I18nProvider";
 import { SpriteIcon } from "./SpriteIcon";
 
 interface Props {
@@ -14,6 +16,8 @@ interface Props {
 }
 
 export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
+  const { t, characterName, characterTitle, characterDesc, characterUnlock, weaponName, stageName, stageSubtitle, stageDesc } =
+    useI18n();
   const [characterId, setCharacterId] = useState("aldric");
   const [stageId, setStageId] = useState("graveyard");
   const character = CHARACTERS.find((c) => c.id === characterId)!;
@@ -21,7 +25,7 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
   const canAfford = save.coins >= character.cost;
 
   return (
-    <div className="relative min-h-screen w-full bg-[#0b0f14]">
+    <div className="relative min-h-screen bg-[#0b0f14]">
       <div
         className="pointer-events-none absolute inset-0 opacity-60"
         style={{
@@ -31,19 +35,24 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
       />
       <header className="relative z-10 flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-10">
         <button onClick={onBack} className="pixel-btn pixel-corners btn-ghost px-4 py-2 text-xs">
-          ← Back
+          {t("game.select.back")}
         </button>
-        <h1 className="font-pixel text-lg font-black tracking-[0.25em] text-slate-100">Prepare for Dusk</h1>
-        <div className="hud-chip pixel-corners flex items-center gap-2 px-3 py-2">
-          <SpriteIcon name="icon_coin" size={18} />
-          <span className="font-pixel text-sm font-bold text-amber-300">{formatCoins(save.coins)}</span>
+        <h1 className="font-pixel text-lg font-black tracking-[0.25em] text-slate-100">{t("game.select.heading")}</h1>
+        <div className="flex items-center gap-3">
+          <LocaleSwitcher compact />
+          <div className="hud-chip pixel-corners flex items-center gap-2 px-3 py-2">
+            <SpriteIcon name="icon_coin" size={18} />
+            <span className="font-pixel text-sm font-bold text-amber-300">{formatCoins(save.coins)}</span>
+          </div>
         </div>
       </header>
 
       <main className="relative z-10 mx-auto grid max-w-6xl gap-6 px-5 py-8 lg:grid-cols-[1.05fr_1fr]">
         {/* Characters */}
         <section className="pixel-panel pixel-corners p-5 anim-fade-up">
-          <h2 className="font-pixel mb-4 text-sm font-bold tracking-[0.2em] text-amber-300">Choose Survivor</h2>
+          <h2 className="font-pixel mb-4 text-sm font-bold tracking-[0.2em] text-amber-300">
+            {t("game.select.chooseSurvivor")}
+          </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
             {CHARACTERS.map((c) => {
               const isOwned = save.owned.includes(c.id);
@@ -70,9 +79,9 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
                   </div>
                   <div className="text-center">
                     <p className="font-pixel text-xs font-bold" style={{ color: c.accent }}>
-                      {c.name}
+                      {characterName(c.id)}
                     </p>
-                    <p className="font-pixel text-[9px] text-slate-400">{c.title}</p>
+                    <p className="font-pixel text-[9px] text-slate-400">{characterTitle(c.id)}</p>
                   </div>
                 </button>
               );
@@ -84,29 +93,31 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
               <SpriteIcon name={character.sprite} size={56} />
               <div>
                 <p className="font-pixel text-base font-bold" style={{ color: character.accent }}>
-                  {character.name} <span className="text-slate-400">· {character.title}</span>
+                  {characterName(character.id)} <span className="text-slate-400">· {characterTitle(character.id)}</span>
                 </p>
-                <p className="mt-1 text-xs text-slate-300">{character.desc}</p>
+                <p className="mt-1 text-xs text-slate-300">{characterDesc(character.id)}</p>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 font-pixel text-[10px] text-slate-300 sm:grid-cols-3">
-              <Stat label="Health" value={character.stats.maxHp} />
-              <Stat label="Speed" value={character.stats.speed} />
-              <Stat label="Might" value={`${Math.round(character.stats.might * 100)}%`} />
-              <Stat label="Armor" value={character.stats.armor} />
-              <Stat label="Cooldown" value={`${Math.round(character.stats.cooldown * 100)}%`} />
-              <Stat label="Magnet" value={character.stats.magnet} />
+              <Stat label={t("game.select.statHealth")} value={character.stats.maxHp} />
+              <Stat label={t("game.select.statSpeed")} value={character.stats.speed} />
+              <Stat label={t("game.select.statMight")} value={`${Math.round(character.stats.might * 100)}%`} />
+              <Stat label={t("game.select.statArmor")} value={character.stats.armor} />
+              <Stat label={t("game.select.statCooldown")} value={`${Math.round(character.stats.cooldown * 100)}%`} />
+              <Stat label={t("game.select.statMagnet")} value={character.stats.magnet} />
             </div>
             <div className="mt-3 flex items-center gap-2 font-pixel text-[10px] text-slate-400">
               <SpriteIcon name={WEAPONS[character.weapon].icon} size={18} />
-              Starts with <span className="text-slate-200">{WEAPONS[character.weapon].name}</span>
+              {t("game.select.startsWith")} <span className="text-slate-200">{weaponName(character.weapon)}</span>
             </div>
           </div>
         </section>
 
         {/* Stages */}
         <section className="pixel-panel pixel-corners p-5 anim-fade-up" style={{ animationDelay: "80ms" }}>
-          <h2 className="font-pixel mb-4 text-sm font-bold tracking-[0.2em] text-amber-300">Choose Stage</h2>
+          <h2 className="font-pixel mb-4 text-sm font-bold tracking-[0.2em] text-amber-300">
+            {t("game.select.chooseStage")}
+          </h2>
           <div className="flex flex-col gap-3">
             {STAGES.map((s) => {
               const active = s.id === stageId;
@@ -121,14 +132,14 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-pixel text-[10px] tracking-[0.3em]" style={{ color: s.accent }}>
-                      {s.subtitle}
+                      {stageSubtitle(s.id)}
                     </span>
                     {best?.victory && <SpriteIcon name="icon_trophy" size={16} />}
                   </div>
-                  <p className="font-pixel mt-1 text-sm font-bold text-slate-100">{s.name}</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{s.desc}</p>
+                  <p className="font-pixel mt-1 text-sm font-bold text-slate-100">{stageName(s.id)}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{stageDesc(s.id)}</p>
                   <div className="mt-3 flex flex-wrap gap-2 font-pixel text-[9px]">
-                    <span className="hud-chip pixel-corners px-2 py-1 text-slate-300">15:00 survival</span>
+                    <span className="hud-chip pixel-corners px-2 py-1 text-slate-300">{t("game.select.survival")}</span>
                     <span className="hud-chip pixel-corners px-2 py-1 text-red-300">
                       HP ×{s.hpScale.toFixed(2)}
                     </span>
@@ -137,7 +148,7 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
                     </span>
                     {best && (
                       <span className="hud-chip pixel-corners px-2 py-1 text-emerald-300">
-                        Best {formatTime(best.time)} · {best.kills} kills
+                        {t("game.select.best")} {formatTime(best.time)} · {best.kills} {t("game.hud.kills")}
                       </span>
                     )}
                   </div>
@@ -152,7 +163,7 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
                 onClick={() => onStart(characterId, stageId)}
                 className="pixel-btn pixel-corners btn-gold w-full py-4 text-base"
               >
-                ▶ Begin Run
+                {t("game.select.beginRun")}
               </button>
             ) : (
               <button
@@ -161,11 +172,11 @@ export function SelectScreen({ save, onBack, onStart, onPurchase }: Props) {
                 className="pixel-btn pixel-corners btn-gold w-full py-4 text-sm"
               >
                 {canAfford
-                  ? `Recruit ${character.name} — ${character.cost} coins`
-                  : `Need ${character.cost - save.coins} more coins`}
+                  ? `${t("game.select.recruit")} ${characterName(character.id)} — ${character.cost} ${t("game.hud.coins")}`
+                  : `${t("game.select.needMore")} ${character.cost - save.coins} ${t("game.hud.coins")}`}
               </button>
             )}
-            <p className="mt-2 text-center font-pixel text-[9px] text-slate-500">{character.unlockHint}</p>
+            <p className="mt-2 text-center font-pixel text-[9px] text-slate-500">{characterUnlock(character.id)}</p>
           </div>
         </section>
       </main>

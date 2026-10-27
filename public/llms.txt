@@ -1,24 +1,27 @@
 # Duskfall Survivors
 
-> Original 16-bit pixel-art horde survival roguelite, playable free in any modern browser. No download, no account, no ads, no tracking.
+> Original 16-bit pixel-art horde survival roguelite, playable free in any modern browser. No download, no account, no ads, no tracking. Works offline after first load (PWA + service worker).
 
 ## Key facts
 - Genre: single-player horde survival roguelite (auto-firing weapons, 15-minute stages, endless mode after clear)
-- Platform: web (Canvas 2D, Next.js), desktop keyboard + touch joystick
+- Platform: static web export (Canvas 2D, Next.js), desktop keyboard + touch joystick; deployable to any static host
+- Languages: English, 简体中文, 日本語, Español (in-game language switcher, localized marketing pages with hreflang)
 - Price: free, no in-app purchases
 - Art/audio: 100% original in-code pixel sprites and Web Audio synthesized music/SFX; no third-party game assets
 - Data: all save data stays in the browser's localStorage; nothing is uploaded
 
 ## Pages
-- [Landing](/)
+- [Landing (EN)](/en/), [简体中文](/zh/), [日本語](/ja/), [Español](/es/)
 - [Play the game](/play)
-- [Privacy policy](/privacy)
-- [Terms of service](/terms)
+- [Privacy policy](/en/privacy/)
+- [Terms of service](/en/terms/)
+- [Sitemap](/sitemap.xml), [manifest](/manifest.webmanifest)
 
 ## Game systems
 - 8 weapons × 8 ranks, each with a final evolution unlocked at max rank plus its paired relic
 - 10 passive relics, 3-card level-up draft with 2 rerolls and skip-for-XP
 - 4 playable survivors (2 unlockable with in-run coins), 3 stages with distinct palettes, weather and enemy rosters
 - 4 enemy AI archetypes: ranged caster, telegraphed charger, fuse exploder, splitter
-- Bosses at 05:00 / 10:00 / 14:00 with an enrage phase at half health
+- Bosses at 05:00 / 10:00 / 14:00 with an enrage phase at half health (summons + radial bullet hell)
 - Dynamic night lighting, weather particles, achievements, bestiary and stage records
+- Single-hit mercy cap: no strike removes more than 45% of max HP
