@@ -105,9 +105,15 @@ export function Nav() {
 
           <a
             href="#ladder"
+            className="hidden rounded-full border border-line-strong px-4 py-2 text-[13px] text-paper transition-colors hover:border-gold/50 hover:bg-gold/[0.06] sm:block"
+          >
+            看千亿阶梯
+          </a>
+          <a
+            href="./app/index.html"
             className="glow-gold rounded-full bg-gold px-4 py-2 text-[13px] font-medium text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
           >
-            看千亿阶梯 →
+            打开 App →
           </a>
         </div>
 

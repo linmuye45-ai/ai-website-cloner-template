@@ -10,6 +10,7 @@ const basePath = isPages
 const nextConfig: NextConfig = {
   output: isPages ? "export" : "standalone",
   basePath,
+  trailingSlash: true,
   images: { unoptimized: true },
 };
 

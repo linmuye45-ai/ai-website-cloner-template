@@ -162,16 +162,22 @@ export function Hero() {
         <Reveal delay={260}>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
-              href="#sheet"
+              href="./app/index.html"
               className="glow-gold rounded-full bg-gold px-7 py-3.5 text-[15px] font-medium text-ink transition-transform hover:scale-[1.03] active:scale-[0.98]"
             >
-              看一张真实的到岸表 ↓
+              打开 App,自己生成一张到岸表 →
+            </a>
+            <a
+              href="#sheet"
+              className="rounded-full border border-line-strong px-7 py-3.5 text-[15px] text-paper transition-colors hover:border-gold/50 hover:bg-gold/[0.06]"
+            >
+              先看一张真实的 ↓
             </a>
             <a
               href="#ladder"
-              className="rounded-full border border-line-strong px-7 py-3.5 text-[15px] text-paper transition-colors hover:border-gold/50 hover:bg-gold/[0.06]"
+              className="text-[13px] text-muted-ink underline-offset-4 transition-colors hover:text-paper hover:underline"
             >
-              看千亿阶梯 · 估值 $30M → $100B
+              或看千亿阶梯 · 估值 $30M → $100B
             </a>
           </div>
         </Reveal>

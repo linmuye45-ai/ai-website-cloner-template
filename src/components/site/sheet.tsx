@@ -335,8 +335,14 @@ export function Sheet() {
                 </div>
               </div>
               <a
-                href="#ladder"
+                href="./app/index.html"
                 className="shrink-0 rounded-full bg-gold px-6 py-3 text-[14px] font-medium text-ink transition-transform hover:scale-[1.03]"
+              >
+                自己生成一张 →
+              </a>
+              <a
+                href="#ladder"
+                className="shrink-0 rounded-full border border-line-strong px-6 py-3 text-[14px] text-paper hover:border-gold/50"
               >
                 这张表如何变成 $100B →
               </a>
