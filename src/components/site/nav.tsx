@@ -7,6 +7,7 @@ const LINKS = [
   { href: "#sheet", label: "到岸表" },
   { href: "#edge", label: "为什么是我们" },
   { href: "#ladder", label: "千亿阶梯" },
+  { href: "#moat", label: "护城河" },
   { href: "#odds", label: "诚实的概率" },
   { href: "#three", label: "三案" },
   { href: "#method", label: "方法" },
