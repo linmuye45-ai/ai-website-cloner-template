@@ -1,0 +1,394 @@
+{
+  "name": "Hearthwarden master palette",
+  "version": "1.0.0-locked",
+  "rule": "all sprites are indexed to this palette; index 0 is transparency",
+  "colors": [
+    {
+      "index": 0,
+      "id": "TRANSPARENT",
+      "hex": "#000000",
+      "role": "reserved transparency index (never painted)"
+    },
+    {
+      "index": 1,
+      "id": "INK",
+      "hex": "#16131F",
+      "role": "deepest linework / silhouette separation / UI text"
+    },
+    {
+      "index": 2,
+      "id": "PANEL",
+      "hex": "#211C2E",
+      "role": "UI panel fill / near-black interiors"
+    },
+    {
+      "index": 3,
+      "id": "STONE1",
+      "hex": "#2A2733",
+      "role": "stone shadow, mortar, cave depth"
+    },
+    {
+      "index": 4,
+      "id": "STONE2",
+      "hex": "#3A3646",
+      "role": "stone mid-shadow"
+    },
+    {
+      "index": 5,
+      "id": "STONE3",
+      "hex": "#4E495C",
+      "role": "stone base midtone"
+    },
+    {
+      "index": 6,
+      "id": "STONE4",
+      "hex": "#676078",
+      "role": "stone lit midtone"
+    },
+    {
+      "index": 7,
+      "id": "STONE5",
+      "hex": "#857D94",
+      "role": "stone highlight"
+    },
+    {
+      "index": 8,
+      "id": "STONE6",
+      "hex": "#A79FB4",
+      "role": "stone bright edge, plaster"
+    },
+    {
+      "index": 9,
+      "id": "STONE7",
+      "hex": "#CBC3D6",
+      "role": "sunlit stone top, rim light"
+    },
+    {
+      "index": 10,
+      "id": "FOL1",
+      "hex": "#16281C",
+      "role": "foliage interior shadow, canopy gaps"
+    },
+    {
+      "index": 11,
+      "id": "FOL2",
+      "hex": "#1F3D28",
+      "role": "foliage deep"
+    },
+    {
+      "index": 12,
+      "id": "FOL3",
+      "hex": "#2E5A37",
+      "role": "foliage base"
+    },
+    {
+      "index": 13,
+      "id": "FOL4",
+      "hex": "#477A45",
+      "role": "foliage midtone"
+    },
+    {
+      "index": 14,
+      "id": "FOL5",
+      "hex": "#6AA252",
+      "role": "foliage lit"
+    },
+    {
+      "index": 15,
+      "id": "FOL6",
+      "hex": "#A4CC6A",
+      "role": "leaf highlight"
+    },
+    {
+      "index": 16,
+      "id": "FOL7",
+      "hex": "#D6E88A",
+      "role": "sunlit leaf tip (focal sparkle)"
+    },
+    {
+      "index": 17,
+      "id": "TEAL1",
+      "hex": "#10282C",
+      "role": "cloak shadow / fold deep"
+    },
+    {
+      "index": 18,
+      "id": "TEAL2",
+      "hex": "#173F47",
+      "role": "cloak dark"
+    },
+    {
+      "index": 19,
+      "id": "TEAL3",
+      "hex": "#1F5C66",
+      "role": "cloak base"
+    },
+    {
+      "index": 20,
+      "id": "TEAL4",
+      "hex": "#2D7F8A",
+      "role": "cloak lit"
+    },
+    {
+      "index": 21,
+      "id": "TEAL5",
+      "hex": "#49A8B0",
+      "role": "cloak highlight"
+    },
+    {
+      "index": 22,
+      "id": "TEAL6",
+      "hex": "#86D4D2",
+      "role": "cloak rim / sun edge"
+    },
+    {
+      "index": 23,
+      "id": "RED1",
+      "hex": "#3A1420",
+      "role": "red shadow, lining dark"
+    },
+    {
+      "index": 24,
+      "id": "RED2",
+      "hex": "#6A2230",
+      "role": "red dark"
+    },
+    {
+      "index": 25,
+      "id": "RED3",
+      "hex": "#9C3540",
+      "role": "red base, UI danger"
+    },
+    {
+      "index": 26,
+      "id": "RED4",
+      "hex": "#D15C52",
+      "role": "red lit"
+    },
+    {
+      "index": 27,
+      "id": "RED5",
+      "hex": "#F29578",
+      "role": "red rim / warm skin flush"
+    },
+    {
+      "index": 28,
+      "id": "WOOD1",
+      "hex": "#2B1A14",
+      "role": "wood shadow, bark groove"
+    },
+    {
+      "index": 29,
+      "id": "WOOD2",
+      "hex": "#452B1C",
+      "role": "wood dark"
+    },
+    {
+      "index": 30,
+      "id": "WOOD3",
+      "hex": "#6B4426",
+      "role": "wood base"
+    },
+    {
+      "index": 31,
+      "id": "WOOD4",
+      "hex": "#96653A",
+      "role": "wood lit"
+    },
+    {
+      "index": 32,
+      "id": "WOOD5",
+      "hex": "#C7955C",
+      "role": "wood highlight / worn edge"
+    },
+    {
+      "index": 33,
+      "id": "SKIN1",
+      "hex": "#5A3A32",
+      "role": "skin shadow (jaw, neck)"
+    },
+    {
+      "index": 34,
+      "id": "SKIN2",
+      "hex": "#8A5C4A",
+      "role": "skin midtone"
+    },
+    {
+      "index": 35,
+      "id": "SKIN3",
+      "hex": "#BD8A6E",
+      "role": "skin base"
+    },
+    {
+      "index": 36,
+      "id": "SKIN4",
+      "hex": "#E8BF9C",
+      "role": "skin highlight (cheek, nose)"
+    },
+    {
+      "index": 37,
+      "id": "METAL1",
+      "hex": "#23262E",
+      "role": "metal shadow"
+    },
+    {
+      "index": 38,
+      "id": "METAL2",
+      "hex": "#3D4450",
+      "role": "metal dark"
+    },
+    {
+      "index": 39,
+      "id": "METAL3",
+      "hex": "#6B7686",
+      "role": "metal base"
+    },
+    {
+      "index": 40,
+      "id": "METAL4",
+      "hex": "#B9C4D2",
+      "role": "metal specular edge"
+    },
+    {
+      "index": 41,
+      "id": "EMBER1",
+      "hex": "#5C2417",
+      "role": "ember bed, glow falloff far"
+    },
+    {
+      "index": 42,
+      "id": "EMBER2",
+      "hex": "#A8451E",
+      "role": "ember deep"
+    },
+    {
+      "index": 43,
+      "id": "EMBER3",
+      "hex": "#E8782C",
+      "role": "flame base"
+    },
+    {
+      "index": 44,
+      "id": "EMBER4",
+      "hex": "#F7B733",
+      "role": "flame body / UI gold"
+    },
+    {
+      "index": 45,
+      "id": "EMBER5",
+      "hex": "#FFE9A8",
+      "role": "flame core / lit parchment glint"
+    },
+    {
+      "index": 46,
+      "id": "WATER1",
+      "hex": "#122B3E",
+      "role": "deep water"
+    },
+    {
+      "index": 47,
+      "id": "WATER2",
+      "hex": "#1C4663",
+      "role": "water dark"
+    },
+    {
+      "index": 48,
+      "id": "WATER3",
+      "hex": "#2F6F96",
+      "role": "water body"
+    },
+    {
+      "index": 49,
+      "id": "WATER4",
+      "hex": "#6FB4D0",
+      "role": "water glint / ripple crest"
+    },
+    {
+      "index": 50,
+      "id": "PARCH1",
+      "hex": "#D8C9A3",
+      "role": "parchment base, icon canvas"
+    },
+    {
+      "index": 51,
+      "id": "PARCH2",
+      "hex": "#F0E6C8",
+      "role": "parchment bright, text on dark"
+    }
+  ],
+  "ramps": {
+    "stone": [
+      "STONE1",
+      "STONE2",
+      "STONE3",
+      "STONE4",
+      "STONE5",
+      "STONE6",
+      "STONE7"
+    ],
+    "foliage": [
+      "FOL1",
+      "FOL2",
+      "FOL3",
+      "FOL4",
+      "FOL5",
+      "FOL6",
+      "FOL7"
+    ],
+    "teal": [
+      "TEAL1",
+      "TEAL2",
+      "TEAL3",
+      "TEAL4",
+      "TEAL5",
+      "TEAL6"
+    ],
+    "red": [
+      "RED1",
+      "RED2",
+      "RED3",
+      "RED4",
+      "RED5"
+    ],
+    "wood": [
+      "WOOD1",
+      "WOOD2",
+      "WOOD3",
+      "WOOD4",
+      "WOOD5"
+    ],
+    "skin": [
+      "SKIN1",
+      "SKIN2",
+      "SKIN3",
+      "SKIN4"
+    ],
+    "metal": [
+      "METAL1",
+      "METAL2",
+      "METAL3",
+      "METAL4"
+    ],
+    "ember": [
+      "EMBER1",
+      "EMBER2",
+      "EMBER3",
+      "EMBER4",
+      "EMBER5"
+    ],
+    "water": [
+      "WATER1",
+      "WATER2",
+      "WATER3",
+      "WATER4"
+    ],
+    "parchment": [
+      "PARCH1",
+      "PARCH2"
+    ],
+    "neutral": [
+      "INK",
+      "PANEL"
+    ]
+  }
+}

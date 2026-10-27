@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // CommonJS headless test harness compiled and run outside the app bundle
+    "scripts/game/**",
   ]),
 ]);
 

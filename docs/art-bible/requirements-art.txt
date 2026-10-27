@@ -1,0 +1,5 @@
+# Python tooling that generates the Hearthwarden art-bible reference sheets.
+# Install into a dedicated venv (see docs/art-bible/README.md). Pinned to the
+# version the sheets were authored with; Pillow >=13 is required for the
+# palette-indexed P-mode export used by scripts/art.
+Pillow==13.0.0
