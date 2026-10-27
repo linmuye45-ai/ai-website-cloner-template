@@ -4,10 +4,10 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "毛孩日报 PetDaily · 每天一张,毛孩的专属小报",
+  title: "同框 Reunion · 让没能同框的人,第一次合影",
   description:
-    "30 秒填一张,生成你家毛孩今天的专属日报:今日情绪头条、行为小报、健康观察、品种冷知识——截图就能晒。附症状自查。",
-  keywords: ["宠物", "毛孩", "宠物情绪", "日报", "PetDaily", "狗", "猫"],
+    "跨时空全家福:让没能见面的亲人第一次合影,和年轻的爸妈同框,把散落各年的照片拼成一张全家福。30 秒生成,截图就能晒。",
+  keywords: ["全家福", "老照片", "AI合影", "同框", "Reunion", "纪念", "家人"],
 };
 
 export default function RootLayout({
