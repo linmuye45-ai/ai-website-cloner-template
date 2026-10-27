@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { FOXY_BODY, MAX_HP, type HudState } from './frameConfig';
+import { ASSET_BASE } from './assets';
 
 type EnemyKind = 'frog' | 'opossum' | 'eagle';
 
@@ -71,7 +72,29 @@ export class PlayScene extends Phaser.Scene {
     };
     const mapKey = data.mapKey ?? 'level1';
     const musicKey = data.musicKey ?? 'music';
-    const map = this.make.tilemap({ key: mapKey });
+    // Clone the cached map JSON and prefix baked absolute image paths so the
+    // same map files work at site root and under the GitHub Pages subpath.
+    // Injecting into the tilemap cache is Phaser's supported way to build a
+    // map from an in-memory Tiled document.
+    const mapData = structuredClone(
+      this.cache.json.get(`map-${mapKey}`) as Record<string, unknown>,
+    ) as {
+      tilesets: { image: string }[];
+      layers: { type: string; image?: string }[];
+    };
+    for (const ts of mapData.tilesets) ts.image = `${ASSET_BASE}${ts.image}`;
+    for (const layer of mapData.layers) {
+      if (layer.type === 'imagelayer' && layer.image) {
+        layer.image = `${ASSET_BASE}${layer.image}`;
+      }
+    }
+    const runtimeKey = `tilemap-${mapKey}`;
+    if (this.cache.tilemap.has(runtimeKey)) this.cache.tilemap.remove(runtimeKey);
+    this.cache.tilemap.add(runtimeKey, {
+      format: Phaser.Tilemaps.Formats.TILED_JSON,
+      data: mapData,
+    });
+    const map = this.make.tilemap({ key: runtimeKey });
     const tileset = map.addTilesetImage('tileset', 'tileset', 16, 16, 0, 0, 1)!;
     const worldW = map.widthInPixels;
     const worldH = map.heightInPixels;

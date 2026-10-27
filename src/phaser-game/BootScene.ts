@@ -1,9 +1,9 @@
 import * as Phaser from 'phaser';
 import { FRAMES } from './frameConfig';
+import { SUNNYLAND } from './assets';
 
-const BASE = '/vendor/sunnyland';
-const TEX = `${BASE}/textures`;
-const SFX = `${BASE}/audio`;
+const TEX = `${SUNNYLAND}/textures`;
+const SFX = `${SUNNYLAND}/audio`;
 
 /**
  * Loads every SunnyLand asset and registers the animation library.
@@ -48,7 +48,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('door', `${TEX}/Props/door.png`);
     this.load.image('spikes', `${TEX}/Props/spikes.png`);
     for (const key of ['level1', 'level2', 'level3']) {
-      this.load.tilemapTiledJSON(key, `${BASE}/maps/${key}.json`);
+      // Loaded as raw JSON: PlayScene rewrites the baked image paths with
+      // ASSET_BASE before building the tilemap (subpath deploy support).
+      this.load.json(`map-${key}`, `${SUNNYLAND}/maps/${key}.json`);
     }
 
     // Audio

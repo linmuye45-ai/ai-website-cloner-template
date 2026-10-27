@@ -13,6 +13,7 @@ import {
   saveSettings,
   type SaveData,
 } from '@/phaser-game/save';
+import { SUNNYLAND } from '@/phaser-game/assets';
 
 const INITIAL_HUD: HudState = {
   hp: 3,
@@ -167,8 +168,8 @@ export default function PhaserGame() {
                       key={i}
                       src={
                         i < hud.hp
-                          ? '/vendor/sunnyland/textures/UI/Heart.png'
-                          : '/vendor/sunnyland/textures/UI/Heart-bg.png'
+                          ? `${SUNNYLAND}/textures/UI/Heart.png`
+                          : `${SUNNYLAND}/textures/UI/Heart-bg.png`
                       }
                       alt=""
                       className="h-5 w-5 object-contain [image-rendering:pixelated] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
@@ -177,11 +178,23 @@ export default function PhaserGame() {
                 </div>
                 <div className="flex items-center gap-3 rounded bg-black/45 px-2 py-1 font-mono text-xs text-amber-200">
                   <span className="flex items-center gap-1">
-                    <span className="inline-block h-[13px] w-[15px] bg-[url('/vendor/sunnyland/textures/Items/gem.png')] bg-[length:500%_100%] bg-left [image-rendering:pixelated]" />
+                    <span
+                      className="inline-block h-[13px] w-[15px] bg-left [image-rendering:pixelated]"
+                      style={{
+                        backgroundImage: `url('${SUNNYLAND}/textures/Items/gem.png')`,
+                        backgroundSize: '500% 100%',
+                      }}
+                    />
                     {hud.gems}/{hud.gemTotal}
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="inline-block h-[21px] w-[21px] bg-[url('/vendor/sunnyland/textures/Items/cherry.png')] bg-[length:500%_100%] bg-left [image-rendering:pixelated]" />
+                    <span
+                      className="inline-block h-[21px] w-[21px] bg-left [image-rendering:pixelated]"
+                      style={{
+                        backgroundImage: `url('${SUNNYLAND}/textures/Items/cherry.png')`,
+                        backgroundSize: '500% 100%',
+                      }}
+                    />
                     {hud.fruits}
                   </span>
                   <button

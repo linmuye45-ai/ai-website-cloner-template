@@ -34,6 +34,9 @@
     "typecheck": "tsc --noEmit",
     "test:game": "bash scripts/game/run-smoke-test.sh",
     "test:phaser": "node scripts/game/phaser-smoke.cjs",
+    "build:pages": "NEXT_PUBLIC_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/ai-website-cloner-template next build",
+    "deploy:pages": "bash scripts/deploy/pages.sh",
+    "resume": "bash scripts/dev/resume.sh",
     "vendor:maps": "node scripts/vendor/prepare-sunnyland.mjs",
     "check": "npm run lint && npm run typecheck && npm run build"
   },

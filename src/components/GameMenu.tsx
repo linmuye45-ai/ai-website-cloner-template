@@ -1,6 +1,7 @@
 'use client';
 
 import { LEVELS, type SaveData } from '@/phaser-game/save';
+import { SUNNYLAND } from '@/phaser-game/assets';
 
 type Props = {
   save: SaveData;
@@ -19,7 +20,7 @@ export default function GameMenu({ save, booted, onStart, onSettingsChange }: Pr
       {/* Parallax-ish backdrop from the pack */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/vendor/sunnyland/textures/Layers/back.png"
+        src={`${SUNNYLAND}/textures/Layers/back.png`}
         alt=""
         className="absolute inset-0 h-full w-full object-cover opacity-70 [image-rendering:pixelated]"
       />
@@ -28,7 +29,7 @@ export default function GameMenu({ save, booted, onStart, onSettingsChange }: Pr
       <div className="relative flex h-full flex-col items-center justify-center gap-5 p-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/vendor/sunnyland/textures/UI/title-screen.png"
+          src={`${SUNNYLAND}/textures/UI/title-screen.png`}
           alt="Sunny Land"
           className="w-56 [image-rendering:pixelated] sm:w-72"
         />
