@@ -13,6 +13,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildLevel3 } from './build-level3.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const mapsDir = join(root, 'scripts/vendor/sunnyland/maps');
@@ -21,8 +22,14 @@ const outDir = join(root, 'public/vendor/sunnyland/maps');
 const tileset = JSON.parse(await readFile(join(mapsDir, 'tileset.tsj'), 'utf8'));
 tileset.image = '/vendor/sunnyland/textures/Layers/tileset.png';
 
-for (const name of ['level0', 'level1', 'level2']) {
-  const map = JSON.parse(await readFile(join(mapsDir, `${name}.tmj`), 'utf8'));
+const level2Source = JSON.parse(await readFile(join(mapsDir, 'level2.tmj'), 'utf8'));
+const extraMaps = { level3: buildLevel3(level2Source, tileset) };
+
+for (const name of ['level0', 'level1', 'level2', 'level3']) {
+  const map =
+    name in extraMaps
+      ? extraMaps[name]
+      : JSON.parse(await readFile(join(mapsDir, `${name}.tmj`), 'utf8'));
   map.tilesets = [
     { firstgid: 1, ...tileset },
   ];

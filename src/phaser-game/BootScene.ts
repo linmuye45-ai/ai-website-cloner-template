@@ -47,10 +47,13 @@ export class BootScene extends Phaser.Scene {
     this.load.image('middle', `${TEX}/Layers/middle.png`);
     this.load.image('door', `${TEX}/Props/door.png`);
     this.load.image('spikes', `${TEX}/Props/spikes.png`);
-    this.load.tilemapTiledJSON('level1', `${BASE}/maps/level1.json`);
+    for (const key of ['level1', 'level2', 'level3']) {
+      this.load.tilemapTiledJSON(key, `${BASE}/maps/${key}.json`);
+    }
 
     // Audio
     this.load.audio('music', `${SFX}/platformer_level03_loop.ogg`);
+    this.load.audio('music2', `${SFX}/hurry_up_and_run.ogg`);
     this.load.audio('jump', `${SFX}/cartoon-jump-6462.mp3`);
     this.load.audio('hurt', `${SFX}/monster.mp3`);
     this.load.audio('dead', `${SFX}/dead-8bit-41400.mp3`);
@@ -97,6 +100,7 @@ export class BootScene extends Phaser.Scene {
     anim('enemy-death', 'enemyDeath', [0, 1, 2, 3, 4, 5], 14, 0);
     anim('item-fx', 'itemFx', [0, 1, 2, 3, 4], 14, 0);
 
-    this.scene.start('Play');
+    // Boot stays idle; the React layer starts Play with a selected level.
+    this.game.events.emit('booted');
   }
 }

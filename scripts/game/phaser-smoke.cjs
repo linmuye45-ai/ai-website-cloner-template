@@ -41,6 +41,21 @@ check('three enemy archetypes placed', (counts.frog || 0) >= 1 && (counts.opossu
 check('pickups placed', (counts.gem || 0) >= 1 && (counts.fruit || 0) >= 1);
 check('level exit (level2) exists', (counts.level2 || 0) === 1);
 
+// --- Extra stages -------------------------------------------------------
+for (const name of ['level2', 'level3']) {
+  const m2 = JSON.parse(fs.readFileSync(path.join(pub, 'maps', `${name}.json`), 'utf8'));
+  check(`${name} has main + object layers`, m2.layers.some((l) => l.name === 'main') && m2.layers.some((l) => l.type === 'objectgroup'));
+  const o2 = m2.layers.find((l) => l.type === 'objectgroup').objects;
+  const c2 = o2.reduce((acc, o) => ((acc[o.name] = (acc[o.name] || 0) + 1), acc), {});
+  check(`${name} has player/win/enemies/pickups`,
+    c2.player === 1 && (c2.win || 0) === 1 && (c2.gem || 0) >= 3 && (c2.eagle || 0) >= 1);
+}
+const l3 = JSON.parse(fs.readFileSync(path.join(pub, 'maps', 'level3.json'), 'utf8'));
+const l3counts = l3.layers.find((l) => l.type === 'objectgroup').objects
+  .reduce((acc, o) => ((acc[o.name] = (acc[o.name] || 0) + 1), acc), {});
+check('level3 is denser than source (>=6 enemies)',
+  (l3counts.frog || 0) + (l3counts.opossum || 0) + (l3counts.eagle || 0) >= 6);
+
 // --- Asset existence ----------------------------------------------------
 const files = [
   'textures/Actors/foxy.png', 'textures/Actors/frog.png',
@@ -49,7 +64,8 @@ const files = [
   'textures/FX/enemy-deadth.png', 'textures/FX/item-feedback.png',
   'textures/Layers/tileset.png', 'textures/Layers/back.png', 'textures/Layers/middle.png',
   'textures/Props/door.png', 'textures/UI/Heart.png', 'textures/UI/Heart-bg.png',
-  'audio/platformer_level03_loop.ogg', 'audio/cartoon-jump-6462.mp3',
+  'audio/platformer_level03_loop.ogg', 'audio/hurry_up_and_run.ogg',
+  'audio/cartoon-jump-6462.mp3',
   'audio/monster.mp3', 'audio/dead-8bit-41400.mp3', 'audio/punch2a.mp3',
   'audio/frog_quak-81741.mp3', 'audio/poka01.mp3', 'audio/button_click.wav',
 ];

@@ -65,7 +65,13 @@ export class PlayScene extends Phaser.Scene {
   }
 
   create(): void {
-    const map = this.make.tilemap({ key: 'level1' });
+    const data = (this.scene.settings.data ?? {}) as {
+      mapKey?: string;
+      musicKey?: string;
+    };
+    const mapKey = data.mapKey ?? 'level1';
+    const musicKey = data.musicKey ?? 'music';
+    const map = this.make.tilemap({ key: mapKey });
     const tileset = map.addTilesetImage('tileset', 'tileset', 16, 16, 0, 0, 1)!;
     const worldW = map.widthInPixels;
     const worldH = map.heightInPixels;
@@ -80,6 +86,7 @@ export class PlayScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setScrollFactor(0.45);
 
+    // level2/level3 have no decorative 'back' tile layer — tolerate its absence.
     map.createLayer('back', tileset, 0, 0);
     this.solidLayer = map.createLayer('main', tileset, 0, 0)!;
     this.solidLayer.setCollisionByProperty({ solid: true });
@@ -120,8 +127,8 @@ export class PlayScene extends Phaser.Scene {
       }
     }
 
-    // Goal door (object named "level2" is the level exit).
-    const goal = objects.find((o) => o.name === 'level2');
+    // Goal door: level1 names it "level2", later maps use "win".
+    const goal = objects.find((o) => o.name === 'level2' || o.name === 'win');
     if (goal) {
       this.door = this.physics.add.staticImage(goal.x! + 11, goal.y! + 16, 'door');
       this.physics.add.overlap(this.player, this.door, () => this.winLevel());
@@ -167,8 +174,11 @@ export class PlayScene extends Phaser.Scene {
       this.jumpBuffer = this.time.now + BUFFER_MS;
     });
 
-    // Audio bus.
-    this.music = this.sound.add('music', { loop: true, volume: 0.3 });
+    // Audio bus (volume/mute come from persisted settings via the registry).
+    const volume = (this.registry.get('volume') as number | undefined) ?? 1;
+    this.sound.volume = volume;
+    this.sound.mute = (this.registry.get('muted') as boolean | undefined) ?? false;
+    this.music = this.sound.add(musicKey, { loop: true, volume: 0.3 });
     this.music.play();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sound.stopAll());
 
@@ -402,6 +412,12 @@ export class PlayScene extends Phaser.Scene {
     this.player.setAcceleration(0, 0);
     this.player.setVelocity(0, 0);
     this.tweens.add({ targets: this.player, scaleY: 1.15, yoyo: true, duration: 160 });
+    this.game.events.emit('level-complete', {
+      mapKey: (this.scene.settings.data as { mapKey?: string })?.mapKey ?? 'level1',
+      gems: this.gems,
+      gemTotal: this.gemTotal,
+      fruits: this.fruits,
+    });
     this.emitHud();
   }
 
