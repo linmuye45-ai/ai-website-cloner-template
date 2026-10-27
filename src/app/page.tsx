@@ -1,5 +1,6 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
+import { Plain } from "@/components/site/plain";
 import { WhyNow, Edge } from "@/components/site/sections";
 import { Sheet } from "@/components/site/sheet";
 import { Ladder } from "@/components/site/ladder";
@@ -13,6 +14,7 @@ export default function Home() {
       <Nav />
       <main className="flex-1">
         <Hero />
+        <Plain />
         <WhyNow />
         <Sheet />
         <Edge />
