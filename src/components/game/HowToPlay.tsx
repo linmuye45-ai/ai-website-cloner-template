@@ -3,6 +3,9 @@
 import { PASSIVES, WEAPONS } from "@/game/content";
 import { SpriteIcon } from "./SpriteIcon";
 
+const BASE_WEAPONS = Object.values(WEAPONS).filter((w) => !w.evolvedFrom);
+const EVO_WEAPONS = Object.values(WEAPONS).filter((w) => w.evolvedFrom);
+
 interface Props {
   onBack: () => void;
 }
@@ -12,7 +15,8 @@ const LOOP = [
   { t: "Auto-fire", d: "Your weapons target and fire on their own — positioning is everything." },
   { t: "Collect", d: "Enemies drop XP gems. Walk near them and your lodestone drags them in." },
   { t: "Level up", d: "Each level pauses the fight and offers three upgrades. Stack weapons to level 8." },
-  { t: "Survive", d: "Bosses arrive at 05:00, 10:00 and 14:00. Last until 15:00 to clear the stage." },
+  { t: "Evolve", d: "A maxed weapon plus its maxed paired relic unlocks a single ultimate evolution." },
+  { t: "Survive", d: "Bosses arrive at 05:00, 10:00 and 14:00 — at half health they enrage. Last until 15:00." },
 ];
 
 const THREATS = [
@@ -44,7 +48,7 @@ export function HowToPlay({ onBack }: Props) {
       <main className="mx-auto max-w-5xl space-y-8 px-5 py-8">
         <section className="pixel-panel pixel-corners p-6 anim-fade-up">
           <h2 className="font-pixel mb-5 text-sm font-bold tracking-[0.2em] text-amber-300">The Survival Loop</h2>
-          <div className="grid gap-3 sm:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {LOOP.map((step, i) => (
               <div key={step.t} className="relative rounded-lg border border-white/10 bg-black/30 p-4">
                 <span className="font-pixel absolute -top-3 left-3 rounded bg-amber-400 px-2 py-0.5 text-[10px] font-black text-black">
@@ -60,7 +64,7 @@ export function HowToPlay({ onBack }: Props) {
         <section className="pixel-panel pixel-corners p-6 anim-fade-up">
           <h2 className="font-pixel mb-5 text-sm font-bold tracking-[0.2em] text-amber-300">Weapon Compendium</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {Object.values(WEAPONS).map((w) => (
+            {BASE_WEAPONS.map((w) => (
               <div key={w.id} className="flex items-start gap-3 rounded-lg border border-white/10 bg-black/30 p-3">
                 <div className="mt-0.5 rounded bg-white/5 p-1.5">
                   <SpriteIcon name={w.icon} size={28} />
@@ -74,6 +78,41 @@ export function HowToPlay({ onBack }: Props) {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="pixel-panel pixel-corners p-6 anim-fade-up">
+          <h2 className="font-pixel mb-2 text-sm font-bold tracking-[0.2em] text-amber-300">Evolution Forge</h2>
+          <p className="mb-5 text-[11px] leading-relaxed text-slate-400">
+            Max the weapon and its paired relic to rank 5, and the evolution appears in your next level-up draft.
+            It replaces the base weapon in the same slot.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {EVO_WEAPONS.map((evo) => {
+              const base = WEAPONS[evo.evolvedFrom!];
+              const relic = PASSIVES[evo.requires!];
+              return (
+                <div
+                  key={evo.id}
+                  className="flex items-center gap-3 rounded-lg border border-amber-400/25 bg-amber-400/5 p-3"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <SpriteIcon name={base.icon} size={26} />
+                    <span className="font-pixel text-[10px] text-slate-500">+</span>
+                    <SpriteIcon name={relic.icon} size={22} />
+                  </div>
+                  <span className="font-pixel text-sm text-amber-300">→</span>
+                  <div>
+                    <p className="font-pixel text-xs font-bold" style={{ color: evo.color }}>
+                      {evo.name}
+                    </p>
+                    <p className="font-pixel mt-0.5 text-[9px] text-slate-500">
+                      {base.name} × {relic.name}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -126,7 +165,7 @@ export function HowToPlay({ onBack }: Props) {
             <div className="mt-5 rounded-lg border border-amber-400/25 bg-amber-400/5 p-3">
               <p className="font-pixel text-[10px] leading-relaxed text-amber-200/90">
                 Tip: you can hold six weapons and six relics. When everything is maxed, level-ups
-                become Healing Salves. Plan your build before the slots fill!
+                become Healing Salves. Save relic slots for the pairs behind your evolutions!
               </p>
             </div>
           </div>

@@ -1,133 +1,113 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ensureSprites, getSprite, makeGroundTile } from "@/game/sprites";
 
-interface Wanderer {
-  sprite: string;
+interface Mote {
   x: number;
   y: number;
-  speed: number;
-  dir: 1 | -1;
-  bob: number;
-  scale: number;
-  fly: boolean;
+  r: number;
+  vy: number;
+  vx: number;
+  flicker: number;
+  hue: number;
 }
 
-const WANDER_SPRITES = ["en_zombie", "en_skeleton", "en_ghost", "en_slime", "en_bat"];
-
-// Animated pixel diorama used behind menu screens.
-export function AmbientCanvas({ tint = "#233029", speckles = ["#2a3a31", "#1d2922", "#31453a"] }: { tint?: string; speckles?: string[] }) {
+// Full-bleed decorative night backdrop for the marketing hero: drifting
+// firefly motes over a faint ground fog. Pure canvas, no game-engine deps,
+// pauses when the tab is hidden and honors prefers-reduced-motion.
+export function AmbientCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    ensureSprites();
-    const canvas = ref.current!;
-    const ctx = canvas.getContext("2d")!;
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
     let w = 0;
     let h = 0;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const motes: Mote[] = [];
 
-    const tile = makeGroundTile(tint, speckles, 48, 1337);
-    const pattern = ctx.createPattern(tile, "repeat");
-
-    const wanderers: Wanderer[] = [];
-    const seed = (): void => {
-      wanderers.length = 0;
-      const count = Math.max(8, Math.floor(window.innerWidth / 130));
-      for (let i = 0; i < count; i++) {
-        const fly = WANDER_SPRITES[i % WANDER_SPRITES.length] === "en_bat";
-        wanderers.push({
-          sprite: WANDER_SPRITES[i % WANDER_SPRITES.length],
-          x: Math.random() * window.innerWidth,
-          y: window.innerHeight * (0.35 + Math.random() * 0.55),
-          speed: 12 + Math.random() * 22,
-          dir: Math.random() > 0.5 ? 1 : -1,
-          bob: Math.random() * 10,
-          scale: 1.6 + Math.random() * 1.4,
-          fly,
-        });
-      }
-    };
-
-    const resize = (): void => {
+    const resize = () => {
       w = canvas.clientWidth;
       h = canvas.clientHeight;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
-      seed();
+      const target = Math.min(70, Math.floor((w * h) / 18000));
+      while (motes.length < target) {
+        motes.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: 1 + Math.random() * 2.2,
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: -0.12 - Math.random() * 0.35,
+          flicker: Math.random() * Math.PI * 2,
+          hue: 38 + Math.random() * 18,
+        });
+      }
+      motes.length = target;
     };
-    resize();
-    window.addEventListener("resize", resize);
 
-    let last = performance.now();
-    const loop = (ts: number): void => {
-      const dt = Math.min(0.05, (ts - last) / 1000);
-      last = ts;
-      ctx.fillStyle = tint;
-      ctx.fillRect(0, 0, w, h);
-      if (pattern) {
-        ctx.save();
-        ctx.fillStyle = pattern;
-        ctx.fillRect(0, 0, w, h);
-        ctx.restore();
-      }
-
-      // moon
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "#fef3c7";
-      ctx.beginPath();
-      ctx.arc(w - Math.min(180, w * 0.16), Math.min(130, h * 0.2), 42, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 0.18;
-      ctx.beginPath();
-      ctx.arc(w - Math.min(180, w * 0.16), Math.min(130, h * 0.2), 64, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      for (const wd of wanderers) {
-        wd.x += wd.speed * wd.dir * dt;
-        wd.bob += dt * 6;
-        if (wd.dir === 1 && wd.x > w + 60) wd.x = -60;
-        if (wd.dir === -1 && wd.x < -60) wd.x = w + 60;
-        const spr = getSprite(wd.sprite);
-        const frame = spr.frames[Math.floor(ts / 220) % spr.frames.length];
-        const dw = frame.width * wd.scale;
-        const dh = frame.height * wd.scale;
-        const yOff = wd.fly ? Math.sin(wd.bob) * 10 : 0;
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.ellipse(wd.x, wd.y + 4, dw * 0.36, 4, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 0.82;
-        ctx.save();
-        ctx.translate(wd.x, wd.y + yOff);
-        ctx.scale(wd.dir, 1);
-        ctx.drawImage(frame, -dw / 2, -dh, dw, dh);
-        ctx.restore();
-        ctx.globalAlpha = 1;
-      }
-
-      // drifting fog
-      const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, "rgba(11,15,20,0.55)");
-      grad.addColorStop(0.5, "rgba(11,15,20,0.15)");
-      grad.addColorStop(1, "rgba(11,15,20,0.75)");
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h);
+      // ground fog band
+      const grad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+      grad.addColorStop(0, "rgba(74,96,88,0)");
+      grad.addColorStop(1, "rgba(74,96,88,0.16)");
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
-      raf = requestAnimationFrame(loop);
+      for (const m of motes) {
+        if (!reduced) {
+          m.x += m.vx;
+          m.y += m.vy;
+          m.flicker += 0.03;
+          if (m.y < -8) {
+            m.y = h + 8;
+            m.x = Math.random() * w;
+          }
+          if (m.x < -8) m.x = w + 8;
+          if (m.x > w + 8) m.x = -8;
+        }
+        const alpha = 0.25 + (Math.sin(m.flicker) * 0.5 + 0.5) * 0.55;
+        ctx.beginPath();
+        ctx.fillStyle = `hsla(${m.hue}, 85%, 68%, ${alpha})`;
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.fill();
+        // soft halo
+        ctx.beginPath();
+        ctx.fillStyle = `hsla(${m.hue}, 85%, 68%, ${alpha * 0.12})`;
+        ctx.arc(m.x, m.y, m.r * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(loop);
+
+    const onVis = () => {
+      if (document.hidden) cancelAnimationFrame(raf);
+      else raf = requestAnimationFrame(draw);
+    };
+
+    resize();
+    draw();
+    window.addEventListener("resize", resize);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [tint, speckles]);
+  }, []);
 
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full" style={{ imageRendering: "pixelated" }} aria-hidden />;
+  return (
+    <canvas
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 h-full w-full"
+    />
+  );
 }

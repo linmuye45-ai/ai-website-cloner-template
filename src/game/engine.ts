@@ -43,6 +43,7 @@ interface Enemy {
   charge?: { phase: "wind" | "dash"; t: number; dirX: number; dirY: number; cooldown: number };
   fuse?: number;
   noSplit?: boolean;
+  enraged?: boolean;
 }
 
 interface EnemyBullet {
@@ -392,6 +393,7 @@ export class GameEngine {
       coins: this.coins,
       bossHp: this.bossRef ? clamp(this.bossRef.hp / this.bossRef.maxHp, 0, 1) : null,
       bossName: this.bossRef ? this.bossRef.def.name : null,
+      bossEnraged: this.bossRef?.enraged ?? false,
       paused: this.paused,
       rerolls: this.rerollsLeft,
       weapons: [...this.weaponStates.values()].map((w) => ({
@@ -412,20 +414,42 @@ export class GameEngine {
       this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.3);
       this.spawnRing(this.px, this.py, 60, "#4ade80");
     } else if (choice.kind === "weapon") {
-      const existing = this.weaponStates.get(choice.id);
-      if (existing) existing.level = choice.level;
-      else {
+      const evoDef = WEAPONS[choice.id];
+      if (evoDef.evolvedFrom) {
+        // evolution consumes the base weapon's slot rather than adding one
+        const old = this.weaponStates.get(evoDef.evolvedFrom);
+        this.weaponStates.delete(evoDef.evolvedFrom);
         this.weaponStates.set(choice.id, {
           id: choice.id,
           level: 1,
-          timer: 0.3,
+          timer: 0.2,
           pendingSlashes: [],
-          whipSide: 1,
+          whipSide: old?.whipSide ?? 1,
           orbitHits: new Map(),
         });
-      }
-      if (choice.level >= WEAPONS[choice.id].maxLevel) {
-        this.cb.onAchievement("max_weapon");
+        this.spawnRing(this.px, this.py, 150, evoDef.color);
+        this.burst(this.px, this.py, 34, evoDef.color, 230);
+        this.burst(this.px, this.py, 16, "#fde68a", 150);
+        this.shake = 12;
+        audio.play("unlock");
+        this.cb.onBanner(evoDef.name, "Weapon evolved");
+        this.cb.onAchievement("evolve_weapon");
+      } else {
+        const existing = this.weaponStates.get(choice.id);
+        if (existing) existing.level = choice.level;
+        else {
+          this.weaponStates.set(choice.id, {
+            id: choice.id,
+            level: 1,
+            timer: 0.3,
+            pendingSlashes: [],
+            whipSide: 1,
+            orbitHits: new Map(),
+          });
+        }
+        if (choice.level >= WEAPONS[choice.id].maxLevel) {
+          this.cb.onAchievement("max_weapon");
+        }
       }
     } else {
       this.passiveLevels.set(choice.id, choice.level);
@@ -760,20 +784,27 @@ export class GameEngine {
   // weapons
   // -------------------------------------------------------------------------
 
+  private stateByBehavior(behavior: string): WeaponState | undefined {
+    for (const ws of this.weaponStates.values()) {
+      if (WEAPONS[ws.id].behavior === behavior) return ws;
+    }
+    return undefined;
+  }
+
   private updateWeapons(dt: number, stats: ReturnType<GameEngine["computeStats"]>): void {
     for (const ws of this.weaponStates.values()) {
       const def = WEAPONS[ws.id];
       const lvl = def.levels[ws.level - 1];
       ws.timer -= dt;
-      if (ws.id === "aura") {
+      if (def.behavior === "aura") {
         this.updateAura(ws, lvl, stats);
         continue;
       }
-      if (ws.id === "orbital") {
+      if (def.behavior === "orbital") {
         this.updateOrbital(dt, ws, lvl, stats);
         continue;
       }
-      if (ws.id === "whip") {
+      if (def.behavior === "whip") {
         while (ws.pendingSlashes.length && ws.pendingSlashes[0] <= this.time) {
           ws.pendingSlashes.shift();
           this.spawnWhipSlash(ws);
@@ -898,7 +929,7 @@ export class GameEngine {
       }
       case "whip": {
         const count = lvl.count;
-        const ws = this.weaponStates.get("whip")!;
+        const ws = this.weaponStates.get(id)!;
         for (let i = 0; i < count; i++) ws.pendingSlashes.push(this.time + i * 0.09);
         break;
       }
@@ -954,7 +985,7 @@ export class GameEngine {
   }
 
   private spawnWhipSlash(ws: WeaponState): void {
-    const def = WEAPONS.whip;
+    const def = WEAPONS[ws.id];
     const lvl = def.levels[ws.level - 1];
     const stats = this.computeStats();
     const side = this.facing * ws.whipSide;
@@ -1030,6 +1061,15 @@ export class GameEngine {
       e.touchCd = Math.max(0, e.touchCd - dt);
       e.frameT += dt;
       e.spawnAnim = Math.max(0, e.spawnAnim - dt);
+
+      // enraged bosses keep the bullet pressure on between summons
+      if (e.boss && e.enraged) {
+        e.castTimer = (e.castTimer ?? 3) - dt;
+        if ((e.castTimer ?? 0) <= 0) {
+          e.castTimer = 3.2;
+          this.bossRadialBurst(e, 10);
+        }
+      }
 
       const dx = this.px - e.x;
       const dy = this.py - e.y;
@@ -1189,7 +1229,12 @@ export class GameEngine {
   }
 
   private hurtPlayerAt(raw: number, armor: number, sx: number, sy: number): void {
-    const dmg = Math.max(1, raw - armor);
+    const effective = Math.max(1, raw - armor);
+    // Mercy rule: no single hit removes more than 45% of max HP. Even an
+    // enraged endgame boss cannot one-shot a full-health build — there is
+    // always a window to escape between the 0.45s invulnerability frames.
+    const hitCap = Math.max(1, Math.round(this.maxHp * 0.45));
+    const dmg = Math.min(effective, hitCap);
     this.hp -= dmg;
     this.invuln = 0.45;
     this.damageTaken += dmg;
@@ -1216,7 +1261,80 @@ export class GameEngine {
     }
     this.burst(e.x, e.y, e.boss ? 6 : 3, e.boss ? "#fde047" : "#e5e7eb", 70);
     audio.play("hit");
+    if (e.boss && !e.enraged && e.hp > 0 && e.hp <= e.maxHp * 0.5) {
+      this.enrageBoss(e);
+    }
     if (e.hp <= 0) this.killEnemy(e);
+  }
+
+  // Phase 2: at half health the boss enrages — faster, hit harder, summons a
+  // swarm and unleashes a radial bullet burst, then keeps firing volleys.
+  private enrageBoss(e: Enemy): void {
+    e.enraged = true;
+    e.speed *= 1.45;
+    e.damage = Math.round(e.damage * 1.35);
+    e.castTimer = 2.4;
+    this.shake = 16;
+    audio.play("boss");
+    this.cb.onBanner(`${e.def.name} enrages`, "Phase 2 — swarm and bullet hell");
+    this.spawnRing(e.x, e.y, 140, "#f87171");
+    this.burst(e.x, e.y, 36, "#f87171", 240);
+    this.burst(e.x, e.y, 14, "#fde047", 160);
+    this.bossRadialBurst(e, 14);
+    // summon a protective swarm of six stage-appropriate minions
+    const minute = this.time / 60;
+    for (let i = 0; i < 6; i++) {
+      const id = this.pickEnemyId(minute);
+      const def = ENEMIES[id];
+      if (!def || def.boss) continue;
+      const ang = (i / 6) * TAU + Math.random() * 0.4;
+      this.spawnMinionAt(def, e.x + Math.cos(ang) * 70, e.y + Math.sin(ang) * 70, minute);
+    }
+  }
+
+  private bossRadialBurst(e: Enemy, count: number): void {
+    const bs = 172;
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * TAU + (e.phase ?? 0);
+      this.enemyBullets.push({
+        x: e.x,
+        y: e.y,
+        vx: Math.cos(ang) * bs,
+        vy: Math.sin(ang) * bs,
+        radius: 8,
+        damage: e.damage,
+        life: 5,
+        color: "#f87171",
+      });
+    }
+    this.burst(e.x, e.y, 10, "#f87171", 120);
+    audio.play("shoot");
+  }
+
+  private spawnMinionAt(def: EnemyDef, x: number, y: number, minute: number): void {
+    const s = this.scaledEnemy(def, minute);
+    this.enemies.push({
+      uid: this.uidSeq++,
+      def,
+      x,
+      y,
+      hp: s.hp,
+      maxHp: s.hp,
+      speed: s.speed,
+      damage: s.damage,
+      radius: def.radius,
+      xpValue: def.xp,
+      coinValue: def.coin,
+      hitFlash: 0,
+      knockX: 0,
+      knockY: 0,
+      phase: Math.random() * TAU,
+      frameT: Math.random(),
+      scale: def.elite ? 1.28 : 1,
+      boss: false,
+      touchCd: 0.6,
+      spawnAnim: 0.35,
+    });
   }
 
   private killEnemy(e: Enemy): void {
@@ -1489,6 +1607,7 @@ export class GameEngine {
 
     const weaponPool: UpgradeChoice[] = [];
     for (const def of Object.values(WEAPONS)) {
+      if (def.evolvedFrom) continue; // evolutions only enter the draft via the evo pool
       const owned = this.weaponStates.get(def.id);
       if (owned) {
         if (owned.level < def.maxLevel) {
@@ -1536,9 +1655,39 @@ export class GameEngine {
         });
       }
     }
+    // Evolution pool: maxed base weapon + maxed paired passive. These are
+    // build-defining spikes, so once eligible they outweigh ordinary picks.
+    const evoPool: UpgradeChoice[] = [];
+    for (const def of Object.values(WEAPONS)) {
+      if (!def.evolvedFrom || !def.requires) continue;
+      if (this.weaponStates.has(def.id)) continue;
+      const base = this.weaponStates.get(def.evolvedFrom);
+      if (!base || base.level < WEAPONS[def.evolvedFrom].maxLevel) continue;
+      const reqLevel = this.passiveLevels.get(def.requires) ?? 0;
+      if (reqLevel < PASSIVES[def.requires].maxLevel) continue;
+      evoPool.push({
+        kind: "weapon",
+        id: def.id,
+        level: 1,
+        maxLevel: 1,
+        name: def.name,
+        desc: def.desc,
+        icon: def.icon,
+        color: def.color,
+        isNew: true,
+        evolution: true,
+      });
+    }
+    // An eligible evolution is guaranteed a slot in the draft — build spikes
+    // should never be buried by ordinary raffle luck.
+    if (evoPool.length) {
+      const guaranteed = evoPool.splice(Math.floor(Math.random() * evoPool.length), 1)[0];
+      choices.push(guaranteed);
+    }
     // Weighted raffle: upgrades for gear you already own dominate the pool,
     // so builds cohere instead of drifting across sixteen level-1 items.
     const weighted: { choice: UpgradeChoice; weight: number }[] = [
+      ...evoPool.map((c) => ({ choice: c, weight: 10 })),
       ...weaponPool.map((c) => ({ choice: c, weight: c.isNew ? 2 : 4 })),
       ...passivePool.map((c) => ({ choice: c, weight: c.isNew ? 1.5 : 3 })),
     ];
@@ -1757,9 +1906,9 @@ export class GameEngine {
     this.drawTexts(ctx, camX, camY);
 
     // aura visual (always under HUD overlays)
-    const aura = this.weaponStates.get("aura");
+    const aura = this.stateByBehavior("aura");
     if (aura) {
-      const def = WEAPONS.aura;
+      const def = WEAPONS[aura.id];
       const lvl = def.levels[aura.level - 1];
       const radius = (lvl.area ?? 58) * this.computeStats().area;
       const pulse = 1 + Math.sin(this.time * 6) * 0.04;
@@ -1780,9 +1929,9 @@ export class GameEngine {
     }
 
     // orbitals
-    const orbital = this.weaponStates.get("orbital");
+    const orbital = this.stateByBehavior("orbital");
     if (orbital) {
-      const def = WEAPONS.orbital;
+      const def = WEAPONS[orbital.id];
       const lvl = def.levels[orbital.level - 1];
       const orbitR = (lvl.area ?? 52) * this.computeStats().area;
       const book = getSprite("proj_book");
@@ -2011,12 +2160,16 @@ export class GameEngine {
       ctx.fillRect(bx, by, bw * clamp(e.hp / e.maxHp, 0, 1), 3);
     }
     if (e.boss) {
-      // handled via HUD bar; add subtle aura
-      ctx.globalAlpha = 0.25 + Math.sin(this.time * 4) * 0.1;
-      ctx.strokeStyle = e.def.id === "voidreaper" || e.def.id === "blightmoth" ? "#c4b5fd" : "#fca5a5";
-      ctx.lineWidth = 2;
+      // handled via HUD bar; enraged bosses pulse a furious red aura
+      ctx.globalAlpha = e.enraged ? 0.45 + Math.sin(this.time * 9) * 0.2 : 0.25 + Math.sin(this.time * 4) * 0.1;
+      ctx.strokeStyle = e.enraged
+        ? "#ef4444"
+        : e.def.id === "voidreaper" || e.def.id === "blightmoth"
+          ? "#c4b5fd"
+          : "#fca5a5";
+      ctx.lineWidth = e.enraged ? 3 : 2;
       ctx.beginPath();
-      ctx.arc(x, y, e.radius * scale + 5, 0, TAU);
+      ctx.arc(x, y, e.radius * scale + (e.enraged ? 8 + Math.sin(this.time * 9) * 2 : 5), 0, TAU);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }

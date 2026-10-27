@@ -156,11 +156,29 @@ for (const char of CHARACTERS) {
   assert(engine.level > 5, `multiple levels applied (level ${engine.level})`);
   assert(engine.weaponStates.size >= 1, "weapon slots populated");
 
-  // fill all slots and max every weapon / passive → heal salve fallback
-  for (const id of Object.keys(WEAPONS)) {
-    engine.weaponStates.set(id, { id, level: WEAPONS[id].maxLevel, timer: 0, pendingSlashes: [], whipSide: 1, orbitHits: new Map() });
+  // max every base weapon and every relic → all eight evolutions enter the draft
+  for (const def of Object.values(WEAPONS)) {
+    if (def.evolvedFrom) continue;
+    engine.weaponStates.set(def.id, { id: def.id, level: def.maxLevel, timer: 0, pendingSlashes: [], whipSide: 1, orbitHits: new Map() });
   }
   for (const id of Object.keys(PASSIVES)) engine.passiveLevels.set(id, PASSIVES[id].maxLevel);
+  // every draft guarantees an evolution slot while any is eligible, and
+  // repeated drafts eventually surface all eight evolutions
+  const seenEvo = new Set();
+  let everyDraftHasEvo = true;
+  for (let i = 0; i < 60; i++) {
+    const draft = engine.buildChoices();
+    const offered = draft.filter((c) => c.evolution);
+    if (offered.length === 0) everyDraftHasEvo = false;
+    offered.forEach((c) => seenEvo.add(c.id));
+  }
+  assert(everyDraftHasEvo, "eligible evolution is guaranteed a slot in every draft");
+  assert(seenEvo.size === 8, `all eight evolutions surface across drafts (got ${seenEvo.size})`);
+  // once the evolved forms are owned too, nothing remains but Healing Salve
+  for (const def of Object.values(WEAPONS)) {
+    if (!def.evolvedFrom) continue;
+    engine.weaponStates.set(def.id, { id: def.id, level: 1, timer: 0, pendingSlashes: [], whipSide: 1, orbitHits: new Map() });
+  }
   const fallback = engine.buildChoices();
   assert(fallback[0].id === "heal_salve", "fully maxed build offers Healing Salve");
   engine.destroy();
@@ -310,12 +328,137 @@ for (const char of CHARACTERS) {
     const engine = new GameEngine(makeCanvas(), { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: mkCb() });
     engine.gainXp(600);
     const first = engine.buildChoices();
+    assert(first.length >= 3, "initial draft is well-formed before reroll");
     const rerolled = engine.rerollChoices();
     assert(rerolled !== null && engine.rerollsLeft === 1, "reroll returns fresh choices and decrements the budget");
     assert(Array.isArray(rerolled) && rerolled.length >= 3, "rerolled draft is well-formed");
     const queued = engine.levelUpQueue;
     engine.skipUpgrade();
     assert(engine.levelUpQueue === queued - 1, "skip resolves one pending level-up");
+    engine.destroy();
+  }
+}
+
+// 6c. Weapon evolution and boss phase 2
+{
+  const mkCb = (extra = {}) => ({
+    onLevelUp() {},
+    onChest() {},
+    onEnd() {},
+    onBanner() {},
+    onToast() {},
+    onAchievement() {},
+    onSeen() {},
+    onPauseChange() {},
+    ...extra,
+  });
+
+  // evolution eligibility and in-place slot replacement
+  {
+    let banners = 0;
+    const ach = [];
+    const engine = new GameEngine(makeCanvas(), {
+      characterId: "vesna",
+      stageId: "graveyard",
+      endless: false,
+      callbacks: mkCb({
+        onBanner: () => banners++,
+        onAchievement: (id) => ach.push(id),
+      }),
+    });
+    engine.weaponStates.set("bolt", {
+      id: "bolt", level: WEAPONS.bolt.maxLevel, timer: 0,
+      pendingSlashes: [], whipSide: 1, orbitHits: new Map(),
+    });
+    // negative: relic one rank short → evolution withheld
+    engine.passiveLevels.set("cooldown", PASSIVES.cooldown.maxLevel - 1);
+    assert(
+      engine.buildChoices().every((c) => c.id !== "bolt_evo"),
+      "evolution withheld until the paired relic is also maxed",
+    );
+    // positive: max both → Tempest Scepter enters the draft
+    engine.passiveLevels.set("cooldown", PASSIVES.cooldown.maxLevel);
+    const evo = engine.buildChoices().find((c) => c.id === "bolt_evo");
+    assert(!!evo && evo.evolution === true, "maxed weapon + maxed relic offers an evolution choice");
+    const slotsBefore = engine.weaponStates.size;
+    engine.pickUpgrade(evo);
+    assert(!engine.weaponStates.has("bolt") && engine.weaponStates.has("bolt_evo"), "evolution replaces the base weapon in place");
+    assert(engine.weaponStates.size === slotsBefore, "evolution reuses the slot, no slot bloat");
+    assert(ach.includes("evolve_weapon") && banners > 0, "evolution fires achievement and banner");
+    // evolved weapon keeps firing through the behavior-based weapon router
+    let proj = 0;
+    for (let f = 0; f < 240; f++) {
+      engine.update(DT);
+      proj = Math.max(proj, engine.projectiles.length);
+    }
+    assert(proj > 0, "evolved bolt weapon fires projectiles in combat");
+    engine.destroy();
+  }
+
+  // every evolution definition resolves to a real base weapon, relic and behavior
+  {
+    let bad = [];
+    for (const def of Object.values(WEAPONS)) {
+      if (!def.evolvedFrom) continue;
+      if (!WEAPONS[def.evolvedFrom] || !PASSIVES[def.requires] || def.maxLevel !== 1 || def.levels.length !== 1) {
+        bad.push(def.id);
+      }
+    }
+    assert(bad.length === 0, `all eight evolution defs are well-formed (bad: ${bad.join(",") || "none"})`);
+  }
+
+  // boss enrage at half health: stat spike, radial bullets and summon swarm
+  {
+    const engine = new GameEngine(makeCanvas(), {
+      characterId: "aldric",
+      stageId: "graveyard",
+      endless: false,
+      callbacks: mkCb(),
+    });
+    const def = ENEMIES.reaper;
+    const boss = {
+      uid: 5001, def, x: engine.px + 90, y: engine.py, hp: 10000, maxHp: 10000,
+      speed: def.speed, damage: def.damage, radius: def.radius, xpValue: def.xp,
+      coinValue: def.coin, hitFlash: 0, knockX: 0, knockY: 0, phase: 0, frameT: 0,
+      scale: 1.5, boss: true, touchCd: 1, spawnAnim: 0,
+    };
+    engine.enemies.push(boss);
+    engine.bossRef = boss;
+    const enemiesBefore = engine.enemies.length;
+    const speedBefore = boss.speed;
+    engine.damageEnemy(boss, 5200, 0);
+    assert(boss.enraged === true, "boss flips into enrage at half health");
+    assert(boss.speed > speedBefore, "enrage raises movement speed");
+    assert(engine.enemyBullets.length >= 10, "enrage unleashes a radial bullet burst");
+    assert(engine.enemies.length >= enemiesBefore + 5, "enrage summons a minion swarm");
+    assert(engine.getHud().bossEnraged === true, "HUD exposes the enrage flag");
+    // the radial volley repeats on a timer
+    const n0 = engine.enemyBullets.length;
+    boss.castTimer = 0.05;
+    for (let f = 0; f < 12; f++) engine.update(DT);
+    assert(engine.enemyBullets.length >= n0 + 8, "enraged boss fires repeated radial volleys");
+    // stability: enraged boss stays alive and simulating never throws
+    for (let f = 0; f < 360; f++) {
+      engine.update(DT);
+      engine.hp = engine.maxHp;
+    }
+    assert(boss.hp > 0 && boss.enraged, "enraged boss persists through extended combat");
+    engine.destroy();
+  }
+
+  // mercy rule: even an absurd hit cannot remove more than 45% of max HP
+  {
+    const engine = new GameEngine(makeCanvas(), {
+      characterId: "vesna",
+      stageId: "graveyard",
+      endless: false,
+      callbacks: mkCb(),
+    });
+    const max = engine.maxHp;
+    engine.hp = max;
+    engine.hurtPlayerAt(99999, 0, engine.px, engine.py);
+    assert(engine.hp >= max * 0.54, `single-hit damage capped at 45% of max HP (${engine.hp}/${max} remaining)`);
+    assert(engine.hp > 0, "capped hit can never one-shot a full-health build");
     engine.destroy();
   }
 }

@@ -1,0 +1,24 @@
+# Duskfall Survivors
+
+> Original 16-bit pixel-art horde survival roguelite, playable free in any modern browser. No download, no account, no ads, no tracking.
+
+## Key facts
+- Genre: single-player horde survival roguelite (auto-firing weapons, 15-minute stages, endless mode after clear)
+- Platform: web (Canvas 2D, Next.js), desktop keyboard + touch joystick
+- Price: free, no in-app purchases
+- Art/audio: 100% original in-code pixel sprites and Web Audio synthesized music/SFX; no third-party game assets
+- Data: all save data stays in the browser's localStorage; nothing is uploaded
+
+## Pages
+- [Landing](/)
+- [Play the game](/play)
+- [Privacy policy](/privacy)
+- [Terms of service](/terms)
+
+## Game systems
+- 8 weapons × 8 ranks, each with a final evolution unlocked at max rank plus its paired relic
+- 10 passive relics, 3-card level-up draft with 2 rerolls and skip-for-XP
+- 4 playable survivors (2 unlockable with in-run coins), 3 stages with distinct palettes, weather and enemy rosters
+- 4 enemy AI archetypes: ranged caster, telegraphed charger, fuse exploder, splitter
+- Bosses at 05:00 / 10:00 / 14:00 with an enrage phase at half health
+- Dynamic night lighting, weather particles, achievements, bestiary and stage records

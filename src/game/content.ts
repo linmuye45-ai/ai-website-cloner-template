@@ -184,7 +184,116 @@ export const WEAPONS: Record<string, WeaponDef> = {
       lv(66, 1, 2.6, { area: 188, duration: 0.45 }),
     ],
   },
+  // ------------------------------------------------------------------
+  // Evolutions: single-rank ultimate forms. Eligible once the base
+  // weapon is maxed (rank 8) and the paired passive is maxed (rank 5).
+  // ------------------------------------------------------------------
+  bolt_evo: {
+    id: "bolt_evo",
+    name: "Tempest Scepter",
+    icon: "icon_bolt",
+    behavior: "bolt",
+    desc: "Evolution: a storm of five piercing bolts that never lose their quarry.",
+    maxLevel: 1,
+    color: "#38bdf8",
+    evolvedFrom: "bolt",
+    requires: "cooldown",
+    levels: [lv(60, 5, 0.92, { speed: 400, pierce: 3 })],
+  },
+  whip_evo: {
+    id: "whip_evo",
+    name: "Solar Flail",
+    icon: "icon_whip",
+    behavior: "whip",
+    desc: "Evolution: four sweeping arcs of sunlight blaze across the battlefield.",
+    maxLevel: 1,
+    color: "#f59e0b",
+    evolvedFrom: "whip",
+    requires: "maxHp",
+    levels: [lv(72, 4, 1.0, { area: 122, duration: 0.28 })],
+  },
+  axe_evo: {
+    id: "axe_evo",
+    name: "Meteor Maul",
+    icon: "icon_axe",
+    behavior: "axe",
+    desc: "Evolution: five meteors crash down with crushing impact zones.",
+    maxLevel: 1,
+    color: "#ea580c",
+    evolvedFrom: "axe",
+    requires: "area",
+    levels: [lv(98, 5, 1.3, { speed: 300, area: 32 })],
+  },
+  dagger_evo: {
+    id: "dagger_evo",
+    name: "Galefang Barrage",
+    icon: "icon_dagger",
+    behavior: "dagger",
+    desc: "Evolution: seven fangs of wind in a rapid, piercing volley.",
+    maxLevel: 1,
+    color: "#818cf8",
+    evolvedFrom: "dagger",
+    requires: "speed",
+    levels: [lv(48, 7, 0.55, { speed: 490, pierce: 3 })],
+  },
+  aura_evo: {
+    id: "aura_evo",
+    name: "Wildheart Bloom",
+    icon: "icon_aura",
+    behavior: "aura",
+    desc: "Evolution: a vast living thicket pulses faster and hits harder.",
+    maxLevel: 1,
+    color: "#86efac",
+    evolvedFrom: "aura",
+    requires: "regen",
+    levels: [lv(38, 1, 0.3, { area: 138 })],
+  },
+  orbital_evo: {
+    id: "orbital_evo",
+    name: "Aegis Codex",
+    icon: "icon_book",
+    behavior: "orbital",
+    desc: "Evolution: five warded tomes grind a wide orbit around you.",
+    maxLevel: 1,
+    color: "#d8b4fe",
+    evolvedFrom: "orbital",
+    requires: "armor",
+    levels: [lv(60, 5, 0.95, { area: 92 })],
+  },
+  lightning_evo: {
+    id: "lightning_evo",
+    name: "Thunderhead",
+    icon: "icon_storm",
+    behavior: "lightning",
+    desc: "Evolution: seven chained strikes rain down in rapid succession.",
+    maxLevel: 1,
+    color: "#facc15",
+    evolvedFrom: "lightning",
+    requires: "luck",
+    levels: [lv(95, 7, 1.4, { duration: 0.16 })],
+  },
+  nova_evo: {
+    id: "nova_evo",
+    name: "Seraph Nova",
+    icon: "icon_nova",
+    behavior: "nova",
+    desc: "Evolution: a towering sacred fireball engulfs everything nearby.",
+    maxLevel: 1,
+    color: "#fb7185",
+    evolvedFrom: "nova",
+    requires: "might",
+    levels: [lv(95, 1, 2.2, { area: 225, duration: 0.5 })],
+  },
 };
+
+// base weapon id -> evolution id, for UI and documentation
+export const EVOLUTIONS: Record<string, string> = Object.values(WEAPONS).reduce(
+  (acc, w) => {
+    if (w.evolvedFrom) acc[w.evolvedFrom] = w.id;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
 
 export const PASSIVES: Record<string, PassiveDef> = {
   might: {
@@ -584,6 +693,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "win_one", name: "Dusk Conquered", desc: "Clear any stage.", icon: "icon_trophy" },
   { id: "level_20", name: "Ascendant", desc: "Reach level 20 in a run.", icon: "icon_star" },
   { id: "max_weapon", name: "Master of Arms", desc: "Max out any weapon.", icon: "icon_sword" },
+  { id: "evolve_weapon", name: "Apotheosis", desc: "Evolve a weapon into its ultimate form.", icon: "icon_star" },
   { id: "rich_1000", name: "Tomb Robber", desc: "Hold 1,000 coins in the vault.", icon: "icon_coin" },
   { id: "bestiary_half", name: "Field Researcher", desc: "Encounter half of the bestiary.", icon: "icon_book" },
 ];

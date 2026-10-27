@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { audio } from "@/game/audio";
-import { PASSIVES, STAGES, WEAPONS } from "@/game/content";
+import { ACHIEVEMENTS, PASSIVES, STAGES, WEAPONS } from "@/game/content";
 import { GameEngine, type ChestReward } from "@/game/engine";
 import type { HudState, RunStats, SaveData, UpgradeChoice } from "@/game/types";
 import { formatCoins, formatTime } from "@/lib/format";
@@ -40,6 +40,7 @@ const INITIAL_HUD: HudState = {
   coins: 0,
   bossHp: null,
   bossName: null,
+  bossEnraged: false,
   paused: false,
   rerolls: 2,
   weapons: [],
@@ -114,7 +115,10 @@ export function GameView(props: Props) {
         onToast: pushToast,
         onAchievement: (id) => {
           const isNew = props.onAchievement(id);
-          if (isNew) pushPopup(`Achievement unlocked — ${id}`);
+          if (isNew) {
+            const def = ACHIEVEMENTS.find((a) => a.id === id);
+            pushPopup(`Achievement unlocked — ${def?.name ?? id}`);
+          }
         },
         onSeen: props.onSeen,
         onPauseChange: (paused) => {
@@ -260,10 +264,17 @@ export function GameView(props: Props) {
           </p>
           {hud.bossHp !== null && (
             <div className="mt-1 w-44 sm:w-64">
-              <p className="font-pixel mb-1 text-[9px] tracking-[0.25em] text-red-300">{hud.bossName}</p>
+              <p className="font-pixel mb-1 text-[9px] tracking-[0.25em] text-red-300">
+                {hud.bossName}
+                {hud.bossEnraged && <span className="ml-2 animate-pulse text-red-400">ENRAGED</span>}
+              </p>
               <div className="h-2 border border-black/60 bg-black/60">
                 <div
-                  className="h-full bg-gradient-to-r from-red-600 to-rose-400"
+                  className={`h-full ${
+                    hud.bossEnraged
+                      ? "animate-pulse bg-gradient-to-r from-red-500 via-orange-400 to-red-500"
+                      : "bg-gradient-to-r from-red-600 to-rose-400"
+                  }`}
                   style={{ width: `${hud.bossHp * 100}%` }}
                 />
               </div>
@@ -360,14 +371,24 @@ export function GameView(props: Props) {
                 <button
                   key={`${c.id}-${c.level}`}
                   onClick={() => pick(c)}
-                  className="card-hover pixel-corners relative flex flex-col items-center gap-3 border-2 bg-gradient-to-b from-[#1c2636] to-[#121824] p-5 text-center"
-                  style={{ borderColor: `${c.color}55` }}
+                  className={`card-hover pixel-corners relative flex flex-col items-center gap-3 border-2 p-5 text-center ${
+                    c.evolution
+                      ? "border-amber-400 bg-gradient-to-b from-[#3a2f14] to-[#1c1608] shadow-[0_0_28px_rgba(245,197,66,0.35)]"
+                      : "bg-gradient-to-b from-[#1c2636] to-[#121824]"
+                  }`}
+                  style={{ borderColor: c.evolution ? undefined : `${c.color}55` }}
                 >
                   <span className="font-pixel absolute left-2 top-2 text-[10px] text-slate-500">{i + 1}</span>
-                  {c.isNew && (
-                    <span className="font-pixel absolute right-2 top-2 rounded bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black text-black">
-                      NEW
+                  {c.evolution ? (
+                    <span className="font-pixel absolute right-2 top-2 animate-pulse rounded bg-amber-400 px-1.5 py-0.5 text-[8px] font-black text-black">
+                      EVOLUTION
                     </span>
+                  ) : (
+                    c.isNew && (
+                      <span className="font-pixel absolute right-2 top-2 rounded bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black text-black">
+                        NEW
+                      </span>
+                    )
                   )}
                   <div className="rounded-lg bg-black/40 p-3">
                     <SpriteIcon name={c.icon} size={44} />

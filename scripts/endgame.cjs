@@ -37,7 +37,8 @@ globalThis.requestAnimationFrame = () => 0;
 globalThis.cancelAnimationFrame = () => {};
 
 const { GameEngine } = require(path.join(process.cwd(), ".smoke-build/engine.js"));
-const events = { level: 0, chest: 0, banners: [], bossKills: 0 };
+const events = { level: 0, chest: 0, banners: [], bossKills: 0, evos: [] };
+const enragedBosses = new Set();
 let lastBoss = null;
 const engine = new GameEngine(makeCanvas(), {
   characterId: "vesna",
@@ -46,7 +47,12 @@ const engine = new GameEngine(makeCanvas(), {
   callbacks: {
     onLevelUp: (c) => {
       events.level++;
-      const owned = c.find((x) => x.kind === "weapon" && !x.isNew) ?? c.find((x) => x.kind === "passive" && !x.isNew) ?? c[0];
+      const owned =
+        c.find((x) => x.evolution) ??
+        c.find((x) => x.kind === "weapon" && !x.isNew) ??
+        c.find((x) => x.kind === "passive" && !x.isNew) ??
+        c[0];
+      if (owned.evolution) events.evos.push(owned.id);
       engine.pickUpgrade(owned);
     },
     onChest: (r) => {
@@ -102,6 +108,7 @@ for (let f = 0; f < FRAMES && !engine.gameEnded; f++) {
     if (lastBoss) events.bossKills++;
     lastBoss = engine.bossRef;
   }
+  if (engine.bossRef?.enraged) enragedBosses.add(engine.bossRef.def.id);
   if (f % (60 * 60) === 0) {
     samples.push({ min: f / 3600, kills: engine.kills - prevKills, level: engine.level, alive: engine.enemies.length });
     prevKills = engine.kills;
@@ -117,6 +124,8 @@ console.log(JSON.stringify({
   levelUps: events.level,
   chests: events.chest,
   bossKills: events.bossKills,
+  enragedBosses: [...enragedBosses],
+  evolutions: events.evos,
   banners: events.banners,
   weapons: engine.getHud().weapons.map((w) => `${w.id}:${w.level}`),
   passives: engine.getHud().passives.map((p) => `${p.id}:${p.level}`),

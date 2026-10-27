@@ -49,6 +49,10 @@ export interface WeaponDef {
   maxLevel: number;
   color: string;
   levels: WeaponLevelStat[];
+  // evolution: ultimate single-rank form unlocked when `evolvedFrom` is maxed
+  // while the paired passive `requires` is also maxed.
+  evolvedFrom?: string;
+  requires?: string;
 }
 
 export type PassiveStat =
@@ -144,6 +148,7 @@ export interface UpgradeChoice {
   icon: string;
   color: string;
   isNew: boolean;
+  evolution?: boolean;
 }
 
 export interface RunStats {
@@ -169,6 +174,7 @@ export interface HudState {
   coins: number;
   bossHp: number | null;
   bossName: string | null;
+  bossEnraged: boolean;
   weapons: { id: string; level: number; icon: string }[];
   passives: { id: string; level: number; icon: string }[];
   paused: boolean;

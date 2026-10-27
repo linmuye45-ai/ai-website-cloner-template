@@ -33,9 +33,11 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
 
 ## Features
 
-- **8 weapons, 8 ranks each** — homing bolts, arcing whips, lobbing axes, directional
-  daggers, a damage aura, orbiting tomes, called lightning and a nova ring, each with
-  distinct projectile/zone/behaviour code.
+- **8 weapons, 8 ranks each, plus 8 evolutions** — homing bolts, arcing whips, lobbing
+  axes, directional daggers, a damage aura, orbiting tomes, called lightning and a nova
+  ring, each with distinct projectile/zone/behaviour code. Maxing a weapon together with
+  its paired relic unlocks a single ultimate evolution (e.g. Arcbolt Scepter + Hourglass
+  → Tempest Scepter) that replaces it in the same slot and is guaranteed a draft slot.
 - **10 passive relics** (might, cooldown, area, speed, health, magnet, regen, armor,
   growth, luck) and weighted upgrade drafts so builds cohere.
 - **4 playable survivors** (two unlockable with vault coins) and **3 hand-built stages**
@@ -43,6 +45,9 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
 - **Four enemy AI archetypes** beyond the chasing horde — ranged cultists that kite and
   fire arcane bolts, charging beetles with a telegraphed wind-up, fuse-lit bloaters that
   explode in an area, and slimes that split into smaller kin on death.
+- **Boss phase 2** — every boss enrages at half health: speed and damage spike, a minion
+  swarm is summoned and a radial bullet burst fires, then repeating bullet volleys keep
+  the pressure on. The HUD bar switches to a pulsing ENRAGED state.
 - **Dynamic night lighting** — a screen-space darkness layer deepens over the first eight
   minutes, punched through by the player's flickering light pool, projectile glows,
   lightning strikes and explosions, plus stage weather (drifting fog, spores, embers).
@@ -51,9 +56,14 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
   and screen shake.
 - **Upgrade meta controls** — two rerolls per run and a skip option that banks a quarter
   level of XP, alongside the weighted three-card draft.
-- **Full game loop** — title, character/stage select, field manual (with threat atlas),
-  bestiary & records, run HUD, level-up modals, boss chests, pause, defeat/victory
-  screens, achievements and `localStorage` persistence.
+- **Full game loop** — title, character/stage select, field manual (with threat atlas and
+  evolution forge), bestiary & records, run HUD, level-up modals, boss chests, pause,
+  defeat/victory screens, achievements and `localStorage` persistence.
+- **Storefront & compliance layer** — an SSR conversion landing page at `/` (the game
+  lives at `/play`, deep-linkable via `#howto` / `#collection` hashes), VideoGame
+  JSON-LD, Open Graph/Twitter cards generated from in-repo sprites, `sitemap.xml`,
+  `robots.txt`, PWA manifest with icons, `llms.txt` for AI crawlers, and first-party
+  privacy/terms pages disclosing the localStorage-only, no-tracking data model.
 - **Procedural presentation** — pixel sprites generated in code, ground tiles, fog
   vignette, particles, damage numbers, screen shake, chiptune music that intensifies
   with the clock and ~16 synthesized SFX.
@@ -65,16 +75,20 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
 
 ```
 src/
-  app/                     Next.js App Router (single state-driven screen machine)
-    page.tsx               routing between title / select / manual / collection / game
-    layout.tsx, globals.css  dark gothic pixel theme, scanlines, chunky UI buttons
+  app/                     Next.js App Router
+    page.tsx               SSR marketing landing page (hero, features, FAQ, footer)
+    layout.tsx, globals.css  metadata, JSON-LD, PWA icons, dark gothic pixel theme
+    play/page.tsx          state-driven screen machine: title / select / manual /
+                           collection / game, with hash deep-linking
+    privacy/, terms/       first-party legal pages (localStorage-only data model)
+    sitemap.ts, robots.ts, manifest.ts  SEO/GEO and PWA MetadataRoute files
   components/game/
     GameView.tsx           canvas host + HUD + all modals + touch joystick
     TitleScreen.tsx        animated pixel-diorama landing screen
     SelectScreen.tsx       survivor & stage selection, coin purchases
-    HowToPlay.tsx          weapon / relic / pickup field manual
+    HowToPlay.tsx          weapon / relic / evolution / pickup field manual
     CollectionScreen.tsx  bestiary, stage records, achievements
-    AmbientCanvas.tsx      menu background diorama
+    AmbientCanvas.tsx      hero firefly/night-fog particle backdrop
     SpriteIcon.tsx         renders any pixel sprite into React
   game/
     engine.ts              fixed-step game engine: spawning director, combat, AI,
@@ -89,6 +103,8 @@ scripts/
   smoke-test.cjs           headless engine smoke tests (npm run smoke)
   render-sprites.cjs       exports every sprite to a PNG contact sheet for art review
   render-scene.cjs         exports a simulated in-engine frame to PNG
+  render-og.cjs            builds og.png and PWA icons from in-repo sprites (bundled
+                           5x7 bitmap font, no external assets)
   longrun.cjs / endgame.cjs  AI-kite balance simulations (15-minute runs)
 ```
 
