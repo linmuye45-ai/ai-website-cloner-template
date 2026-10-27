@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"ViewportBoundary"]
+3:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+5:I[27201,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"到岸 LANDED — AI 原生贸易银行 · 三年 $10B · 十年 $100B"}],["$","meta","1",{"name":"description","content":"站在买方一边、为结果负责的 AI 贸易公司。一句话输入,48 小时交付到岸表:5 家经核验工厂、2026 全部关税栈、到仓每件成本。千亿路径:贸易公司 → 平台 → 信贷账面 → 基础设施。"}],["$","meta","2",{"name":"keywords","content":"Landed,到岸,AI 贸易,跨境贸易,到岸表,贸易银行,AI 原生,$10B,$100B"}],["$","link","3",{"rel":"icon","href":"../favicon.ico?favicon.0x3dzn~oxb6tn.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","4",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"K3YrwDItA90UvkqQD018Q"}
