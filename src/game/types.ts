@@ -102,6 +102,9 @@ export interface EnemyDef {
   boss?: boolean;
   elite?: boolean;
   tint?: Record<string, string>;
+  behavior?: "chaser" | "ranged" | "charger" | "exploder" | "splitter";
+  castInterval?: number;
+  fuseRadius?: number;
 }
 
 export interface StageSpawn {
@@ -123,6 +126,8 @@ export interface StageDef {
     tile: number;
   };
   fog: string;
+  dark: string; // "r,g,b" triplet used by the night lighting overlay
+  weather: "fog" | "spores" | "embers";
   props: string[];
   spawns: StageSpawn[];
   bosses: { at: number; enemy: string }[];
@@ -167,6 +172,7 @@ export interface HudState {
   weapons: { id: string; level: number; icon: string }[];
   passives: { id: string; level: number; icon: string }[];
   paused: boolean;
+  rerolls: number;
 }
 
 export interface SaveData {

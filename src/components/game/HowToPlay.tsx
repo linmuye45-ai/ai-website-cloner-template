@@ -15,6 +15,13 @@ const LOOP = [
   { t: "Survive", d: "Bosses arrive at 05:00, 10:00 and 14:00. Last until 15:00 to clear the stage." },
 ];
 
+const THREATS = [
+  { icon: "en_cultist", name: "Hooded Cultist", d: "Keeps its distance, strafes and lobs arcane bolts. Close the gap fast." },
+  { icon: "en_beetle", name: "Grave Beetle", d: "Winds up with a red mark, then dashes in a straight line. Sidestep the tell." },
+  { icon: "en_bloater", name: "Bloated One", d: "Ignites a fuse when you get close and detonates in an area. Run perpendicular." },
+  { icon: "en_slime", name: "Grave Slime", d: "Splits into two smaller slimes on death — clear the minis before they surround you." },
+];
+
 const PICKUPS = [
   { icon: "gem_1", name: "XP Gem", d: "Blue, green and red gems grant 1, 5 and 10 experience." },
   { icon: "coin", name: "Coin", d: "Banked after every run. Recruit new survivors in the vault." },
@@ -64,6 +71,23 @@ export function HowToPlay({ onBack }: Props) {
                   </p>
                   <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{w.desc}</p>
                   <p className="font-pixel mt-1.5 text-[9px] text-slate-500">8 ranks · max {w.levels[7].damage} base damage</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="pixel-panel pixel-corners p-6 anim-fade-up">
+          <h2 className="font-pixel mb-5 text-sm font-bold tracking-[0.2em] text-amber-300">Threat Atlas</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {THREATS.map((t) => (
+              <div key={t.name} className="flex items-start gap-3 rounded-lg border border-white/10 bg-black/30 p-3">
+                <div className="mt-0.5 rounded bg-white/5 p-1.5">
+                  <SpriteIcon name={t.icon} size={30} />
+                </div>
+                <div>
+                  <p className="font-pixel text-xs font-bold text-rose-300">{t.name}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{t.d}</p>
                 </div>
               </div>
             ))}

@@ -243,6 +243,83 @@ for (const char of CHARACTERS) {
   engine.destroy();
 }
 
+// 6b. New enemy archetypes
+{
+  const mkCb = () => ({ onLevelUp() {}, onChest() {}, onEnd() {}, onBanner() {}, onToast() {}, onAchievement() {}, onSeen() {}, onPauseChange() {} });
+  const craft = (id, x, y) => {
+    const def = ENEMIES[id];
+    return {
+      uid: engine_uid(), def, x, y, hp: def.hp * 4, maxHp: def.hp * 4,
+      speed: def.speed, damage: def.damage, radius: def.radius, xpValue: def.xp,
+      coinValue: def.coin, hitFlash: 0, knockX: 0, knockY: 0, phase: 0, frameT: 0,
+      scale: 1, boss: false, touchCd: 0, spawnAnim: 0,
+    };
+  };
+  let uid = 9000;
+  function engine_uid() { return ++uid; }
+
+  // ranged cultist fires bullets
+  {
+    const engine = new GameEngine(makeCanvas(), { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: mkCb() });
+    engine.enemies.push(craft("cultist", engine.px + 180, engine.py));
+    let sawBullets = 0;
+    for (let f = 0; f < 300; f++) { engine.update(DT); sawBullets = Math.max(sawBullets, engine.enemyBullets.length); }
+    assert(sawBullets > 0, "cultist casts enemy projectiles");
+    engine.destroy();
+  }
+
+  // charger beetle enters a dash phase
+  {
+    const engine = new GameEngine(makeCanvas(), { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: mkCb() });
+    const beetle = craft("beetle", engine.px + 120, engine.py);
+    engine.enemies.push(beetle);
+    let dashed = false;
+    for (let f = 0; f < 400 && !dashed; f++) { engine.update(DT); if (beetle.charge && beetle.charge.phase === "dash") dashed = true; }
+    assert(dashed, "grave beetle telegraphs then dashes");
+    engine.destroy();
+  }
+
+  // exploder detonates near the player and leaves a light ring
+  {
+    const engine = new GameEngine(makeCanvas(), { characterId: "aldric", stageId: "graveyard", endless: false, callbacks: mkCb() });
+    const bloater = craft("bloater", engine.px + 30, engine.py);
+    engine.enemies.push(bloater);
+    const ringsBefore = engine.rings.length;
+    for (let f = 0; f < 200 && bloater.hp > 0; f++) engine.update(DT);
+    assert(bloater.hp <= 0, "bloater detonates on its fuse");
+    assert(engine.rings.some((r) => r.light && r.color === "#fb923c"), "explosion spawns a light burst ring");
+    assert(engine.rings.length > ringsBefore, "explosion adds scene rings");
+    engine.destroy();
+  }
+
+  // splitter slime breaks into two smaller slimes
+  {
+    const engine = new GameEngine(makeCanvas(), { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: mkCb() });
+    const slime = craft("slime", engine.px, engine.py);
+    engine.enemies.push(slime);
+    const before = engine.enemies.length;
+    engine.damageEnemy(slime, 99999, 0);
+    const children = engine.enemies.filter((e) => e.noSplit);
+    assert(children.length === 2, `slime splits into two minis (got ${children.length})`);
+    assert(engine.enemies.length >= before + 1, "splitter children join the horde");
+    engine.destroy();
+  }
+
+  // reroll and skip meta controls
+  {
+    const engine = new GameEngine(makeCanvas(), { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: mkCb() });
+    engine.gainXp(600);
+    const first = engine.buildChoices();
+    const rerolled = engine.rerollChoices();
+    assert(rerolled !== null && engine.rerollsLeft === 1, "reroll returns fresh choices and decrements the budget");
+    assert(Array.isArray(rerolled) && rerolled.length >= 3, "rerolled draft is well-formed");
+    const queued = engine.levelUpQueue;
+    engine.skipUpgrade();
+    assert(engine.levelUpQueue === queued - 1, "skip resolves one pending level-up");
+    engine.destroy();
+  }
+}
+
 // 7. Storage / achievements
 {
   const save = loadSave();

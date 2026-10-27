@@ -456,6 +456,127 @@ const slimeB: Frame = [
   "                ",
 ];
 
+const CULTIST_PAL: Palette = {
+  k: K, r: "#3b2454", R: "#241436", h: "#5b3a7a", f: "#e8b58e",
+  e: "#f472b6", g: "#f5c542",
+};
+const cultistA: Frame = [
+  "                ",
+  "     kkkkk      ",
+  "    krhrrrk     ",
+  "   krhrrrrhk    ",
+  "   krheekeerk   ",
+  "   krrrrrrrrk   ",
+  "    krrrrrrk    ",
+  "   kkrrrrrrkk   ",
+  "  krrrgkkgrrrk  ",
+  " krrrrrrrrrrrk  ",
+  " krRrrrrrrrrRk  ",
+  "  krRrrrrrrRrk  ",
+  "   kkr    rkk   ",
+  "   kk      kk   ",
+  "  kk        kk  ",
+  " kkk        kkk ",
+];
+const cultistB: Frame = [
+  "                ",
+  "     kkkkk      ",
+  "    krhrrrk     ",
+  "   krhrrrrhk    ",
+  "   krheekeerk   ",
+  "   krrrrrrrrk   ",
+  "    krrrrrrk    ",
+  "   kkrrrrrrkk   ",
+  "  krrrgkkgrrrk  ",
+  " krrrrrrrrrrrk  ",
+  " krRrrrrrrrrRk  ",
+  "  krRrrrrrrRrk  ",
+  "   kkr    rkk   ",
+  "    kk    kk    ",
+  "   kk      kk   ",
+  "  kkk      kkk  ",
+];
+
+const BEETLE_PAL: Palette = {
+  k: K, s: "#0d9488", S: "#0f766e", l: "#5eead4", h: "#fbbf24", e: "#fef08a",
+};
+const beetleA: Frame = [
+  "                ",
+  "      khk       ",
+  "     khhhk      ",
+  "    kssssssk    ",
+  "   kslsssslsk   ",
+  "   kseesseek    ",
+  "  kssssssssssk  ",
+  "  ksSssssssSsk  ",
+  "  kssssssssssk  ",
+  "   kssssssssk   ",
+  "  k k      k k  ",
+  " k  k      k  k ",
+  " kk          kk ",
+  "                ",
+  "                ",
+  "                ",
+];
+const beetleB: Frame = [
+  "                ",
+  "      khk       ",
+  "     khhhk      ",
+  "    kssssssk    ",
+  "   kslsssslsk   ",
+  "   kseesseek    ",
+  "  kssssssssssk  ",
+  "  ksSssssssSsk  ",
+  "  kssssssssssk  ",
+  "   kssssssssk   ",
+  "  k k      k k  ",
+  "   k        k   ",
+  "  kk        kk  ",
+  "                ",
+  "                ",
+  "                ",
+];
+
+const BLOATER_PAL: Palette = {
+  k: K, b: "#ea580c", B: "#9a3412", l: "#fdba74", y: "#fde047", e: "#fef08a",
+};
+const bloaterA: Frame = [
+  "                ",
+  "     kkkkk      ",
+  "   kkblbbblkk   ",
+  "  kblbbbbbbblk  ",
+  "  kbebbbbbebk   ",
+  "  kbbbbbbbbbbk  ",
+  "  kbbybbbyybk   ",
+  " kbbbybybybbbk  ",
+  " kbbbbbbbbbbbk  ",
+  " kblbbbbbbblbk  ",
+  "  kbbBbbbbBbbk  ",
+  "  kkbbbbbbbkk   ",
+  "   kkb  bkk     ",
+  "   kkk    kkk   ",
+  "  kkk      kkk  ",
+  "                ",
+];
+const bloaterB: Frame = [
+  "                ",
+  "     kkkkk      ",
+  "   kkblbbblkk   ",
+  "  kblbbbbbbblk  ",
+  "  kbebbbbbebk   ",
+  "  kbbbbbbbbbbk  ",
+  "  kbbybbbyybk   ",
+  " kbbbybybybbbk  ",
+  " kbbbbbbbbbbbk  ",
+  " kblbbbbbbblbk  ",
+  "  kbbBbbbbBbbk  ",
+  "  kkbbbbbbbkk   ",
+  "   kkb  bkk     ",
+  "    kkb bkk     ",
+  "   kkk    kkk   ",
+  "  kkk      kkk  ",
+];
+
 // ---------------------------------------------------------------------------
 // Bosses (24x24, single frame — engine adds sway / glow)
 // ---------------------------------------------------------------------------
@@ -1394,6 +1515,9 @@ function buildAll(): void {
   cache.set("en_skeleton", sheet([skeletonA, skeletonB], SKELETON_PAL));
   cache.set("en_ghost", sheet([ghostA, ghostB], GHOST_PAL));
   cache.set("en_slime", sheet([slimeA, slimeB], SLIME_PAL));
+  cache.set("en_cultist", sheet([cultistA, cultistB], CULTIST_PAL));
+  cache.set("en_beetle", sheet([beetleA, beetleB], BEETLE_PAL));
+  cache.set("en_bloater", sheet([bloaterA, bloaterB], BLOATER_PAL));
 
   cache.set("boss_reaper", sheet([reaper], REAPER_PAL));
   cache.set("boss_titan", sheet([titan], TITAN_PAL));

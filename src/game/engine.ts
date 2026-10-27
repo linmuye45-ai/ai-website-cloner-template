@@ -39,6 +39,21 @@ interface Enemy {
   boss: boolean;
   touchCd: number;
   spawnAnim: number;
+  castTimer?: number;
+  charge?: { phase: "wind" | "dash"; t: number; dirX: number; dirY: number; cooldown: number };
+  fuse?: number;
+  noSplit?: boolean;
+}
+
+interface EnemyBullet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  damage: number;
+  life: number;
+  color: string;
 }
 
 interface Projectile {
@@ -86,6 +101,7 @@ interface Particle {
   maxLife: number;
   color: string;
   size: number;
+  ambient?: boolean;
 }
 
 interface DamageText {
@@ -129,6 +145,7 @@ interface Ring {
   maxLife: number;
   radius: number;
   color: string;
+  light?: number;
 }
 
 interface WeaponState {
@@ -252,6 +269,12 @@ export class GameEngine {
   private spawnAcc = 0;
   private levelUpQueue = 0;
   private magnetTimer = 0;
+  private hitStop = 0;
+  private rerollsLeft = 2;
+  private weatherAcc = 0;
+  private lastFuseToast = -10;
+  private lightCanvas: HTMLCanvasElement;
+  private lightCtx: CanvasRenderingContext2D;
 
   paused = false;
   private destroyed = false;
@@ -261,6 +284,7 @@ export class GameEngine {
 
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
+  private enemyBullets: EnemyBullet[] = [];
   private gems: Gem[] = [];
   private pickups: Pickup[] = [];
   private particles: Particle[] = [];
@@ -314,6 +338,10 @@ export class GameEngine {
       this.stage.id.length * 999 + 7,
     );
     this.groundPattern = this.ctx.createPattern(tile, "repeat");
+    this.lightCanvas = document.createElement("canvas");
+    this.lightCtx = this.lightCanvas.getContext("2d")!;
+    this.lightCanvas.width = Math.floor(this.viewW * this.dpr);
+    this.lightCanvas.height = Math.floor(this.viewH * this.dpr);
 
     this.camX = this.px;
     this.camY = this.py;
@@ -365,6 +393,7 @@ export class GameEngine {
       bossHp: this.bossRef ? clamp(this.bossRef.hp / this.bossRef.maxHp, 0, 1) : null,
       bossName: this.bossRef ? this.bossRef.def.name : null,
       paused: this.paused,
+      rerolls: this.rerollsLeft,
       weapons: [...this.weaponStates.values()].map((w) => ({
         id: w.id,
         level: w.level,
@@ -405,6 +434,23 @@ export class GameEngine {
         this.hp = Math.min(this.maxHp, this.hp + 20);
       }
     }
+    this.resolveLevelUp();
+  }
+
+  rerollChoices(): UpgradeChoice[] | null {
+    if (this.rerollsLeft <= 0) return null;
+    this.rerollsLeft -= 1;
+    audio.play("click");
+    return this.buildChoices();
+  }
+
+  skipUpgrade(): void {
+    // bank a quarter of the current level's XP instead
+    this.gainXp(Math.round(xpNeeded(this.level) * 0.25));
+    this.resolveLevelUp();
+  }
+
+  private resolveLevelUp(): void {
     this.levelUpQueue -= 1;
     audio.play("open");
     if (this.levelUpQueue <= 0) {
@@ -481,6 +527,10 @@ export class GameEngine {
     this.viewH = Math.max(240, rect.height);
     this.canvas.width = Math.floor(this.viewW * this.dpr);
     this.canvas.height = Math.floor(this.viewH * this.dpr);
+    if (this.lightCanvas) {
+      this.lightCanvas.width = Math.floor(this.viewW * this.dpr);
+      this.lightCanvas.height = Math.floor(this.viewH * this.dpr);
+    }
   };
 
   private inputVector(): { x: number; y: number } {
@@ -511,8 +561,12 @@ export class GameEngine {
     const rawDt = Math.min(0.05, (ts - this.lastTs) / 1000);
     this.lastTs = ts;
     if (!this.paused) {
-      const dt = rawDt * this.timeScale;
-      this.update(dt);
+      if (this.hitStop > 0) {
+        // freeze-frame juice: world pauses for a beat on heavy hits
+        this.hitStop -= rawDt;
+      } else {
+        this.update(rawDt * this.timeScale);
+      }
     }
     this.render();
     this.raf = requestAnimationFrame(this.loop);
@@ -566,8 +620,10 @@ export class GameEngine {
     this.updateWeapons(dt, stats);
     this.updateEnemies(dt, stats);
     this.updateProjectiles(dt);
+    this.updateEnemyBullets(dt, stats);
     this.updateZones(dt);
     this.updatePickups(dt, stats);
+    this.updateWeather(dt);
     this.updateParticles(dt);
     this.updateTexts(dt);
     this.updateRings(dt);
@@ -980,7 +1036,84 @@ export class GameEngine {
       const d = Math.hypot(dx, dy) || 1;
       let mx = dx / d;
       let my = dy / d;
-      if (e.def.id === "bat" || e.def.id === "moth" || e.def.id === "wisp" || e.def.id === "inkwisp") {
+      let speedMul = 1;
+      const behavior = e.def.behavior ?? "chaser";
+
+      if (behavior === "ranged") {
+        // kite at ~230px, strafe, and lob arcane bolts
+        if (!e.castTimer && e.castTimer !== 0) e.castTimer = (e.def.castInterval ?? 2.8) * (0.7 + Math.random() * 0.6);
+        e.castTimer = (e.castTimer ?? 2.8) - dt;
+        if (d > 260) {
+          mx = dx / d;
+          my = dy / d;
+        } else if (d < 170) {
+          mx = -dx / d;
+          my = -dy / d;
+        } else {
+          const dir = Math.sin(e.phase) > 0 ? 1 : -1;
+          mx = (-dy / d) * dir;
+          my = (dx / d) * dir;
+        }
+        if ((e.castTimer ?? 0) <= 0 && d < 460) {
+          e.castTimer = (e.def.castInterval ?? 2.8) * (0.8 + Math.random() * 0.5);
+          const bs = 158;
+          this.enemyBullets.push({
+            x: e.x,
+            y: e.y,
+            vx: (dx / d) * bs,
+            vy: (dy / d) * bs,
+            radius: 7,
+            damage: e.damage,
+            life: 4,
+            color: "#f0abfc",
+          });
+          this.burst(e.x, e.y, 4, "#f0abfc", 60);
+          audio.play("shoot");
+        }
+      } else if (behavior === "charger") {
+        if (!e.charge) e.charge = { phase: "wind", t: 0, dirX: mx, dirY: my, cooldown: 1.4 + Math.random() };
+        const ch = e.charge;
+        ch.cooldown -= dt;
+        if (ch.phase === "wind") {
+          ch.t += dt;
+          speedMul = 0.12;
+          e.hitFlash = 0.05; // menacing shimmer while telegraphing
+          if (ch.t >= 0.55) {
+            ch.phase = "dash";
+            ch.t = 0;
+            ch.dirX = dx / d;
+            ch.dirY = dy / d;
+            audio.play("whip");
+          }
+        } else {
+          ch.t += dt;
+          mx = ch.dirX;
+          my = ch.dirY;
+          speedMul = 3.4;
+          if (ch.t >= 0.42) {
+            ch.phase = "wind";
+            ch.t = 0;
+            ch.cooldown = 2.4 + Math.random() * 0.8;
+          }
+        }
+      } else if (behavior === "exploder") {
+        if (e.fuse === undefined && d < (e.def.fuseRadius ?? 88) * 0.85) {
+          e.fuse = 0.9;
+          audio.play("lightning");
+          if (this.time - this.lastFuseToast > 2.5) {
+            this.lastFuseToast = this.time;
+            this.cb.onToast("Something is about to blow!");
+          }
+        }
+        if (e.fuse !== undefined) {
+          e.fuse -= dt;
+          speedMul = 0.4;
+          if (e.fuse <= 0) {
+            this.explode(e);
+            continue;
+          }
+        }
+      } else if (e.def.id === "bat" || e.def.id === "moth" || e.def.id === "wisp" || e.def.id === "inkwisp") {
         const sway = Math.sin(this.time * 3 + e.phase) * 0.7;
         const px = -my;
         const py = mx;
@@ -990,6 +1123,7 @@ export class GameEngine {
         mx /= nl;
         my /= nl;
       }
+
       // separation
       for (let j = 0; j < n; j++) {
         const o = this.enemies[j];
@@ -1006,8 +1140,8 @@ export class GameEngine {
         }
       }
       const nl = Math.hypot(mx, my) || 1;
-      e.x += (mx / nl) * e.speed * dt + e.knockX * dt;
-      e.y += (my / nl) * e.speed * dt + e.knockY * dt;
+      e.x += (mx / nl) * e.speed * speedMul * dt + e.knockX * dt;
+      e.y += (my / nl) * e.speed * speedMul * dt + e.knockY * dt;
       e.knockX *= Math.pow(0.001, dt);
       e.knockY *= Math.pow(0.001, dt);
 
@@ -1023,7 +1157,38 @@ export class GameEngine {
     if (this.bossRef && this.bossRef.hp <= 0) this.bossRef = null;
   }
 
+  private updateEnemyBullets(dt: number, stats: ReturnType<GameEngine["computeStats"]>): void {
+    for (const b of this.enemyBullets) {
+      b.life -= dt;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      if (this.invuln <= 0 && dist2(b.x, b.y, this.px, this.py) < (b.radius + 9) * (b.radius + 9)) {
+        b.life = 0;
+        this.hurtPlayerAt(b.damage, stats.armor, b.x, b.y);
+      }
+    }
+    this.enemyBullets = this.enemyBullets.filter((b) => b.life > 0);
+  }
+
+  private explode(e: Enemy): void {
+    const radius = e.def.fuseRadius ?? 88;
+    this.rings.push({ x: e.x, y: e.y, life: 0.42, maxLife: 0.42, radius, color: "#fb923c", light: 1 });
+    this.burst(e.x, e.y, 22, "#fb923c", 210);
+    this.burst(e.x, e.y, 10, "#fde047", 140);
+    this.shake = Math.min(18, this.shake + 8);
+    audio.play("nova");
+    if (this.invuln <= 0 && dist2(e.x, e.y, this.px, this.py) < radius * radius) {
+      this.hurtPlayerAt(e.damage, 0, e.x, e.y);
+    }
+    e.hp = 0;
+    this.killEnemy(e);
+  }
+
   private hurtPlayer(raw: number, armor: number, source: Enemy): void {
+    this.hurtPlayerAt(raw, armor, source.x, source.y);
+  }
+
+  private hurtPlayerAt(raw: number, armor: number, sx: number, sy: number): void {
     const dmg = Math.max(1, raw - armor);
     this.hp -= dmg;
     this.invuln = 0.45;
@@ -1032,7 +1197,7 @@ export class GameEngine {
     this.addText(this.px, this.py - 18, `-${dmg}`, "#f87171", 15);
     this.burst(this.px, this.py, 8, "#f87171", 120);
     audio.play("hurt");
-    const ang = Math.atan2(this.py - source.y, this.px - source.x);
+    const ang = Math.atan2(this.py - sy, this.px - sx);
     this.px += Math.cos(ang) * 10;
     this.py += Math.sin(ang) * 10;
   }
@@ -1058,9 +1223,39 @@ export class GameEngine {
     this.kills += 1;
     audio.play("kill");
     this.burst(e.x, e.y, e.boss ? 30 : 10, e.def.boss ? "#fde047" : "#9ca3af", e.boss ? 220 : 130);
+    // freeze-frame punch, scaled by threat
+    this.hitStop = Math.min(0.14, Math.max(this.hitStop, e.boss ? 0.12 : e.def.elite ? 0.07 : 0.025));
+    if (!e.boss) {
+      this.rings.push({ x: e.x, y: e.y, life: 0.25, maxLife: 0.25, radius: 22, color: "#cbd5e1" });
+    }
+    // splitters break into smaller kin
+    if ((e.def.behavior ?? "chaser") === "splitter" && !e.noSplit) {
+      for (let i = 0; i < 2; i++) {
+        const ang = Math.random() * TAU;
+        const childHp = Math.max(1, Math.round(e.maxHp * 0.3));
+        this.enemies.push({
+          ...e,
+          uid: this.uidSeq++,
+          x: e.x + Math.cos(ang) * 12,
+          y: e.y + Math.sin(ang) * 12,
+          hp: childHp,
+          maxHp: childHp,
+          radius: e.radius * 0.72,
+          scale: e.scale * 0.62,
+          xpValue: 1,
+          noSplit: true,
+          hitFlash: 0,
+          knockX: Math.cos(ang) * 90,
+          knockY: Math.sin(ang) * 90,
+          touchCd: 0.5,
+          spawnAnim: 0.2,
+          fuse: undefined,
+          charge: undefined,
+          castTimer: undefined,
+        });
+      }
+    }
     // xp gem
-    const gemKey = e.xpValue >= 10 ? "gem_10" : e.xpValue >= 5 ? "gem_5" : "gem_1";
-    void gemKey;
     this.gems.push({ x: e.x, y: e.y, value: e.xpValue, bob: Math.random() * TAU, pulled: false });
     if (e.boss) {
       // chest + coin shower
@@ -1411,10 +1606,42 @@ export class GameEngine {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vx *= Math.pow(0.02, dt);
-      p.vy *= Math.pow(0.02, dt);
+      if (!p.ambient) {
+        p.vx *= Math.pow(0.02, dt);
+        p.vy *= Math.pow(0.02, dt);
+      } else if (p.vy > 0) {
+        // drifting spores/embers sway gently as they fall or rise
+        p.vx += Math.sin(this.time * 2 + p.y * 0.05) * 6 * dt;
+      }
     }
     this.particles = this.particles.filter((p) => p.life > 0);
+  }
+
+  private updateWeather(dt: number): void {
+    const interval = this.stage.weather === "embers" ? 0.16 : 0.1;
+    this.weatherAcc += dt;
+    while (this.weatherAcc >= interval) {
+      this.weatherAcc -= interval;
+      if (this.particles.length > 360) continue;
+      const x = this.camX + (Math.random() - 0.5) * this.viewW;
+      const y = this.camY + (Math.random() - 0.5) * this.viewH;
+      if (this.stage.weather === "fog") {
+        this.particles.push({
+          x, y, vx: 14 + Math.random() * 12, vy: (Math.random() - 0.5) * 6,
+          life: 2.8, maxLife: 2.8, color: "#94a3b8", size: 2, ambient: true,
+        });
+      } else if (this.stage.weather === "spores") {
+        this.particles.push({
+          x, y, vx: (Math.random() - 0.5) * 8, vy: 12 + Math.random() * 10,
+          life: 3.2, maxLife: 3.2, color: "#86efac", size: 2, ambient: true,
+        });
+      } else {
+        this.particles.push({
+          x, y, vx: (Math.random() - 0.5) * 10, vy: -(16 + Math.random() * 18),
+          life: 2.4, maxLife: 2.4, color: Math.random() < 0.5 ? "#fb923c" : "#f5c542", size: 2, ambient: true,
+        });
+      }
+    }
   }
 
   private updateTexts(dt: number): void {
@@ -1585,12 +1812,88 @@ export class GameEngine {
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, this.viewW, this.viewH);
 
+    this.drawEnemyBullets(ctx, camX, camY);
+    this.renderLighting(ctx, camX, camY);
+
     // low hp pulse
     if (this.hp / this.maxHp < 0.3 && !this.gameEnded) {
       const a = 0.18 + Math.sin(this.time * 6) * 0.08;
       ctx.fillStyle = `rgba(220, 38, 38, ${a})`;
       ctx.fillRect(0, 0, this.viewW, this.viewH);
     }
+  }
+
+  private punchLight(lctx: CanvasRenderingContext2D, x: number, y: number, radius: number, strength: number): void {
+    const g = lctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    g.addColorStop(0, `rgba(0,0,0,${strength})`);
+    g.addColorStop(0.7, `rgba(0,0,0,${strength * 0.7})`);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    lctx.fillStyle = g;
+    lctx.beginPath();
+    lctx.arc(x, y, radius, 0, TAU);
+    lctx.fill();
+  }
+
+  private renderLighting(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    const lctx = this.lightCtx;
+    lctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    lctx.clearRect(0, 0, this.viewW, this.viewH);
+    lctx.globalCompositeOperation = "source-over";
+    // night deepens over the first eight minutes, fades in over first seconds
+    const target = 0.32 + Math.min(0.36, (this.time / 480) * 0.36);
+    const alpha = target * clamp(this.time / 6, 0.15, 1);
+    lctx.fillStyle = `rgba(${this.stage.dark},${alpha})`;
+    lctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    lctx.globalCompositeOperation = "destination-out";
+    const sx = this.px - camX + this.viewW / 2;
+    const sy = this.py - camY + this.viewH / 2;
+    const flicker = 1 + Math.sin(this.time * 11) * 0.03 + Math.sin(this.time * 23) * 0.02;
+    this.punchLight(lctx, sx, sy, 178 * flicker, 1);
+
+    for (const p of this.projectiles) {
+      const r = p.kind === "bolt" ? 34 : p.kind === "axe" ? 24 : 16;
+      this.punchLight(lctx, p.x - camX + this.viewW / 2, p.y - camY + this.viewH / 2, r, 0.8);
+    }
+    for (const b of this.enemyBullets) {
+      this.punchLight(lctx, b.x - camX + this.viewW / 2, b.y - camY + this.viewH / 2, 26, 0.65);
+    }
+    for (const z of this.zones) {
+      if (z.kind === "lightning" && z.delay <= 0) {
+        this.punchLight(lctx, z.x - camX + this.viewW / 2, z.y - camY + this.viewH / 2, 85, 0.95);
+      }
+    }
+    for (const r of this.rings) {
+      if (r.light) {
+        const t = 1 - r.life / r.maxLife;
+        this.punchLight(lctx, r.x - camX + this.viewW / 2, r.y - camY + this.viewH / 2, r.radius * (0.5 + t * 0.6), 0.9);
+      }
+    }
+    for (const p of this.pickups) {
+      if (p.kind === "chest") {
+        this.punchLight(lctx, p.x - camX + this.viewW / 2, p.y - camY + this.viewH / 2, 58, 0.85);
+      }
+    }
+    lctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(this.lightCanvas, 0, 0, this.viewW, this.viewH);
+  }
+
+  private drawEnemyBullets(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    for (const b of this.enemyBullets) {
+      const x = b.x - camX + this.viewW / 2;
+      const y = b.y - camY + this.viewH / 2;
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.arc(x, y, b.radius + 4, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#fdf4ff";
+      ctx.beginPath();
+      ctx.arc(x, y, b.radius * 0.55, 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   private renderProps(ctx: CanvasRenderingContext2D, left: number, top: number): void {
@@ -1653,9 +1956,23 @@ export class GameEngine {
     const spr = e.def.tint ? getTintedSprite(e.def.sprite, e.def.tint) : getSprite(e.def.sprite);
     const frameIdx = spr.frames.length > 1 ? Math.floor(e.frameT * (e.boss ? 3 : 6)) % spr.frames.length : 0;
     const frame = spr.frames[frameIdx];
-    const scale = e.scale * (e.spawnAnim > 0 ? 1 - (e.spawnAnim / 0.8) * 0.5 : 1);
+    let scale = e.scale * (e.spawnAnim > 0 ? 1 - (e.spawnAnim / 0.8) * 0.5 : 1);
+    if (e.fuse !== undefined) scale *= 1 + Math.sin(this.time * 18) * 0.09;
     const w = frame.width * scale;
     const h = frame.height * scale;
+
+    // spawn portal
+    if (e.spawnAnim > 0) {
+      const t = 1 - e.spawnAnim / 0.8;
+      ctx.globalAlpha = 0.7 * (1 - t);
+      ctx.strokeStyle = "#a78bfa";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 6 + t * 16, 0, TAU);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     this.drawShadow(ctx, x, y + e.radius * scale * 0.7, e.radius * scale);
     ctx.save();
     if (e.spawnAnim > 0) ctx.globalAlpha = 1 - e.spawnAnim / 1.2;
@@ -1667,6 +1984,32 @@ export class GameEngine {
       ctx.drawImage(frame, Math.round(x - w / 2), Math.round(y - h + h * 0.18), w, h);
     }
     ctx.restore();
+
+    // charger wind-up marker
+    if (e.charge?.phase === "wind") {
+      ctx.font = "bold 13px ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fca5a5";
+      ctx.fillText("!", x, y - h - 2);
+    }
+    // fuse countdown ring
+    if (e.fuse !== undefined) {
+      ctx.strokeStyle = "#fb923c";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, e.radius * scale + 5, 0, TAU * clamp(1 - e.fuse / 0.9, 0, 1));
+      ctx.stroke();
+    }
+    // health bar for toughened non-boss enemies
+    if (!e.boss && e.hp < e.maxHp && e.maxHp >= 24) {
+      const bw = Math.max(18, e.radius * 2);
+      const bx = x - bw / 2;
+      const by = y - h - 7;
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.fillRect(bx - 1, by - 1, bw + 2, 5);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(bx, by, bw * clamp(e.hp / e.maxHp, 0, 1), 3);
+    }
     if (e.boss) {
       // handled via HUD bar; add subtle aura
       ctx.globalAlpha = 0.25 + Math.sin(this.time * 4) * 0.1;
@@ -1830,7 +2173,7 @@ export class GameEngine {
 
   private drawParticles(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
     for (const p of this.particles) {
-      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1) * (p.ambient ? 0.32 : 1);
       ctx.fillStyle = p.color;
       ctx.fillRect(
         Math.round(p.x - camX + this.viewW / 2 - p.size / 2),

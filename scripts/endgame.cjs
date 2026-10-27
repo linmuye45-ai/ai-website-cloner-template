@@ -96,7 +96,7 @@ for (let f = 0; f < FRAMES && !engine.gameEnded; f++) {
   }
   engine.setTouch(vx, vy);
   engine.update(1 / 60);
-  engine.render();
+  if (f % 60 === 0) engine.render(); // stub renders are pixel-iteration heavy
   if (engine.enemies.length > maxEnemies) maxEnemies = engine.enemies.length;
   if (engine.bossRef !== lastBoss) {
     if (lastBoss) events.bossKills++;

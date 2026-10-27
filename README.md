@@ -40,9 +40,20 @@ Cleared runs can continue in endless mode with continuously scaling difficulty.
   growth, luck) and weighted upgrade drafts so builds cohere.
 - **4 playable survivors** (two unlockable with vault coins) and **3 hand-built stages**
   with palettes, props, enemy rosters, tinted variant monsters and three bosses each.
-- **Full game loop** — title, character/stage select, field manual, bestiary & records,
-  run HUD, level-up modals, boss chests, pause, defeat/victory screens, achievements and
-  `localStorage` persistence.
+- **Four enemy AI archetypes** beyond the chasing horde — ranged cultists that kite and
+  fire arcane bolts, charging beetles with a telegraphed wind-up, fuse-lit bloaters that
+  explode in an area, and slimes that split into smaller kin on death.
+- **Dynamic night lighting** — a screen-space darkness layer deepens over the first eight
+  minutes, punched through by the player's flickering light pool, projectile glows,
+  lightning strikes and explosions, plus stage weather (drifting fog, spores, embers).
+- **Game feel** — freeze-frame hit stops, spawn portals, death shockwaves, per-enemy
+  health bars, fuse rings and charge tells, layered on top of particles, damage numbers
+  and screen shake.
+- **Upgrade meta controls** — two rerolls per run and a skip option that banks a quarter
+  level of XP, alongside the weighted three-card draft.
+- **Full game loop** — title, character/stage select, field manual (with threat atlas),
+  bestiary & records, run HUD, level-up modals, boss chests, pause, defeat/victory
+  screens, achievements and `localStorage` persistence.
 - **Procedural presentation** — pixel sprites generated in code, ground tiles, fog
   vignette, particles, damage numbers, screen shake, chiptune music that intensifies
   with the clock and ~16 synthesized SFX.

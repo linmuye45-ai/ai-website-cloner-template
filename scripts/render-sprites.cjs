@@ -140,7 +140,7 @@ const { ENEMIES } = require(path.join(process.cwd(), ".smoke-build/content.js"))
 
 const GROUPS = [
   ["char_aldric", "char_vesna", "char_crow", "char_bramble"],
-  ["en_zombie", "en_husk", "en_ghoul", "en_bat", "en_skeleton", "en_ghost", "en_slime"],
+  ["en_zombie", "en_husk", "en_ghoul", "en_bat", "en_skeleton", "en_ghost", "en_slime", "en_cultist", "en_beetle", "en_bloater"],
   ["boss_reaper", "boss_titan", "boss_void"],
   ["gem_1", "gem_5", "gem_10", "coin", "chicken", "chest", "chest_open", "magnet"],
   ["prop_tomb", "prop_deadtree", "prop_pine", "prop_bush", "prop_rock", "prop_fence", "prop_mushroom", "prop_shelf", "prop_pillar"],

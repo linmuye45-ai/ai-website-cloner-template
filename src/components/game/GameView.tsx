@@ -41,6 +41,7 @@ const INITIAL_HUD: HudState = {
   bossHp: null,
   bossName: null,
   paused: false,
+  rerolls: 2,
   weapons: [],
   passives: [],
 };
@@ -149,10 +150,27 @@ export function GameView(props: Props) {
     const handler = (e: KeyboardEvent): void => {
       const n = Number(e.key);
       if (n >= 1 && n <= choices.length) pick(choices[n - 1]);
+      if (e.key.toLowerCase() === "r") reroll();
+      if (e.key.toLowerCase() === "s" && e.ctrlKey) skip();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [modal, choices]);
+
+  const reroll = (): void => {
+    const next = engineRef.current?.rerollChoices();
+    if (next) {
+      setChoices(next);
+      setHud((h) => ({ ...h, rerolls: Math.max(0, h.rerolls - 1) }));
+    }
+  };
+
+  const skip = (): void => {
+    audio.play("click");
+    setModal(null);
+    setChoices([]);
+    engineRef.current?.skipUpgrade();
+  };
 
   const pick = (choice: UpgradeChoice): void => {
     audio.play("click");
@@ -367,6 +385,19 @@ export function GameView(props: Props) {
                   <p className="text-[11px] leading-relaxed text-slate-400">{c.desc}</p>
                 </button>
               ))}
+            </div>
+            <div className="mx-auto mt-6 flex max-w-md items-center justify-between gap-3">
+              <button
+                onClick={reroll}
+                disabled={hud.rerolls <= 0}
+                className="pixel-btn pixel-corners btn-slate px-5 py-2.5 text-xs"
+              >
+                ↻ Reroll ({hud.rerolls})
+              </button>
+              <span className="font-pixel text-[9px] text-slate-500">1–3 pick · R reroll</span>
+              <button onClick={skip} className="pixel-btn pixel-corners btn-ghost px-5 py-2.5 text-xs">
+                Skip → +25% XP
+              </button>
             </div>
           </div>
         </div>

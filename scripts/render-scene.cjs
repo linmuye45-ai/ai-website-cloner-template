@@ -54,6 +54,7 @@ function makeCtx(self) {
     strokeStyle: "#000",
     lineWidth: 1,
     globalAlpha: 1,
+    globalCompositeOperation: "source-over",
     imageSmoothingEnabled: false,
     textAlign: "left",
     font: "10px mono",
@@ -65,10 +66,17 @@ function makeCtx(self) {
     rotate() {},
     beginPath() {
       self.path = null;
+      self.gradient = null;
     },
     arc(x, y, r) {
       self.path = { type: "circle", x, y, r };
     },
+    createRadialGradient: () => {
+      const g = { stops: [], addColorStop(o, c) { this.stops.push({ o, c }); } };
+      self.gradient = g;
+      return g;
+    },
+    createLinearGradient: () => ({ addColorStop() {} }),
     ellipse(x, y, rx, ry) {
       self.path = { type: "ellipse", x, y, rx, ry };
     },
@@ -83,6 +91,11 @@ function makeCtx(self) {
     createLinearGradient: () => ({ addColorStop() {} }),
     rect() {},
     fillRect(x, y, w, h) {
+      if (this.globalCompositeOperation === "destination-out") {
+        for (let yy = Math.max(0, y); yy < Math.min(self._h, y + h); yy++)
+          for (let xx = Math.max(0, x); xx < Math.min(self._w, x + w); xx++) self.buf[(yy * self._w + xx) * 4 + 3] = 0;
+        return;
+      }
       const c = parseColor(this.fillStyle);
       if (!c) return;
       const [r, g, b, a] = c;
@@ -98,8 +111,36 @@ function makeCtx(self) {
     },
     fill() {
       const p = self.path;
+      if (!p) return;
+      if (this.globalCompositeOperation === "destination-out" && p.type === "circle") {
+        // stub limitation: typed-array indices must be integers (real canvas accepts floats)
+        const px = Math.round(p.x), py = Math.round(p.y), pr = Math.round(p.r);
+        const stops = (self.gradient?.stops ?? []).map((s) => ({ o: s.o, a: parseFloat((s.c.match(/[\d.]+\)$/) || ["1"])[0]) }));
+        const lut = new Uint8Array(pr + 1);
+        for (let d = 0; d <= pr; d++) {
+          const t = d / pr;
+          let a = stops.length ? stops[stops.length - 1].a : 1;
+          for (let i = 0; i < stops.length - 1; i++) {
+            if (t >= stops[i].o && t <= stops[i + 1].o) {
+              const k = (t - stops[i].o) / (stops[i + 1].o - stops[i].o || 1);
+              a = stops[i].a + (stops[i + 1].a - stops[i].a) * k;
+              break;
+            }
+          }
+          lut[d] = Math.round(a * 255);
+        }
+        for (let yy = Math.max(0, py - pr); yy < Math.min(self._h, py + pr); yy++) {
+          for (let xx = Math.max(0, px - pr); xx < Math.min(self._w, px + pr); xx++) {
+            const dist = Math.round(Math.hypot(xx - px, yy - py));
+            if (dist > pr) continue;
+            const idx = (yy * self._w + xx) * 4 + 3;
+            self.buf[idx] = Math.max(0, self.buf[idx] * (1 - lut[dist] / 255));
+          }
+        }
+        return;
+      }
       const c = parseColor(this.fillStyle);
-      if (!p || !c) return;
+      if (!c) return;
       const [r, g, b, a] = c;
       const alpha = (a / 255) * this.globalAlpha;
       if (p.type === "circle") {
@@ -178,8 +219,10 @@ const cb = {
 const engine = new GameEngine(canvas, { characterId: "vesna", stageId: "graveyard", endless: false, callbacks: cb });
 engine.keys.add("d");
 engine.keys.add("w");
-for (let f = 0; f < 720; f++) engine.update(1 / 60);
-// sprinkle some gems and pickups naturally exist already; render frame
+for (let f = 0; f < 5400; f++) {
+  engine.hp = engine.maxHp; // test-only god mode so the night scene can render
+  engine.update(1 / 60);
+}
 engine.render();
 
 const rgb = Buffer.alloc(canvas.width * canvas.height * 3);
