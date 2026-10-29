@@ -596,9 +596,10 @@ export class GameScene extends Phaser.Scene {
 
     const add = (wx: number, wy: number, radius: number, texture: string): void => {
       const s = this.toScreen(wx, wy);
-      const scale = (radius * 2 * this.cameras.main.zoom) / 512;
-      const img = this.texture(texture);
-      rt.erase(img.setPosition(s.x, s.y).setOrigin(0.5, 0.5).setScale(scale));
+      const d = radius * 2 * this.cameras.main.zoom;
+      const scale = d / 512;
+      // origin (0,0) + explicit top-left keeps the hole centred on the light
+      rt.erase(this.texture(texture).setScale(scale), s.x - d / 2, s.y - d / 2);
     };
 
     add(sim.px + 5, sim.py + 7, 104 * (sim.upgrades.includes('ember') ? 1.3 : 1), 'l_circle_a');
@@ -639,7 +640,7 @@ export class GameScene extends Phaser.Scene {
 
   private texture(key: string): Phaser.GameObjects.Image {
     // A throwaway image used only as an erase stamp; kept in a scratch pool.
-    if (!this.stamp) this.stamp = this.add.image(0, 0, key).setVisible(false);
+    if (!this.stamp) this.stamp = this.add.image(0, 0, key).setOrigin(0, 0).setVisible(false);
     return this.stamp.setTexture(key);
   }
 
