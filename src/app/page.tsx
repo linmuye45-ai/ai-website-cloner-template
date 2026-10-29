@@ -4,20 +4,26 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#16131F] px-6 py-12 text-[#F0E6C8]">
       <div className="w-full max-w-2xl rounded-xl border border-cyan-400/25 bg-[#07070f] p-8 shadow-[0_0_70px_rgba(80,255,200,0.10)]">
-        <p className="font-mono text-xs tracking-widest text-cyan-300/70">
-          FLAGSHIP · AUTO-BATTLER
+        <p className="font-mono text-xs tracking-widest text-amber-300/70">
+          FLAGSHIP · 刀痕成矿
         </p>
-        <h1 className="mt-2 font-mono text-3xl text-white">ECHOWEAVE · 回声织网</h1>
-        <p className="mt-4 font-mono text-sm leading-6 text-[#9fb2c8]">
-          你的移动轨迹就是武器。走过的路留下回声，回声铺出的丝线持续割伤撞进来的敌人；
-          两种不同元素的丝线真正交叉时，整张网共振爆炸。6 种元素组合、4 个 Boss、零素材纯程序化美术。
+        <h1 className="mt-2 font-mono text-3xl text-white">烛龙 · ZHULONG</h1>
+        <p className="mt-4 font-mono text-sm leading-6 text-[#b8a892]">
+          完美弹反会把敌人的力道刻进石壁，凭空长出一条矿脉——弹反手感就是你唯一的采矿工具。
+          暗潮从上方逼近，只能不断下潜；火盆存魂，深度即赌注。
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/echo"
-            className="rounded-md border border-cyan-300/50 bg-cyan-400/15 px-5 py-3 font-mono text-sm font-bold text-cyan-100 transition-colors hover:bg-cyan-400/25"
+            href="/zhulong"
+            className="rounded-md border border-amber-300/50 bg-amber-400/15 px-5 py-3 font-mono text-sm font-bold text-amber-100 transition-colors hover:bg-amber-400/25"
           >
-            ▶ 试玩 ECHOWEAVE
+            ▶ 进入地脉
+          </Link>
+          <Link
+            href="/echo"
+            className="rounded-md border border-cyan-300/30 px-5 py-3 font-mono text-sm text-cyan-200/80 transition-colors hover:bg-cyan-400/10"
+          >
+            ECHOWEAVE · 回声织网
           </Link>
         </div>
       </div>
