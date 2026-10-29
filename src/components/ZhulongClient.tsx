@@ -67,7 +67,7 @@ export default function ZhulongClient() {
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-[#05030a]">
+    <div className="fixed inset-0 overflow-hidden bg-[#0a0d16]">
       <div
         ref={hostRef}
         className="absolute inset-0 touch-none select-none [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full"

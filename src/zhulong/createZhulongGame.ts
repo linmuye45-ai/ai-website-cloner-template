@@ -599,8 +599,12 @@ export class GameScene extends Phaser.Scene {
     const ty0 = Math.floor((cam.scrollY - 40) / TILE);
     const ty1 = Math.ceil((cam.scrollY + VIEW.h / cam.zoom + 40) / TILE);
     const pool = this.flamePool();
-    const frameTotal = this.textures.get('brazier_frames').frameTotal;
-    const lit = Math.max(1, frameTotal - 1);
+    // The authored sheet is 16 cells of 50x64: frame 0 is the cold bowl and
+    // frames 1-7 are empty padding, so the lit loop is exactly 8..15. Cycling
+    // from frame 1 (the obvious-looking choice) makes the brazier blink out on
+    // seven of every fifteen frames.
+    const LIT_FIRST = 8;
+    const lit = Math.max(1, this.textures.get('brazier_frames').frameTotal - LIT_FIRST);
     let i = 0;
     for (let ty = ty0; ty <= ty1; ty += 1) {
       for (let tx = tx0; tx <= tx1; tx += 1) {
@@ -608,7 +612,7 @@ export class GameScene extends Phaser.Scene {
         const s = pool[i++];
         if (!s) return;
         // frame 0 is the cold bowl; the rest are the lit loop.
-        const f = 1 + (Math.floor(sim.time * 11 + tx * 3) % lit);
+        const f = LIT_FIRST + (Math.floor(sim.time * 11 + tx * 3) % lit);
         s.setVisible(true);
         s.setFrame(f);
         s.setPosition(tx * TILE - 2, (ty + 1) * TILE - 34).setDisplaySize(34, 34);
@@ -623,7 +627,7 @@ export class GameScene extends Phaser.Scene {
   private flamePool(): Phaser.GameObjects.Image[] {
     if (this.flames.length === 0) {
       for (let i = 0; i < 24; i += 1) {
-        const t = this.add.image(0, 0, 'brazier_frames', 1).setOrigin(0, 0).setVisible(false);
+        const t = this.add.image(0, 0, 'brazier_frames', 8).setOrigin(0, 0).setVisible(false);
         this.flames.push(t);
       }
     }
