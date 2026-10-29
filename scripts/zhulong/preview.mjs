@@ -20,8 +20,9 @@ const OUT = path.join(tmpdir(), 'zhulong-preview');
 const SIM_OUT = path.join(OUT, 'sim');
 
 const VIEW = { w: 1280, h: 720 };
-const TILE = 16;
-const ZOOM = 3;
+// TILE / ZOOM / band table come from the compiled sim config, never duplicated
+// here: a stale copy silently renders the world at the wrong scale.
+
 const T = { AIR: 0, ROCK: 1, DEEP: 2, ORE: 3, RICH: 4, BRAZIER: 5, BEDROCK: 6 };
 const C = {
   void: '#05030a', paper: '#e8e3f0', dim: '#7c7893', line: '#2c2540',
@@ -29,9 +30,13 @@ const C = {
   gold: '#f7c948', blood: '#9c3540', bloodLight: '#d15c52', tide: '#b02a3c',
   stone: '#8b8aa3',
 };
-const BAND_TINT = ['#a8bcd8', '#94a6bf', '#b59a80', '#8f88b8', '#c08872'];
-const BAND_NAME = ['残垣', '断脉', '烛骸', '无回', '龙喉'];
+const hexOf = (n) => `#${n.toString(16).padStart(6, '0')}`;
+
 const BAND_FROM = [0, 240, 560, 900, 1180];
+
+function frameAt(time, count) {
+  return Math.floor(time * 8) % count;
+}
 
 function hash2(x, y) {
   let h = (x * 374761393 + y * 668265263) | 0;
@@ -41,7 +46,7 @@ function hash2(x, y) {
 
 function bandIndex(row) {
   let b = 0;
-  for (let i = 0; i < BAND_FROM.length; i += 1) if (row >= BAND_FROM[i]) b = i;
+  for (let i = 0; i < BANDS.length; i += 1) if (row >= BANDS[i].from) b = i;
   return b;
 }
 
@@ -56,7 +61,9 @@ execFileSync(
 const { createRequire } = await import('node:module');
 const require = createRequire(import.meta.url);
 const { RunSim } = require(path.join(SIM_OUT, 'RunSim.js'));
-const { tileLook, MASS_COLS, frameAt } = require(path.join(SIM_OUT, 'look.js'));
+const { TILE, ZOOM, BANDS } = require(path.join(SIM_OUT, 'config.js'));
+const { tileLook, ledgeLook, MOSS } = require(path.join(SIM_OUT, 'look.js'));
+const MOSS_DECAL = [1, 5, 7, 13, 15, 19, 30, 31, 39, 46, 47];
 
 GlobalFonts.registerFromPath(path.join(ROOT, 'public/vendor/sunnyland/fonts/VonwaonBitmap-16px.ttf'), 'Vonwaon');
 const props = (n) => path.join(ROOT, 'public/vendor/zhulong/props', `${n}.png`);
@@ -64,28 +71,76 @@ const lightFile = (n) => path.join(ROOT, 'public/vendor/zhulong/light', `${n}.pn
 
 const img = new Map();
 async function preload() {
-  img.set('mass', await loadImage(path.join(ROOT, 'public/vendor/zhulong/rockmass.png')));
-  const names = readdirSync(path.join(ROOT, 'public/vendor/zhulong/props')).map((f) => f.replace('.png', ''));
-  for (const n of names) img.set(`p_${n}`, await loadImage(props(n)));
+  for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave', 'dungeon-pillars', 'parallax-wall']) {
+    img.set(`t_${n}`, await loadImage(path.join(ROOT, 'public/vendor/frogatto', `${n}.png`)));
+  }
+  for (const n of ['nene-spritesheet1', 'bat-black', 'beetle-black-armor', 'mushroom-walker-green', 'jellybug-green', 'maggot-grey', 'moth-black']) {
+    img.set(`s_${n}`, await loadImage(path.join(ROOT, 'public/vendor/frogatto', `${n}.png`)));
+  }
   for (const n of ['circle_a', 'circle_b', 'circle_a_noise', 'circle_a_streaks']) img.set(`l_${n}`, await loadImage(lightFile(n)));
 }
 
-const sliceCache = new Map();
-/** One tinted 16x16 window of the seamless rock mass. */
-function massSlice(frame, color) {
-  const ck = `${frame}|${color}`;
-  if (sliceCache.has(ck)) return sliceCache.get(ck);
-  const base = img.get('mass');
-  const sx = (frame % MASS_COLS) * 16;
-  const sy = Math.floor(frame / MASS_COLS) * 16;
-  const c = createCanvas(16, 16);
+/**
+ * Frogatto sheets are packed as fixed-width horizontal strips by the importer,
+ * so a frame is just (index * frameWidth, 0, frameWidth, height).
+ */
+const stripCache = new Map();
+function frameStrip(key, frameW, frameIndex) {
+  const ck = `${key}|${frameIndex}`;
+  if (stripCache.has(ck)) return stripCache.get(ck);
+  const sheet = img.get(key);
+  const c = createCanvas(frameW, sheet.height);
   const x = c.getContext('2d');
-  x.drawImage(base, sx, sy, 16, 16, 0, 0, 16, 16);
+  x.imageSmoothingEnabled = false;
+  x.drawImage(sheet, frameIndex * frameW, 0, frameW, sheet.height, 0, 0, frameW, sheet.height);
+  stripCache.set(ck, c);
+  return c;
+}
+
+const FRAME_W = {
+  's_nene-spritesheet1': 51,
+  's_bat-black': 26,
+  's_beetle-black-armor': 25,
+  's_mushroom-walker-green': 31,
+  's_jellybug-green': 37,
+  's_maggot-grey': 28,
+  's_moth-black': 39,
+};
+
+function enemyFrame(e, time) {
+  const map = {
+    knight: 's_beetle-black-armor',
+    imp: 's_moth-black',
+    slime: 's_jellybug-green',
+    skeleton: 's_maggot-grey',
+    ghoul: 's_bat-black',
+  };
+  const key = map[e.kind] ?? 's_bat-black';
+  const fw = FRAME_W[key];
+  const sheet = img.get(key);
+  const count = Math.max(1, Math.floor(sheet.width / fw));
+  const rate = e.state === 'windup' ? 18 : e.state === 'chase' ? 10 : 5;
+  return frameStrip(key, fw, Math.floor(time * rate) % count);
+}
+
+const sliceCache = new Map();
+const CELLS_PER_ROW = 8;
+/** One tinted 32x32 cell out of a Frogatto tile atlas. */
+function cellSlice(key, sheet, cell, color) {
+  const ck = `${key}|${cell}|${color}`;
+  if (sliceCache.has(ck)) return sliceCache.get(ck);
+  const base = img.get(key);
+  const sx = (cell % CELLS_PER_ROW) * TILE;
+  const sy = Math.floor(cell / CELLS_PER_ROW) * TILE;
+  const c = createCanvas(TILE, TILE);
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.drawImage(base, sx, sy, TILE, TILE, 0, 0, TILE, TILE);
   x.globalCompositeOperation = 'multiply';
   x.fillStyle = color;
-  x.fillRect(0, 0, 16, 16);
+  x.fillRect(0, 0, TILE, TILE);
   x.globalCompositeOperation = 'destination-in';
-  x.drawImage(base, sx, sy, 16, 16, 0, 0, 16, 16);
+  x.drawImage(base, sx, sy, TILE, TILE, 0, 0, TILE, TILE);
   sliceCache.set(ck, c);
   return c;
 }
@@ -109,7 +164,7 @@ function drawWorld(ctx, sim, cam, opts = {}) {
   ctx.translate(-cam.x, -cam.y);
 
   const band = bandIndex(Math.floor((sim.py + 14) / TILE));
-  const bandNum = BAND_TINT[band] ? parseInt(BAND_TINT[band].slice(1), 16) : 0xffffff;
+  const bandNum = BANDS[band] ? BANDS[band].tint : 0xffffff;
   const tx0 = Math.floor(cam.x / TILE);
   const tx1 = Math.ceil((cam.x + VIEW.w / z) / TILE);
   const ty0 = Math.floor(cam.y / TILE);
@@ -118,25 +173,35 @@ function drawWorld(ctx, sim, cam, opts = {}) {
   ctx.imageSmoothingEnabled = false;
   const rims = [];
   const glows = [];
+  const ATLAS = { walls: 'dungeon-walls', floor: 'dungeon-floor-cement', cave: 'cave' };
   for (let ty = ty0; ty <= ty1; ty += 1) {
     for (let tx = tx0; tx <= tx1; tx += 1) {
       const t = world.get(tx, ty);
       if (t === T.AIR || t === T.BRAZIER) continue;
+      const ledge = ledgeLook((x, y) => world.get(x, y), tx, ty, bandNum);
       const look = tileLook((x, y) => world.get(x, y), tx, ty, bandNum);
-      const tint = rgbHex(look.tint);
-      rims.push({ tx, ty, o: look.open, tint: look.tint, glow: look.glow });
-      ctx.drawImage(massSlice(look.file, tint), tx * TILE, ty * TILE);
+      const sheet = ATLAS[ledge ? 'floor' : look.sheet];
+      const cell = ledge ? ledge.cell : look.cell;
+      const tint = rgbHex(ledge ? ledge.tint : look.tint);
+      // pass 1: solid mass so the wall never shows holes
+      if (!ledge) {
+        ctx.fillStyle = rgbHex(look.base);
+        ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
+      }
+      const key = `t_${sheet}`;
+      ctx.drawImage(cellSlice(key, sheet, cell, tint), tx * TILE, ty * TILE, TILE, TILE);
       if (look.glow) glows.push({ tx, ty, r: look.glow });
+      if (!ledge) rims.push({ tx, ty, o: look.open, tint: look.tint, deep: t === 2 });
     }
   }
 
   // rim light: the only thing separating rock from cave
   for (const r of rims) {
     const x = r.tx * TILE; const y = r.ty * TILE;
-    if (r.o[0]) { ctx.globalAlpha = 0.5; ctx.fillStyle = mulHex(r.tint, 2.1); ctx.fillRect(x, y, TILE, 1); }
-    if (r.o[1]) { ctx.globalAlpha = 0.2; ctx.fillStyle = mulHex(r.tint, 1.15); ctx.fillRect(x + TILE - 1, y, 1, TILE); }
-    if (r.o[3]) { ctx.globalAlpha = 0.22; ctx.fillStyle = mulHex(r.tint, 0.5); ctx.fillRect(x, y, 1, TILE); }
-    if (r.o[2]) { ctx.globalAlpha = 0.3; ctx.fillStyle = mulHex(r.tint, 0.4); ctx.fillRect(x, y + TILE - 1, TILE, 1); }
+    if (r.o[0]) { ctx.globalAlpha = 0.3; ctx.fillStyle = mulHex(r.tint, 1.8); ctx.fillRect(x, y, TILE, 2); }
+    if (r.o[1]) { ctx.globalAlpha = 0.16; ctx.fillStyle = mulHex(r.tint, 1.2); ctx.fillRect(x + TILE - 2, y, 2, TILE); }
+    if (r.o[3]) { ctx.globalAlpha = 0.24; ctx.fillStyle = mulHex(r.tint, 0.45); ctx.fillRect(x, y, 2, TILE); }
+    if (r.o[2]) { ctx.globalAlpha = 0.34; ctx.fillStyle = mulHex(r.tint, 0.35); ctx.fillRect(x, y + TILE - 2, TILE, 2); }
     ctx.globalAlpha = 1;
   }
 
@@ -159,25 +224,39 @@ function drawWorld(ctx, sim, cam, opts = {}) {
   }
 
   // set dressing
-  for (const d of world.decor ?? []) {
-    if (d.x < tx0 - 1 || d.x > tx1 + 1 || d.y < ty0 - 1 || d.y > ty1 + 1) continue;
-    ctx.drawImage(img.get(`p_${d.key}`), d.x * TILE, d.y * TILE);
-  }
 
   // braziers
   for (let ty = ty0; ty <= ty1; ty += 1) {
     for (let tx = tx0; tx <= tx1; tx += 1) {
       if (world.get(tx, ty) !== T.BRAZIER) continue;
       const bob = Math.sin(sim.time * 6 + tx) * 1;
-      ctx.save(); ctx.translate(tx * TILE + 8, ty * TILE + 8 + bob); ctx.scale(1.6, 1.6); ctx.drawImage(img.get('p_torch'), -8, -8); ctx.restore();
+      // brazier: a stone bowl with a live flame, drawn as light rather than sprite
+      ctx.fillStyle = '#4a4458';
+      ctx.fillRect(tx * TILE + 6, ty * TILE + 20, 20, 8);
+      ctx.fillStyle = '#6b6480';
+      ctx.fillRect(tx * TILE + 8, ty * TILE + 18, 16, 4);
+      const fl = 9 + Math.sin(sim.time * 9 + tx) * 3;
+      ctx.fillStyle = '#ff7a2f';
+      ctx.beginPath();
+      ctx.moveTo(tx * TILE + 16, ty * TILE + 4 - fl);
+      ctx.lineTo(tx * TILE + 22, ty * TILE + 18);
+      ctx.lineTo(tx * TILE + 10, ty * TILE + 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffc46b';
+      ctx.beginPath();
+      ctx.moveTo(tx * TILE + 16, ty * TILE + 9 - fl * 0.5);
+      ctx.lineTo(tx * TILE + 19, ty * TILE + 18);
+      ctx.lineTo(tx * TILE + 13, ty * TILE + 18);
+      ctx.closePath();
+      ctx.fill();
     }
   }
 
   // enemies
-  const enemyKey = { knight: 'p_knight', imp: 'p_demon', slime: 'p_slime', skeleton: 'p_skeleton', ghoul: 'p_ghoul' };
   for (const e of sim.enemies) {
     if (e.state === 'dead' && e.t > 1.2) continue;
-    const src = img.get(enemyKey[e.kind] ?? 'p_ghoul');
+    const src = enemyFrame(e, sim.time);
     ctx.save();
     ctx.globalAlpha = e.state === 'dead' ? Math.max(0, 1 - e.t / 1.4) : 1;
     ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
@@ -186,7 +265,7 @@ function drawWorld(ctx, sim, cam, opts = {}) {
       ctx.scale(k, k);
     }
     if (e.dir < 0) ctx.scale(-1, 1);
-    ctx.drawImage(src, -8, -8);
+    ctx.drawImage(src, -18, -18, 36, 36);
     ctx.restore();
     if (e.state === 'windup') {
       const p = 1 - Math.max(0, e.t) / 0.46;
@@ -202,12 +281,11 @@ function drawWorld(ctx, sim, cam, opts = {}) {
 
   // essence chips
   for (const c of sim.chips) {
-    const key = c.kind === 1 ? 'p_potion_blue' : c.kind === 2 ? 'p_potion_red' : 'p_potion_green';
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.scale(0.4, 0.4);
-    ctx.drawImage(img.get(key), -8, -8);
-    ctx.restore();
+    ctx.fillStyle = c.kind === 1 ? '#ffe08a' : c.kind === 2 ? '#ffb0a0' : '#9fe3dd';
+    ctx.fillRect(c.x - 2, c.y - 2, 4, 4);
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(c.x - 4, c.y - 4, 8, 8);
+    ctx.globalAlpha = 1;
   }
 
   // slash + pulses
@@ -238,23 +316,13 @@ function drawWorld(ctx, sim, cam, opts = {}) {
     ctx.globalAlpha = 1;
   }
 
-  // player
-  if (!(sim.dead && sim.deathT > 0.5)) {
-    ctx.save();
-    ctx.translate(sim.px + 5, sim.py + 7);
-    if (sim.attackT > 0) ctx.rotate(sim.face * (-18 + (1 - sim.attackT / 0.24) * 36) * Math.PI / 180);
-    if (sim.face < 0) ctx.scale(-1, 1);
-    ctx.globalAlpha = sim.iframes > 0 && Math.floor(sim.iframes * 24) % 2 === 0 ? 0.35 : 1;
-    ctx.drawImage(img.get('p_wizard'), -8, -8);
-    ctx.restore();
-  }
   ctx.restore();
 
   // ---- darkness plate, exactly like the scene's RenderTexture -------------
   if (opts.light !== false) {
     const plate = createCanvas(VIEW.w, VIEW.h);
     const p = plate.getContext('2d');
-    p.fillStyle = 'rgba(2,1,8,0.66)';
+    p.fillStyle = 'rgba(3,4,12,0.22)';
     p.fillRect(0, 0, VIEW.w, VIEW.h);
     p.globalCompositeOperation = 'destination-out';
     const screen = (wx, wy) => ({ x: (wx - cam.x) * z, y: (wy - cam.y) * z });
@@ -263,16 +331,16 @@ function drawWorld(ctx, sim, cam, opts = {}) {
       const d = radius * 2 * z;
       p.drawImage(img.get(texture), s.x - d / 2, s.y - d / 2, d, d);
     };
-    hole(sim.px + 5, sim.py + 7, 104, 'l_circle_a');
-    hole(sim.px + 5, sim.py + 7, 46, 'l_circle_b');
+    hole(sim.px + 9, sim.py + 12, 230, 'l_circle_a');
+    hole(sim.px + 9, sim.py + 12, 96, 'l_circle_b');
     for (const e of sim.enemies) if (e.state === 'windup') hole(e.x + e.w / 2, e.y + e.h / 2, 40, 'l_circle_a_streaks');
     for (const pu of sim.pulses) hole(pu.x, pu.y, pu.r * 1.6, 'l_circle_b');
     for (let ty = ty0; ty <= ty1; ty += 1) {
       for (let tx = tx0; tx <= tx1; tx += 1) {
         const t = world.get(tx, ty);
-        if (t === T.BRAZIER) hole(tx * TILE + 8, ty * TILE + 8, 130, 'l_circle_a_noise');
-        else if (t === T.ORE) hole(tx * TILE + 8, ty * TILE + 8, 26, 'l_circle_b');
-        else if (t === T.RICH) hole(tx * TILE + 8, ty * TILE + 8, 40, 'l_circle_b');
+        if (t === T.BRAZIER) hole(tx * TILE + 16, ty * TILE + 16, 150, 'l_circle_a_noise');
+        else if (t === T.ORE) hole(tx * TILE + 16, ty * TILE + 16, 30, 'l_circle_b');
+        else if (t === T.RICH) hole(tx * TILE + 16, ty * TILE + 16, 44, 'l_circle_b');
       }
     }
     ctx.drawImage(plate, 0, 0);
@@ -291,11 +359,11 @@ function drawWorld(ctx, sim, cam, opts = {}) {
       ctx.globalAlpha = 1;
       ctx.drawImage(layer, 0, 0);
     };
-    warm(sim.px + 5, sim.py + 7, 92, C.ember, 0.28);
-    warm(sim.px + 5, sim.py + 7, 190, C.emberDeep, 0.1);
+    warm(sim.px + 9, sim.py + 12, 120, C.ember, 0.3);
+    warm(sim.px + 9, sim.py + 12, 240, C.emberDeep, 0.12);
     for (let ty = ty0; ty <= ty1; ty += 1) {
       for (let tx = tx0; tx <= tx1; tx += 1) {
-        if (world.get(tx, ty) === T.BRAZIER) warm(tx * TILE + 8, ty * TILE + 6, 66, C.emberHot, 0.24);
+        if (world.get(tx, ty) === T.BRAZIER) warm(tx * TILE + 16, ty * TILE + 12, 90, C.emberHot, 0.26);
       }
     }
     // the tide: a red-black press coming down the shaft
@@ -317,6 +385,16 @@ function drawWorld(ctx, sim, cam, opts = {}) {
       }
     }
     ctx.globalCompositeOperation = 'source-over';
+
+    // The hero is the one thing the darkness never swallows.
+    ctx.save();
+    const hs = { x: (sim.px + 9 - cam.x) * z, y: (sim.py + 12 - cam.y) * z };
+    ctx.translate(hs.x, hs.y);
+    if (sim.face < 0) ctx.scale(-1, 1);
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = sim.iframes > 0 && Math.floor(sim.iframes * 24) % 2 === 0 ? 0.5 : 1;
+    ctx.drawImage(frameStrip('s_nene-spritesheet1', 51, frameAt(sim.time, 6)), -30, -34, 60, 62);
+    ctx.restore();
   }
 }
 
@@ -340,11 +418,16 @@ function drawHud(ctx, sim) {
   ctx.fillStyle = C.blood;
   ctx.fillRect(30, 30, 200 * (sim.hp / sim.maxHp), 9);
   text(ctx, 238, 44, `${Math.ceil(sim.hp)}`, 15, C.paper);
-  ctx.drawImage(img.get('p_potion_red'), 32, 48, 16, 16);
+  ctx.fillStyle = '#8a2030';
+  ctx.fillRect(34, 50, 10, 12);
+  ctx.fillStyle = '#d15c52';
+  ctx.fillRect(35, 51, 8, 5);
+  ctx.fillStyle = '#c9c4dd';
+  ctx.fillRect(38, 46, 2, 5);
   text(ctx, 54, 61, `烛血 ${sim.flask}`, 15, C.paper);
 
   text(ctx, W - 24, 42, `${sim.depth} m`, 24, C.paper, 'right');
-  text(ctx, W - 24, 68, `${BAND_NAME[bandIndex(sim.row)]}　${sim.upgrades.length} 式`, 14, C.dim, 'right');
+  text(ctx, W - 24, 68, `${BANDS[bandIndex(sim.row)].name}　${sim.upgrades.length} 式`, 14, C.dim, 'right');
 
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(20, VIEW.h - 76, 232, 56);
@@ -372,33 +455,35 @@ function drawHud(ctx, sim) {
 }
 
 function drawBackdrop(ctx, cam, sim) {
+  // Open air is a cold blue haze. Without it a mined tunnel looks exactly like
+  // the rock it was cut from, which is the fastest way to lose a player.
   const g = ctx.createLinearGradient(0, 0, 0, VIEW.h);
-  g.addColorStop(0, '#0a0712');
-  g.addColorStop(0.55, '#0c0916');
-  g.addColorStop(1, '#100b18');
+  g.addColorStop(0, '#090b13');
+  g.addColorStop(0.55, '#0a0d16');
+  g.addColorStop(1, '#0b0f1a');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
   // far wall: the same stone mass, pushed back by parallax and fog
   if (!img.has('far')) {
-    const base = img.get('mass');
+    const base = img.get('t_parallax-wall');
     const c = createCanvas(base.width, base.height);
     const x = c.getContext('2d');
     x.drawImage(base, 0, 0);
     x.globalCompositeOperation = 'multiply';
-    x.fillStyle = '#2a2b45';
+    x.fillStyle = '#2c2740';
     x.fillRect(0, 0, c.width, c.height);
     x.globalCompositeOperation = 'destination-in';
     x.drawImage(base, 0, 0);
     img.set('far', c);
   }
   const far = img.get('far');
-  const scale = 2.2;
+  const scale = 4;
   const w = far.width * scale;
   const hh = far.height * scale;
   const ox = -(((cam.x * 0.45) % w) + w) % w;
   const oy = -(((cam.y * 0.45) % hh) + hh) % hh;
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.34;
   ctx.imageSmoothingEnabled = false;
   for (let y = oy; y < VIEW.h; y += hh) {
     for (let x = ox; x < VIEW.w; x += w) ctx.drawImage(far, x, y, w, hh);

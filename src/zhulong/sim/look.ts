@@ -1,32 +1,62 @@
 import { T } from './config';
 import { hash2 } from './math';
 
-/** How one solid cell should be drawn: which mass frame, what tint, which
- * faces are open (for the rim-light pass) and whether it emits. */
 /**
- * `public/vendor/zhulong/rockmass.png` is a seamless 64x128 stone wall from the
- * Retro Textures Fantasy pack. Sliced into 4x8 = 32 frames of 16x16, adjacent
- * world cells sample adjacent frames, so the wall reads as one continuous mass
- * instead of a stack of crates.
+ * Tile table, built from the Frogatto dungeon set.
+ *
+ * The art is not an autotile set: `dungeon-walls` is loose rock faces and
+ * `dungeon-floor-cement` is a room kit whose cells 26 / 30 / 35 / 42 carry the
+ * load-bearing idea — a lit stone cap over a dark void. That cap is what makes
+ * a 32px platform readable at a glance, so rock is drawn as cap + shaft rather
+ * than as a repeated block.
  */
-export const MASS_COLS = 4;
-export const MASS_ROWS = 8;
-export const MASS_FRAMES = MASS_COLS * MASS_ROWS;
 
-export function frameAt(tx: number, ty: number): number {
-  const cx = ((tx % MASS_COLS) + MASS_COLS) % MASS_COLS;
-  const cy = ((ty % MASS_ROWS) + MASS_ROWS) % MASS_ROWS;
-  return cy * MASS_COLS + cx;
-}
+/** Cell indices inside `dungeon-floor-cement.png` (8 per row). */
+export const CAP = 26; // verified: opaque stone cap, 1024/1024 px
+/** Cap with a finished left end, used at ledge starts. */
+export const CAP_LEFT = 30; // cap with a finished left end
+export const CAP_RIGHT = 35;
+/** Full lit slab: used for one-tile-thick ledges. */
+export const SLAB = 29; // thinner cap, used for one-tile ledges
+/** Solid packed dirt/cement fill. */
+export const FILL = 50;
+export const FILL_ALT = 51;
 
+/** `dungeon-walls` rock faces; every one of these is a full 32x32 tile. */
+/**
+ * `dungeon-walls` cells verified opaque by pixel audit (see the import script's
+ * manifest). Anything outside this list draws nothing, which is how the earlier
+ * pass produced olive squares: it sampled empty cells.
+ */
+export const ROCK_FACES = [16, 17, 18, 24, 25, 26, 40, 41, 42, 43] as const;
+/** Sparse rock clusters: only used as deep-background chatter, never as mass. */
+export const ROCK_SPARSE = [0, 1, 2, 3, 5, 8, 9, 10, 11, 14] as const;
+
+/** `cave.png` mossy overgrowth, for the deeper bands. */
+/** `cave` cells verified opaque: mossy teal growth over dark rock. */
+export const MOSS = [1, 5, 7, 8, 13, 15, 16, 17, 18, 19, 24, 25, 26, 30, 31, 39, 46, 47, 48, 49, 50, 51] as const;
+
+/** `dungeon-parallax-wall.png` — 64x64 far wall, 4 cells. */
+export const FAR_WALL = 0;
+
+/**
+ * Frogatto's wall cells are *decals*: a handful of rocks floating on alpha, meant
+ * to be stamped over a flat dark plate. Drawn as solid mass they tile into a
+ * field of holes, so the renderer does two passes — a solid base colour for the
+ * mass, then the rock cell on top as texture.
+ */
 export interface TileLook {
-  /** Frame index into the 4x8 grid sliced from the seamless rock mass. */
-  file: number;
+  /** Solid base colour for the mass pass. */
+  base: number;
+  /** Atlas name the renderer should sample: 'walls' | 'floor' | 'cave'. */
+  sheet: 'walls' | 'floor' | 'cave';
+  /** Cell index inside that sheet. */
+  cell: number;
   /** Multiplicative tint, already band-graded. */
   tint: number;
-  /** Sides that face open air, so the renderer can rim-light them. */
+  /** Sides facing open air: [top, right, bottom, left]. */
   open: [number, number, number, number];
-  /** 0 none, 1 ore, 2 rich — drives the emissive glow. */
+  /** 0 none, 1 ore, 2 rich — drives the emissive core. */
   glow: number;
 }
 
@@ -49,36 +79,68 @@ export function tileLook(
   const tile = get(tx, ty);
   const h = hash2(tx, ty);
 
-  if (tile === T.BEDROCK) {
-    return { file: frameAt(tx, ty), tint: 0x3a3a46, open: [0, 0, 0, 0], glow: 0 };
-  }
-
-  const o = [
+  const o: [number, number, number, number] = [
     isAir(get(tx, ty - 1)) ? 1 : 0,
     isAir(get(tx + 1, ty)) ? 1 : 0,
     isAir(get(tx, ty + 1)) ? 1 : 0,
     isAir(get(tx - 1, ty)) ? 1 : 0,
-  ] as [number, number, number, number];
-  const open = o[0] + o[1] + o[2] + o[3] > 0;
-  void open;
+  ];
+
+  if (tile === T.BEDROCK) {
+    return { base: 0x1b1a24, sheet: 'walls', cell: ROCK_FACES[h % ROCK_FACES.length], tint: 0x4a4758, open: [0, 0, 0, 0], glow: 0 };
+  }
 
   if (tile === T.ORE || tile === T.RICH) {
     const rich = tile === T.RICH;
+    // Ore is solid crystal-bearing rock: a fully opaque slab, never a decal.
     return {
-      file: frameAt(tx, ty),
-      tint: scaleColor(rich ? 0xffd27a : 0xc9a24a, 1),
+      base: scaleColor(rich ? 0x8a6a24 : 0x6b5a22, 1),
+      sheet: 'floor',
+      cell: CAP,
+      tint: scaleColor(rich ? 0xffe0a0 : 0xd8b25c, 1),
       open: o,
       glow: rich ? 2 : 1,
     };
   }
 
+  // Deep rock grows moss over the same structure.
   const deep = tile === T.DEEP;
-  // Rock sits in shadow; the light plate and rim pass do the shaping.
-  let tint = scaleColor(bandTint, deep ? 0.58 : 0.74);
-  if (o[0]) tint = scaleColor(tint, deep ? 1.34 : 1.22);
-  tint = scaleColor(tint, 0.95 + ((h % 7) / 7) * 0.1);
+  const sheet: TileLook['sheet'] = 'walls';
+  // Frogatto's rock already carries its own shading, so the band tint only
+  // grades it; over-darkening turns the whole screen into mush.
+  let tint = scaleColor(bandTint, deep ? 1 : 1.05);
+  if (o[0]) tint = scaleColor(tint, deep ? 1.25 : 1.2);
+  tint = scaleColor(tint, 0.9 + ((h % 7) / 7) * 0.2);
 
-  // Mass is flat slab; the cave silhouette is cut by rim light, not by rims
-  // baked into every block (which is what makes this kit look like crates).
-  return { file: frameAt(tx, ty), tint, open: o, glow: 0 };
+  // Must sit on the cave backdrop: the wall cells are decals with alpha gaps,
+  // and any contrast here prints a visible square around every tile.
+  const base = deep ? 0x0b0f18 : 0x0a0d16;
+  // Deep rock uses the same dense faces; only the tint turns cold. The mossy
+  // `cave` art is painted over black and reads as a box when tiled as mass, so
+  // it is reserved for the sparse decal pass in the renderer.
+  return { base, sheet: 'walls', cell: ROCK_FACES[(h >>> 2) % ROCK_FACES.length], tint, open: o, glow: 0 };
+}
+
+/**
+ * Ledges are drawn as a lit cap with a dark under-shank, which is how the
+ * source art builds its own platforms. Returns null for cells that are plain
+ * mass (those come from {@link tileLook}).
+ */
+export function ledgeLook(
+  get: (x: number, y: number) => number,
+  tx: number,
+  ty: number,
+  bandTint: number,
+): { cell: number; tint: number; oneWide: boolean } | null {
+  const tile = get(tx, ty);
+  if (tile !== T.ROCK && tile !== T.DEEP) return null;
+  const airAbove = AIRY(get(tx, ty - 1));
+  if (!airAbove) return null;
+  const airLeft = AIRY(get(tx - 1, ty));
+  const airRight = AIRY(get(tx + 1, ty));
+  const airBelow = AIRY(get(tx, ty + 1));
+  const oneWide = airLeft && airRight;
+  const cell = oneWide ? SLAB : airLeft ? CAP_LEFT : airRight ? CAP_RIGHT : CAP;
+  void airBelow;
+  return { cell, tint: scaleColor(bandTint, 1.06), oneWide };
 }

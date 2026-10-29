@@ -116,7 +116,6 @@ const report = {
   essence: sim.essence,
   banked: sim.banked,
   oreTiles: ore,
-  decor: sim.world.decor.length,
   upgrades: sim.upgrades,
   veinTest: vein,
 };
@@ -128,7 +127,6 @@ if (vein.perfects !== 1) fail.push('a frame-perfect parry did not register');
 if (vein.after - vein.before < 2) fail.push(`parry grew ${vein.after - vein.before} vein tiles (expected >= 2)`);
 if (vein.hp !== 100) fail.push('parried blow still dealt damage');
 if (report.simMsPerFrame > 2) fail.push(`sim too slow: ${report.simMsPerFrame} ms/frame`);
-if (report.decor < 4) fail.push(`too little set dressing: ${report.decor}`);
 
 console.log(JSON.stringify(report, null, 2));
 if (fail.length) {

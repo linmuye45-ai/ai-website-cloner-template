@@ -43,17 +43,52 @@ export class BootScene extends Phaser.Scene {
     bar.fillStyle(C.ember, 1);
     bar.fillRect(VIEW.w / 2 - 160, VIEW.h / 2, 320 * this.load.progress, 3);
 
-    this.load.image('rockmass', `${ASSET_BASE}/vendor/zhulong/rockmass.png`);
+    for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave', 'parallax-wall']) {
+      this.load.image(`t_${n}`, `${ASSET_BASE}/vendor/frogatto/${n}.png`);
+    }
+    for (const n of ['nene-spritesheet1', 'bat-black', 'beetle-black-armor', 'mushroom-walker-green', 'jellybug-green', 'maggot-grey', 'moth-black']) {
+      this.load.image(`s_${n}`, `${ASSET_BASE}/vendor/frogatto/${n}.png`);
+    }
     for (const name of PROP_KEYS) this.load.image(`p_${name}`, propUrl(name));
     for (const name of LIGHT_KEYS) this.load.image(`l_${name}`, lightUrl(name));
   }
 
   create(): void {
-    // Slice the seamless 64x128 wall into 4x8 frames of 16x16 so world cells
-    // can sample it by position and line up edge to edge.
-    const src = this.textures.get('rockmass').getSourceImage() as HTMLImageElement;
-    if (!this.textures.exists('rockmass16')) {
-      this.textures.addSpriteSheet('rockmass16', src, { frameWidth: 16, frameHeight: 16 });
+    // Frogatto atlases are 8 cells wide at 32px.
+    for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave']) {
+      const key = `t_${n}`;
+      const src = this.textures.get(key).getSourceImage() as HTMLImageElement;
+      if (!this.textures.exists(`${key}_cells`)) {
+        this.textures.addSpriteSheet(`${key}_cells`, src, { frameWidth: 32, frameHeight: 32 });
+      }
+    }
+    // Frogatto sprites are horizontal frame strips of a fixed width.
+    const STRIP_W: Record<string, number> = {
+      nene: 51, bat: 26, beetle: 25, mushroom: 31, jelly: 37, maggot: 28, moth: 39,
+    };
+    const STRIP_SRC: Record<string, string> = {
+      nene: 'nene-spritesheet1',
+      bat: 'bat-black',
+      beetle: 'beetle-black-armor',
+      mushroom: 'mushroom-walker-green',
+      jelly: 'jellybug-green',
+      maggot: 'maggot-grey',
+      moth: 'moth-black',
+    };
+    for (const [k, w] of Object.entries(STRIP_W)) {
+      const key = `anim_${k}`;
+      if (this.textures.exists(key)) continue;
+      const img = this.textures.get(`s_${STRIP_SRC[k]}`).getSourceImage() as HTMLImageElement;
+      this.textures.addSpriteSheet(key, img, { frameWidth: w, frameHeight: img.height });
+    }
+    if (!this.anims.exists('nene-idle')) {
+      const neneFrames = this.textures.get('anim_nene').frameTotal - 1;
+      this.anims.create({
+        key: 'nene-idle',
+        frames: this.anims.generateFrameNumbers('anim_nene', { start: 0, end: Math.min(5, neneFrames - 1) }),
+        frameRate: 7,
+        repeat: -1,
+      });
     }
     this.scene.start('title');
   }
@@ -128,9 +163,10 @@ export class GameScene extends Phaser.Scene {
   private glows: Phaser.GameObjects.Image[] = [];
   private farWall!: Phaser.GameObjects.TileSprite;
   private motes!: Phaser.GameObjects.Graphics;
-  private player!: Phaser.GameObjects.Image;
+  private player!: Phaser.GameObjects.Sprite;
   private playerGlow!: Phaser.GameObjects.Image;
   private fx!: Phaser.GameObjects.Graphics;
+  private baseGfx!: Phaser.GameObjects.Graphics;
   private hud!: Phaser.GameObjects.Graphics;
   private uiCam!: Phaser.Cameras.Scene2D.Camera;
   private enemies: Phaser.GameObjects.Image[] = [];
@@ -182,32 +218,30 @@ export class GameScene extends Phaser.Scene {
 
     // Far wall: the same stone mass pushed back by parallax and fog.
     this.farWall = this.add
-      .tileSprite(0, 0, VIEW.w / 3 + 64, VIEW.h / 3 + 64, 'rockmass')
+      .tileSprite(0, 0, VIEW.w / 3 + 64, VIEW.h / 3 + 64, 't_parallax-wall')
       .setOrigin(0.5)
       .setScrollFactor(0.45)
-      .setTint(0x24253c)
-      .setAlpha(0.32);
-    this.farWall.setTileScale(2.2, 2.2);
+      .setTint(0x3a3048)
+      .setAlpha(0.55);
+    this.farWall.setTileScale(4, 4);
     this.worldRoot.add(this.farWall);
 
     this.motes = this.add.graphics();
     this.uiRoot.add(this.motes);
 
+    this.baseGfx = this.add.graphics();
+    this.worldRoot.add(this.baseGfx);
     this.fx = this.add.graphics();
     this.worldRoot.add(this.fx);
-    this.player = this.add.image(this.sim.px, this.sim.py, 'p_wizard').setOrigin(0.5, 0.5);
+    this.player = this.add.sprite(this.sim.px, this.sim.py, 'anim_nene', 0).setOrigin(0.5, 0.5).setScale(1.15);
+    this.player.play({ key: 'nene-idle', frameRate: 7, repeat: -1 });
     this.playerGlow = this.add.image(0, 0, 'l_circle_a').setTint(C.ember).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.16).setScale(0.1);
     this.worldRoot.add(this.playerGlow);
     this.worldRoot.add(this.player);
 
-    for (const d of this.sim.world.decor) {
-      const img = this.add.image(d.x * TILE, d.y * TILE, `p_${d.key}`).setOrigin(0, 0).setTint(0x9a96b4);
-      this.worldRoot.add(img);
-    }
-
     const cells = 34 * 22;
     for (let i = 0; i < cells; i += 1) {
-      const img = this.add.image(0, 0, 'rockmass16', 0).setOrigin(0, 0).setVisible(false);
+      const img = this.add.image(0, 0, 't_dungeon-walls_cells', 0).setOrigin(0, 0).setVisible(false);
       this.tilePool.push(img);
       this.cellKey.push('');
       this.worldRoot.add(img);
@@ -393,6 +427,7 @@ export class GameScene extends Phaser.Scene {
     const ty1 = Math.ceil(bottom / TILE);
 
     this.oreCells.length = 0;
+    this.baseGfx.clear();
     let slot = 0;
     for (let ty = ty0; ty <= ty1 && slot < this.tilePool.length; ty += 1) {
       for (let tx = tx0; tx <= tx1 && slot < this.tilePool.length; tx += 1) {
@@ -404,15 +439,18 @@ export class GameScene extends Phaser.Scene {
           continue;
         }
         const look = tileLook((x, y) => sim.world.get(x, y), tx, ty, sim.band.tint);
-        const ck = `${look.file}|${look.tint}`;
-        if (look.glow) this.oreCells.push({ x: tx * TILE + 8, y: ty * TILE + 8, r: look.glow });
+        const ck = `${look.sheet}|${look.cell}|${look.tint}`;
+        if (look.glow) this.oreCells.push({ x: tx * TILE + 16, y: ty * TILE + 16, r: look.glow });
         if (this.cellKey[slot] !== ck) {
-          img.setFrame(look.file);
+          img.setTexture(`t_${look.sheet === 'walls' ? 'dungeon-walls' : look.sheet === 'floor' ? 'dungeon-floor-cement' : 'cave'}_cells`);
+          img.setFrame(look.cell);
           img.setTint(look.tint);
           this.cellKey[slot] = ck;
         }
         img.setVisible(true);
         img.setPosition(tx * TILE, ty * TILE);
+        this.baseGfx.fillStyle(look.base, 1);
+        this.baseGfx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
         slot += 1;
       }
     }
@@ -428,15 +466,12 @@ export class GameScene extends Phaser.Scene {
     this.player.setPosition(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2);
     this.player.setFlipX(sim.face < 0);
     this.player.setVisible(!(sim.dead && sim.deathT > 0.5));
-    if (sim.attackT > 0) {
-      const p = 1 - sim.attackT / PLAYER.attackDur;
-      this.player.setAngle(sim.face * (-18 + p * 36));
-    } else this.player.setAngle(0);
+    this.player.setAngle(0);
     if (sim.iframes > 0 && Math.floor(sim.iframes * 24) % 2 === 0) this.player.setAlpha(0.35);
     else this.player.setAlpha(1);
     this.player.setTint(sim.parryT > 0 ? C.jadeLight : 0xffffff);
 
-    this.playerGlow.setPosition(sim.px + 5, sim.py + 7);
+    this.playerGlow.setPosition(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2);
     this.playerGlow.setScale((sim.upgrades.includes('ember') ? 0.14 : 0.1) * (0.94 + Math.sin(sim.time * 6) * 0.06));
   }
 
@@ -454,7 +489,9 @@ export class GameScene extends Phaser.Scene {
         if (sim.world.get(tx, ty) !== T.BRAZIER) continue;
         const s = pool[i++];
         if (!s) return;
-        s.setVisible(true).setPosition(tx * TILE + 8, ty * TILE + 8);
+        s.setVisible(false);
+        this.flameGfx.fillStyle(C.ember, 1).fillRect(tx * TILE + 10, ty * TILE + 14, 12, 14);
+        s.setPosition(tx * TILE + 8, ty * TILE + 8);
         const flick = 1 + Math.sin(sim.time * 9 + tx * 1.7) * 0.08;
         s.setScale(flick);
       }
@@ -463,11 +500,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private flames: Phaser.GameObjects.Image[] = [];
+  private flameGfx!: Phaser.GameObjects.Graphics;
   /** Torch stand plus a flame; both come from the Tiny Dungeon prop sheet. */
   private flamePool(): Phaser.GameObjects.Image[] {
+    if (!this.flameGfx) {
+      this.flameGfx = this.add.graphics();
+      this.worldRoot.add(this.flameGfx);
+    }
+    this.flameGfx.clear();
     if (this.flames.length === 0) {
       for (let i = 0; i < 24; i += 1) {
-        const t = this.add.image(0, 0, 'p_torch').setVisible(false).setScale(1.5);
+        const t = this.add.image(0, 0, 'anim_nene', 0).setVisible(false);
         this.worldRoot.add(t);
         this.flames.push(t);
       }
@@ -478,7 +521,7 @@ export class GameScene extends Phaser.Scene {
   private syncEnemies(): void {
     const sim = this.sim;
     while (this.enemies.length < sim.enemies.length) {
-      const img = this.add.image(0, 0, 'p_skeleton').setOrigin(0.5, 0.5);
+      const img = this.add.sprite(0, 0, 'anim_bat', 0).setOrigin(0.5, 0.5).setScale(1.15);
       this.worldRoot.add(img);
       this.enemies.push(img);
     }
@@ -490,7 +533,7 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       const key =
-        e.kind === 'knight' ? 'p_knight' : e.kind === 'imp' ? 'p_demon' : e.kind === 'slime' ? 'p_slime' : e.kind === 'skeleton' ? 'p_skeleton' : 'p_ghoul';
+        e.kind === 'knight' ? 'anim_beetle' : e.kind === 'imp' ? 'anim_moth' : e.kind === 'slime' ? 'anim_jelly' : e.kind === 'skeleton' ? 'anim_maggot' : 'anim_bat';
       if (img.texture.key !== key) img.setTexture(key);
       img.setVisible(true).setPosition(e.x + e.w / 2, e.y + e.h / 2);
       img.setFlipX(e.dir < 0);
@@ -514,7 +557,7 @@ export class GameScene extends Phaser.Scene {
   private syncChips(): void {
     const sim = this.sim;
     while (this.chips.length < sim.chips.length) {
-      const img = this.add.image(0, 0, 'p_potion_green').setScale(0.35).setOrigin(0.5, 0.5);
+      const img = this.add.image(0, 0, 'anim_nene', 0).setScale(0.06).setOrigin(0.5, 0.5).setAlpha(0.9);
       this.worldRoot.add(img);
       this.chips.push(img);
     }
@@ -526,8 +569,6 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
       img.setVisible(true).setPosition(c.x, c.y);
-      const key = c.kind === 1 ? 'p_potion_blue' : c.kind === 2 ? 'p_potion_red' : 'p_potion_green';
-      if (img.texture.key !== key) img.setTexture(key);
       img.setTint(c.kind === 0 ? 0x9fe3dd : c.kind === 1 ? 0xffc46b : 0xff8f6a);
     }
   }
@@ -590,7 +631,7 @@ export class GameScene extends Phaser.Scene {
     const sim = this.sim;
     const rt = this.dark;
     rt.clear();
-    rt.fill(0x020108,0.66);
+    rt.fill(0x03040c, 0.22);
 
     const add = (wx: number, wy: number, radius: number, texture: string): void => {
       const s = this.toScreen(wx, wy);
@@ -600,15 +641,15 @@ export class GameScene extends Phaser.Scene {
       rt.erase(this.texture(texture).setScale(scale), s.x - d / 2, s.y - d / 2);
     };
 
-    add(sim.px + 5, sim.py + 7, 104 * (sim.upgrades.includes('ember') ? 1.3 : 1), 'l_circle_a');
-    add(sim.px + 5, sim.py + 7, 46, 'l_circle_b');
+    add(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2, 230 * (sim.upgrades.includes('ember') ? 1.3 : 1), 'l_circle_a');
+    add(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2, 96, 'l_circle_b');
 
     for (let ty = Math.floor((sim.py - 200) / TILE); ty <= Math.floor((sim.py + 200) / TILE); ty += 1) {
       for (let tx = Math.floor((sim.px - 300) / TILE); tx <= Math.floor((sim.px + 300) / TILE); tx += 1) {
         const t = sim.world.get(tx, ty);
-        if (t === T.BRAZIER) add(tx * TILE + 8, ty * TILE + 8, 130, 'l_circle_a_noise');
-        else if (t === T.ORE) add(tx * TILE + 8, ty * TILE + 8, 26, 'l_circle_b');
-        else if (t === T.RICH) add(tx * TILE + 8, ty * TILE + 8, 40, 'l_circle_b');
+        if (t === T.BRAZIER) add(tx * TILE + 16, ty * TILE + 16, 150, 'l_circle_a_noise');
+        else if (t === T.ORE) add(tx * TILE + 16, ty * TILE + 16, 30, 'l_circle_b');
+        else if (t === T.RICH) add(tx * TILE + 16, ty * TILE + 16, 44, 'l_circle_b');
       }
     }
     for (const e of sim.enemies) {
@@ -625,12 +666,12 @@ export class GameScene extends Phaser.Scene {
       g.setVisible(true).setPosition(s.x, s.y).setTexture('l_circle_a_noise')
         .setScale((radius * 2 * this.cameras.main.zoom) / 512).setTint(tint).setAlpha(alpha);
     };
-    glowAt(sim.px + 5, sim.py + 7, 92, C.ember, 0.28 + Math.sin(sim.time * 5) * 0.03);
-    glowAt(sim.px + 5, sim.py + 7, 190, C.emberDeep, 0.1);
+    glowAt(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2, 120, C.ember, 0.3 + Math.sin(sim.time * 5) * 0.03);
+    glowAt(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2, 240, C.emberDeep, 0.12);
     for (let ty = Math.floor((sim.py - 160) / TILE); ty <= Math.floor((sim.py + 160) / TILE); ty += 1) {
       for (let tx = Math.floor((sim.px - 260) / TILE); tx <= Math.floor((sim.px + 260) / TILE); tx += 1) {
         if (sim.world.get(tx, ty) !== T.BRAZIER) continue;
-        glowAt(tx * TILE + 8, ty * TILE + 6, 96, C.emberHot, 0.3);
+        glowAt(tx * TILE + 16, ty * TILE + 12, 90, C.emberHot, 0.26);
       }
     }
     for (let i = gi; i < this.glows.length; i += 1) this.glows[i].setVisible(false);
@@ -663,9 +704,7 @@ export class GameScene extends Phaser.Scene {
     g.strokeRect(29.5, 29.5, 201, 10);
     if (!this.hudTexts.hp) this.mkText();
     this.setHud('hp', 238, 26, `${Math.ceil(sim.hp)}`, 14, C.paper, 0);
-    const flask = sim.flask > 0 ? 'p_potion_red' : 'p_potion_blue';
-    if (this.flaskIcon.texture.key !== flask) this.flaskIcon.setTexture(flask);
-    this.flaskIcon.setPosition(38, 56).setVisible(true).setAlpha(sim.flask > 0 ? 1 : 0.35);
+    this.flaskIcon.setPosition(38, 56).setVisible(true).setTint(sim.flask > 0 ? 0xd15c52 : 0x494356);
     this.setHud('flask', 48, 60, `烛血 ${sim.flask}`, 12, sim.flask > 0 ? C.paper : C.dim, 0);
 
     // ---- top-right: depth + band ----------------------------------------
@@ -753,7 +792,7 @@ export class GameScene extends Phaser.Scene {
   private flaskIcon!: Phaser.GameObjects.Image;
 
   private mkText(): void {
-    this.flaskIcon = this.add.image(38, 56, 'p_potion_red').setScale(1).setOrigin(0.5);
+    this.flaskIcon = this.add.image(38, 56, 'anim_nene', 0).setScale(0.5).setOrigin(0.5);
     this.uiRoot.add(this.flaskIcon);
     for (const k of ['hp', 'flask', 'depth', 'band', 'ess', 'bank', 'combo', 'log0', 'log1', 'log2', 'log3', 'log4', 'log5', 'prompt', 'prompt2', 'tide', 'banner', 'hint']) {
       const t = this.add
@@ -896,7 +935,7 @@ export async function createZhulongGame(parent: HTMLElement): Promise<Phaser.Gam
     parent,
     width: VIEW.w,
     height: VIEW.h,
-    backgroundColor: hex(C.void),
+    backgroundColor: '#0a0d16',
     pixelArt: true,
     roundPixels: true,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },

@@ -27,7 +27,7 @@ export class World {
   hp: Uint8Array;
   wear: Uint8Array;
   readonly rng: Rng;
-  /** Set dressing placed on cave floors, purely visual. */
+  /** Reserved for set dressing; the current art pass draws none. */
   decor: Decor[] = [];
 
   constructor(seed: number) {
@@ -84,14 +84,25 @@ export class World {
     return a + (b - a) * sy;
   }
 
-  /** Horizontal centre of the shaft at a given row. */
+  /** Horizontal centre of the vein at a given row. */
   centreAt(row: number): number {
     return (
       this.w / 2 +
-      Math.sin(row * 0.009) * 26 +
-      Math.sin(row * 0.031 + 1.7) * 11 +
-      Math.sin(row * 0.077 + 0.4) * 5
+      Math.sin(row * 0.021) * 17 +
+      Math.sin(row * 0.067 + 1.7) * 8 +
+      Math.sin(row * 0.147 + 0.4) * 3.5
     );
+  }
+
+  /**
+   * Half-width of the vein, in tiles. The viewport shows ~20 tiles across, so a
+   * 4-8 tile half-width leaves real rock on both sides of the player. Anything
+   * wider and a screen of play is an empty auditorium.
+   */
+  widthAt(row: number): number {
+    const base = 3.6 + this.noise(0, row, 12, 3) * 2.2;
+    const bulge = Math.pow(Math.max(0, Math.sin(row * 0.037 + 0.8)), 4) * 2.6;
+    return base + bulge;
   }
 
   private generate(): void {
@@ -102,22 +113,25 @@ export class World {
     this.tiles.fill(T.ROCK);
     for (let i = 0; i < this.hp.length; i += 1) this.hp[i] = TILE_HP[T.ROCK];
 
-    // 1. main shaft
+    // 1. the vein itself: one continuous cavern down the world
     for (let y = 0; y < H; y += 1) {
       const c = this.centreAt(y);
-      const half = 3 + this.noise(0, y, 18, 3) * 2;
+      const half = this.widthAt(y);
       for (let x = 0; x < W; x += 1) {
-        if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
+        const d = Math.abs(x - c);
+        // ragged edges rather than a clean circle
+        const edge = this.noise(x * 0.4, y * 0.4, 6, 11) * 2.4;
+        if (d <= half + edge - 0.8) this.set(x, y, T.AIR);
       }
     }
 
-    // 2. chambers + galleries
+    // 2. side chambers hung off the vein, with a short throat to reach them
     const chambers: { x: number; y: number; w: number; h: number }[] = [];
-    for (let y = 22; y < H - 30; y += 24 + Math.floor(rng() * 10)) {
-      const cw = 16 + Math.floor(rng() * 12);
-      const ch = 9 + Math.floor(rng() * 6);
+    for (let y = 14; y < H - 20; y += 22 + Math.floor(rng() * 12)) {
       const side = rng() > 0.5 ? 1 : -1;
-      const cx = Math.round(this.centreAt(y) + side * (14 + rng() * 16) - cw / 2);
+      const cw = 14 + Math.floor(rng() * 12);
+      const ch = 9 + Math.floor(rng() * 6);
+      const cx = Math.round(this.centreAt(y) + side * (this.widthAt(y) + 5 + rng() * 6) - cw / 2);
       const x0 = Math.max(2, Math.min(W - cw - 2, cx));
       const y0 = Math.max(3, Math.min(H - ch - 3, y));
       chambers.push({ x: x0, y: y0, w: cw, h: ch });
@@ -127,77 +141,58 @@ export class World {
           const ex = Math.min(tx - x0, x0 + cw - 1 - tx);
           const ey = Math.min(ty - y0, y0 + ch - 1 - ty);
           const r = this.noise(tx, ty, 3, 17);
-          if (ex === 0 && r < 0.5) continue;
-          if (ey === 0 && r < 0.35) continue;
+          if (ex === 0 && r < 0.55) continue;
+          if (ey === 0 && r < 0.4) continue;
           this.set(tx, ty, T.AIR);
         }
       }
 
-      // gallery back to the shaft
+      // throat back to the vein
       const gy = y0 + Math.floor(ch / 2);
-      const shaftX = Math.round(this.centreAt(gy));
-      const lo = Math.min(shaftX, x0 + cw);
-      const hi = Math.max(shaftX, x0 + cw);
+      const veinEdge = Math.round(this.centreAt(gy) + side * (this.widthAt(gy) + 1));
+      const lo = Math.min(veinEdge, x0 + (side > 0 ? 0 : cw));
+      const hi = Math.max(veinEdge, x0 + (side > 0 ? 0 : cw));
       for (let tx = lo; tx <= hi; tx += 1) {
-        for (let dy = 0; dy < 3; dy += 1) this.set(tx, gy + dy, T.AIR);
+        for (let dy = -1; dy < 3; dy += 1) this.set(tx, gy + dy, T.AIR);
       }
     }
 
-    // 3. ledges in chambers
+    // 3. ledges: short shelves that break up the vertical fall
     for (const c of chambers) {
       const n = 1 + Math.floor(rng() * 3);
       for (let i = 0; i < n; i += 1) {
         const sy = c.y + 2 + Math.floor(rng() * Math.max(1, c.h - 3));
-        const sx = c.x + 2 + Math.floor(rng() * Math.max(1, c.w - 8));
+        const sx = c.x + 2 + Math.floor(rng() * Math.max(1, c.w - 9));
         const len = 4 + Math.floor(rng() * 5);
         for (let tx = sx; tx < Math.min(c.x + c.w - 1, sx + len); tx += 1) {
           this.set(tx, sy, T.ROCK);
         }
       }
     }
-
-    // 3b. set dressing: chests, barrels and skull altars on cave floors
-    const PROPS = ['barrel', 'chest', 'skull_altar'];
-    for (const c of chambers) {
-      for (let tx = c.x + 1; tx < c.x + c.w - 1; tx += 1) {
-        for (let ty = c.y + 1; ty < c.y + c.h; ty += 1) {
-          if (this.get(tx, ty) !== T.AIR) continue;
-          if (this.get(tx, ty + 1) === T.AIR) continue;
-          if (this.get(tx, ty - 1) !== T.AIR) continue;
-          if (rng() > 0.09) continue;
-          this.decor.push({ x: tx, y: ty, key: PROPS[Math.floor(rng() * PROPS.length)] });
-          ty = c.y + c.h;
-          break;
-        }
-      }
-    }
-
-    // 4. reopen the shaft where ledges may have crossed it
-    for (let y = 0; y < H; y += 1) {
+    // shelves inside the vein keep it from being a single drop
+    for (let y = 18; y < H - 10; y += 7 + Math.floor(rng() * 5)) {
       const c = this.centreAt(y);
-      const half = 2.6 + this.noise(0, y, 18, 3) * 1.8;
-      for (let x = 0; x < W; x += 1) {
-        if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
+      const half = this.widthAt(y);
+      const len = 3 + Math.floor(rng() * 5);
+      const side = rng() > 0.5 ? 1 : -1;
+      const sx = Math.round(c + side * (half - len - 1));
+      for (let tx = sx; tx < sx + len; tx += 1) {
+        if (this.get(tx, y) === T.AIR) this.set(tx, y, T.ROCK);
       }
     }
 
-    // 5. deep stone pockets and ore along walls
+    // 4. deep stone: broad contiguous bands, because single scattered cells of
+    // the mossy art read as black boxes rather than as harder rock
     for (let y = 4; y < H - 4; y += 1) {
       for (let x = 1; x < W - 1; x += 1) {
-        const t = this.get(x, y);
-        if (t !== T.ROCK) continue;
-        const depth = y / H;
-        if (this.noise(x, y, 7, 71) > 0.74 + depth * 0.14) {
-          this.set(x, y, T.DEEP);
-          continue;
-        }
-        // No free ore anywhere: the only veins in this world are the ones a
-        // perfect parry transcribes into the wall (「刀痕成矿」).
-        void depth;
+        if (this.get(x, y) !== T.ROCK) continue;
+        const n = this.noise(x, y, 9, 71);
+        const deepChance = 0.5 + (y / H) * 0.28;
+        if (n > deepChance) this.set(x, y, T.DEEP);
       }
     }
 
-    // 6. borders, entry hall, braziers
+    // 5. borders, entry hall, braziers
     for (let y = 0; y < H; y += 1) {
       for (let x = 0; x < W; x += 1) {
         if (x === 0 || x === W - 1 || y < 2 || y === H - 1) {
@@ -206,20 +201,15 @@ export class World {
         }
       }
     }
-    const startX = Math.round(this.centreAt(6));
-    for (let y = 2; y < 12; y += 1) {
-      for (let x = startX - 8; x <= startX + 8; x += 1) this.set(x, y, T.AIR);
+    const startX = Math.round(this.centreAt(7));
+    for (let y = 2; y < 10; y += 1) {
+      for (let x = startX - 6; x <= startX + 6; x += 1) this.set(x, y, T.AIR);
     }
-    for (let x = startX - 8; x <= startX + 8; x += 1) this.set(x, 12, T.ROCK);
-    this.decor.push({ x: startX - 6, y: 11, key: 'skull_altar' });
-    this.decor.push({ x: startX + 6, y: 11, key: 'barrel' });
 
-    for (let r = 40; r < H - 40; r += 58) {
+    for (let r = 26; r < H - 30; r += 34) {
       const cx = Math.round(this.centreAt(r));
-      for (let y = r - 3; y <= r; y += 1) {
-        for (let x = cx - 4; x <= cx + 4; x += 1) this.set(x, y, T.AIR);
-      }
-      for (let x = cx - 4; x <= cx + 4; x += 1) this.set(x, r + 1, T.ROCK);
+      if (this.get(cx, r) !== T.AIR) continue;
+      this.set(cx, r + 1, T.ROCK);
       this.set(cx, r, T.BRAZIER);
     }
   }
