@@ -107,6 +107,36 @@
       "frames": 63,
       "fw": 48,
       "fh": 48
+    },
+    {
+      "name": "props/brazier",
+      "frames": 8,
+      "fw": 400,
+      "fh": 128
+    },
+    {
+      "name": "props/torch",
+      "frames": 8,
+      "fw": 128,
+      "fh": 128
+    },
+    {
+      "name": "props/coin-gold-enormous",
+      "frames": 10,
+      "fw": 252,
+      "fh": 104
+    },
+    {
+      "name": "props/cave-foreground-stalagmites",
+      "frames": 0,
+      "fw": 512,
+      "fh": 512
+    },
+    {
+      "name": "props/crumbling-bricks-grey-rock",
+      "frames": 0,
+      "fw": 256,
+      "fh": 64
     }
   ],
   "tiles": [

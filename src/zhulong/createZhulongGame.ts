@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { BANDS, PLAYER, T, TILE, VIEW, WORLD, SAVE_KEY, bandAt } from './sim/config';
 import type { Band } from './sim/config';
 import { RunSim } from './sim/RunSim';
-import { C, LIGHT_KEYS, PROP_KEYS, hex, lightUrl, propUrl } from './art';
+import { C, LIGHT_KEYS, SHEET_KEYS, SPRITE_KEYS, hex, lightUrl, sheetUrl } from './art';
 import { ASSET_BASE } from '@/phaser-game/assets';
 import { tileLook } from './sim/look';
 
@@ -43,13 +43,16 @@ export class BootScene extends Phaser.Scene {
     bar.fillStyle(C.ember, 1);
     bar.fillRect(VIEW.w / 2 - 160, VIEW.h / 2, 320 * this.load.progress, 3);
 
-    for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave', 'parallax-wall']) {
+    for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave', 'dungeon-pillars', 'parallax-wall']) {
       this.load.image(`t_${n}`, `${ASSET_BASE}/vendor/frogatto/${n}.png`);
     }
+    this.load.image('brick-phases', `${ASSET_BASE}/vendor/frogatto/brick-phases.png`);
+    this.load.image('brazier', `${ASSET_BASE}/vendor/frogatto/props/brazier.png`);
+    this.load.image('ore-cells', `${ASSET_BASE}/vendor/frogatto/ore-cells.png`);
     for (const n of ['nene-spritesheet1', 'bat-black', 'beetle-black-armor', 'mushroom-walker-green', 'jellybug-green', 'maggot-grey', 'moth-black']) {
       this.load.image(`s_${n}`, `${ASSET_BASE}/vendor/frogatto/${n}.png`);
     }
-    for (const name of PROP_KEYS) this.load.image(`p_${name}`, propUrl(name));
+
     for (const name of LIGHT_KEYS) this.load.image(`l_${name}`, lightUrl(name));
   }
 
@@ -75,6 +78,28 @@ export class BootScene extends Phaser.Scene {
       maggot: 'maggot-grey',
       moth: 'moth-black',
     };
+    // 3x3 phase sheet of the 48px masonry; see scripts/zhulong/make-brick.mjs.
+    if (!this.textures.exists('brick-phases_cells')) {
+      this.textures.addSpriteSheet(
+        'brick-phases_cells',
+        this.textures.get('brick-phases').getSourceImage() as HTMLImageElement,
+        { frameWidth: 32, frameHeight: 32 },
+      );
+    }
+    if (!this.textures.exists('ore-cells_frames')) {
+      this.textures.addSpriteSheet(
+        'ore-cells_frames',
+        this.textures.get('ore-cells').getSourceImage() as HTMLImageElement,
+        { frameWidth: 32, frameHeight: 32 },
+      );
+    }
+    if (!this.textures.exists('brazier_frames')) {
+      this.textures.addSpriteSheet(
+        'brazier_frames',
+        this.textures.get('brazier').getSourceImage() as HTMLImageElement,
+        { frameWidth: 50, frameHeight: 64 },
+      );
+    }
     for (const [k, w] of Object.entries(STRIP_W)) {
       const key = `anim_${k}`;
       if (this.textures.exists(key)) continue;
@@ -158,15 +183,21 @@ export class GameScene extends Phaser.Scene {
   private uiRoot!: Phaser.GameObjects.Container;
   private tilePool: Phaser.GameObjects.Image[] = [];
   private cellKey: string[] = [];
+  /** Ore decals, drawn above the wall and below the hero. */
+  private orePool: Phaser.GameObjects.Image[] = [];
+  private oreUsed = 0;
   private oreCells: { x: number; y: number; r: number }[] = [];
   private dark!: Phaser.GameObjects.RenderTexture;
   private glows: Phaser.GameObjects.Image[] = [];
   private farWall!: Phaser.GameObjects.TileSprite;
+  private pillarLayer!: Phaser.GameObjects.TileSprite;
   private motes!: Phaser.GameObjects.Graphics;
   private player!: Phaser.GameObjects.Sprite;
   private playerGlow!: Phaser.GameObjects.Image;
   private fx!: Phaser.GameObjects.Graphics;
   private baseGfx!: Phaser.GameObjects.Graphics;
+  /** Lit rims of rock faces. Drawn above the darkness plate. */
+  private rimGfx!: Phaser.GameObjects.Graphics;
   private hud!: Phaser.GameObjects.Graphics;
   private uiCam!: Phaser.Cameras.Scene2D.Camera;
   private enemies: Phaser.GameObjects.Image[] = [];
@@ -193,6 +224,8 @@ export class GameScene extends Phaser.Scene {
     // per-run collection has to be dropped or the second run draws corpses.
     this.tilePool = [];
     this.cellKey = [];
+    this.orePool = [];
+    this.oreUsed = 0;
     this.glows = [];
     this.enemies = [];
     this.chips = [];
@@ -223,14 +256,28 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0.45)
       .setTint(0x3a3048)
       .setAlpha(0.55);
-    this.farWall.setTileScale(4, 4);
+    this.farWall.setTileScale(2, 2);
+    this.farWall.setTint(0x4c4468);
+    this.farWall.setAlpha(0.6);
     this.worldRoot.add(this.farWall);
+
+    // Parallax pillars: depth cue so open air does not read as blank void.
+    this.pillarLayer = this.add
+      .tileSprite(0, 0, VIEW.w / 3 + 64, VIEW.h / 3 + 64, 't_dungeon-pillars')
+      .setOrigin(0.5)
+      .setScrollFactor(0.3)
+      .setTint(0x2a3048)
+      .setAlpha(0.5);
+    this.pillarLayer.setTileScale(2, 2);
+    this.worldRoot.add(this.pillarLayer);
 
     this.motes = this.add.graphics();
     this.uiRoot.add(this.motes);
 
     this.baseGfx = this.add.graphics();
     this.worldRoot.add(this.baseGfx);
+    this.rimGfx = this.add.graphics();
+    this.worldRoot.add(this.rimGfx);
     this.fx = this.add.graphics();
     this.worldRoot.add(this.fx);
     this.player = this.add.sprite(this.sim.px, this.sim.py, 'anim_nene', 0).setOrigin(0.5, 0.5).setScale(1.15);
@@ -241,7 +288,12 @@ export class GameScene extends Phaser.Scene {
 
     const cells = 34 * 22;
     for (let i = 0; i < cells; i += 1) {
-      const img = this.add.image(0, 0, 't_dungeon-walls_cells', 0).setOrigin(0, 0).setVisible(false);
+      const ore = this.add.image(0, 0, 'ore-cells_frames', 0).setOrigin(0, 0).setVisible(false);
+      this.orePool.push(ore);
+      this.worldRoot.add(ore);
+    }
+    for (let i = 0; i < cells; i += 1) {
+      const img = this.add.image(0, 0, 'brick-phases_cells', 0).setOrigin(0, 0).setVisible(false);
       this.tilePool.push(img);
       this.cellKey.push('');
       this.worldRoot.add(img);
@@ -401,6 +453,10 @@ export class GameScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const lookAhead = this.sim.vy > 40 ? 40 : 0;
     cam.setFollowOffset(0, -lookAhead);
+    this.pillarLayer.setPosition(
+      cam.scrollX * 0.3 + VIEW.w / (2 * cam.zoom),
+      cam.scrollY * 0.22 + VIEW.h / (2 * cam.zoom),
+    );
     this.farWall.setPosition(
       cam.scrollX * 0.45 + VIEW.w / (2 * cam.zoom),
       cam.scrollY * 0.45 + VIEW.h / (2 * cam.zoom),
@@ -428,33 +484,88 @@ export class GameScene extends Phaser.Scene {
 
     this.oreCells.length = 0;
     this.baseGfx.clear();
+    this.rimGfx.clear();
+
+    // ---- rock mass -----------------------------------------------------
+    // Continuous masonry through the 3x3 phase sheet, exactly like the preview
+    // renderer: a 32px tile can only sit at three offsets inside a 48px brick,
+    // so nine frames give a seamless wall across the whole cavern. Per-tile
+    // boulder cells (an earlier pass) read as bubble wrap.
     let slot = 0;
-    for (let ty = ty0; ty <= ty1 && slot < this.tilePool.length; ty += 1) {
-      for (let tx = tx0; tx <= tx1 && slot < this.tilePool.length; tx += 1) {
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
         const tile = sim.world.get(tx, ty);
-        const img = this.tilePool[slot];
-        if (tile === T.AIR || tile === T.BRAZIER) {
-          img.setVisible(false);
-          slot += 1;
-          continue;
-        }
+        if (tile === T.AIR || tile === T.BRAZIER) continue;
         const look = tileLook((x, y) => sim.world.get(x, y), tx, ty, sim.band.tint);
-        const ck = `${look.sheet}|${look.cell}|${look.tint}`;
-        if (look.glow) this.oreCells.push({ x: tx * TILE + 16, y: ty * TILE + 16, r: look.glow });
-        if (this.cellKey[slot] !== ck) {
-          img.setTexture(`t_${look.sheet === 'walls' ? 'dungeon-walls' : look.sheet === 'floor' ? 'dungeon-floor-cement' : 'cave'}_cells`);
-          img.setFrame(look.cell);
-          img.setTint(look.tint);
-          this.cellKey[slot] = ck;
+        const phase = (((tx * TILE) % 48) / 16) + ((((ty * TILE) % 48) / 16) * 3);
+
+        const img = this.tilePool[slot];
+        if (img) {
+          const ck = `${tile === T.DEEP ? 'd' : 'r'}${phase}|${look.tint}`;
+          if (this.cellKey[slot] !== ck) {
+            img.setTexture('brick-phases_cells', phase);
+            img.setTint(look.tint);
+            this.cellKey[slot] = ck;
+          }
+          img.setVisible(true);
+          img.setPosition(tx * TILE, ty * TILE);
+          img.setAlpha(tile === T.DEEP ? 0.9 : 1);
+          slot += 1;
         }
-        img.setVisible(true);
-        img.setPosition(tx * TILE, ty * TILE);
-        this.baseGfx.fillStyle(look.base, 1);
+
+        // Darkness plate on the mass: the brick is graded down so the lit rim
+        // is what defines the silhouette.
+        this.baseGfx.fillStyle(0x05070e, tile === T.DEEP ? 0.5 : 0.36);
         this.baseGfx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
-        slot += 1;
+
+        // Lit rim: top edge bright jade, sides dim, underside near-black.
+        const x = tx * TILE;
+        const y = ty * TILE;
+        if (look.open[0]) {
+          this.rimGfx.fillStyle(0xa8f8e2, 0.95).fillRect(x, y, TILE, 2);
+          this.rimGfx.fillStyle(0x5fc9b4, 0.6).fillRect(x, y + 2, TILE, 2);
+          this.rimGfx.fillStyle(0x3d8f86, 0.26).fillRect(x, y + 4, TILE, 3);
+        }
+        if (look.open[1]) this.rimGfx.fillStyle(0x5f8fa8, 0.28).fillRect(x + TILE - 2, y, 2, TILE);
+        if (look.open[3]) this.rimGfx.fillStyle(0x5f8fa8, 0.12).fillRect(x, y, 2, TILE);
+        if (look.open[2]) this.rimGfx.fillStyle(0x2a3348, 0.4).fillRect(x, y + TILE - 2, TILE, 2);
       }
     }
     for (let i = slot; i < this.tilePool.length; i += 1) this.tilePool[i].setVisible(false);
+
+    // ore: the cave crackle re-mapped to copper→gold, drawn over the masonry it
+    // was carved out of. Frame chosen per tile so a seam does not look stamped.
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
+        const tile = sim.world.get(tx, ty);
+        if (tile !== T.ORE && tile !== T.RICH) continue;
+        const img = this.orePool[this.oreUsed];
+        if (img) {
+          const f = (((tx * 3 + ty * 5) % 4) + 4) % 4;
+          img.setFrame(f).setPosition(tx * TILE, ty * TILE).setVisible(true);
+          this.oreUsed += 1;
+        }
+        this.oreCells.push({ x: tx * TILE + 16, y: ty * TILE + 16, r: tile === T.RICH ? 2 : 1 });
+      }
+    }
+    for (let i = this.oreUsed; i < this.orePool.length; i += 1) this.orePool[i].setVisible(false);
+    this.oreUsed = 0;
+
+    // Directional seam tell: a short arrow on the side the force travelled, so
+    // the player reads which wall got the ore without any tutorial text.
+    if (sim.lastVein) {
+      const v = sim.lastVein;
+      const a = Math.max(0, v.t / 1.1);
+      const cx = v.x * TILE + 16;
+      const cy = v.y * TILE + 16;
+      this.fx.fillStyle(0xffe08a, a * 0.8);
+      this.fx.fillRect(v.dir > 0 ? cx - 26 : cx, cy - 1, 26, 2);
+      this.fx.fillTriangle(
+        cx + v.dir * 20, cy - 7,
+        cx + v.dir * 20, cy + 7,
+        cx + v.dir * 30, cy,
+      );
+    }
 
     this.drawBrazierFlames();
     this.syncEnemies();
@@ -471,6 +582,11 @@ export class GameScene extends Phaser.Scene {
     else this.player.setAlpha(1);
     this.player.setTint(sim.parryT > 0 ? C.jadeLight : 0xffffff);
 
+    this.worldRoot.bringToTop(this.rimGfx);
+    this.worldRoot.bringToTop(this.playerGlow);
+    this.worldRoot.bringToTop(this.player);
+    this.worldRoot.bringToTop(this.fx);
+
     this.playerGlow.setPosition(sim.px + PLAYER.w / 2, sim.py + PLAYER.h / 2);
     this.playerGlow.setScale((sim.upgrades.includes('ember') ? 0.14 : 0.1) * (0.94 + Math.sin(sim.time * 6) * 0.06));
   }
@@ -479,42 +595,41 @@ export class GameScene extends Phaser.Scene {
     const sim = this.sim;
     const cam = this.cameras.main;
     const tx0 = Math.floor((cam.scrollX - 40) / TILE);
-    const tx1 = Math.ceil((cam.scrollX + VIEW.w / 3 + 40) / TILE);
+    const tx1 = Math.ceil((cam.scrollX + VIEW.w / cam.zoom + 40) / TILE);
     const ty0 = Math.floor((cam.scrollY - 40) / TILE);
-    const ty1 = Math.ceil((cam.scrollY + VIEW.h / 3 + 40) / TILE);
+    const ty1 = Math.ceil((cam.scrollY + VIEW.h / cam.zoom + 40) / TILE);
     const pool = this.flamePool();
+    const frameTotal = this.textures.get('brazier_frames').frameTotal;
+    const lit = Math.max(1, frameTotal - 1);
     let i = 0;
     for (let ty = ty0; ty <= ty1; ty += 1) {
       for (let tx = tx0; tx <= tx1; tx += 1) {
         if (sim.world.get(tx, ty) !== T.BRAZIER) continue;
         const s = pool[i++];
         if (!s) return;
-        s.setVisible(false);
-        this.flameGfx.fillStyle(C.ember, 1).fillRect(tx * TILE + 10, ty * TILE + 14, 12, 14);
-        s.setPosition(tx * TILE + 8, ty * TILE + 8);
-        const flick = 1 + Math.sin(sim.time * 9 + tx * 1.7) * 0.08;
-        s.setScale(flick);
+        // frame 0 is the cold bowl; the rest are the lit loop.
+        const f = 1 + (Math.floor(sim.time * 11 + tx * 3) % lit);
+        s.setVisible(true);
+        s.setFrame(f);
+        s.setPosition(tx * TILE - 2, (ty + 1) * TILE - 34).setDisplaySize(34, 34);
+        s.setDepth(0);
       }
     }
     for (let j = i; j < pool.length; j += 1) pool[j].setVisible(false);
   }
 
   private flames: Phaser.GameObjects.Image[] = [];
-  private flameGfx!: Phaser.GameObjects.Graphics;
-  /** Torch stand plus a flame; both come from the Tiny Dungeon prop sheet. */
+  /** Real Frogatto brazier prop: a cold bowl on frame 0, eight lit frames after. */
   private flamePool(): Phaser.GameObjects.Image[] {
-    if (!this.flameGfx) {
-      this.flameGfx = this.add.graphics();
-      this.worldRoot.add(this.flameGfx);
-    }
-    this.flameGfx.clear();
     if (this.flames.length === 0) {
       for (let i = 0; i < 24; i += 1) {
-        const t = this.add.image(0, 0, 'anim_nene', 0).setVisible(false);
-        this.worldRoot.add(t);
+        const t = this.add.image(0, 0, 'brazier_frames', 1).setOrigin(0, 0).setVisible(false);
         this.flames.push(t);
       }
     }
+    // Braziers live behind the hero but in front of the rock mass.
+    for (const t of this.flames) if (t.parentContainer !== this.worldRoot) this.worldRoot.add(t);
+    if (this.rimGfx) this.worldRoot.bringToTop(this.rimGfx);
     return this.flames;
   }
 

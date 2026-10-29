@@ -87,7 +87,7 @@ export function tileLook(
   ];
 
   if (tile === T.BEDROCK) {
-    return { base: 0x1b1a24, sheet: 'walls', cell: ROCK_FACES[h % ROCK_FACES.length], tint: 0x4a4758, open: [0, 0, 0, 0], glow: 0 };
+    return { base: 0x080a12, sheet: 'walls', cell: ROCK_FACES[h % ROCK_FACES.length], tint: 0x232a3c, open: [0, 0, 0, 0], glow: 0 };
   }
 
   if (tile === T.ORE || tile === T.RICH) {
@@ -106,15 +106,22 @@ export function tileLook(
   // Deep rock grows moss over the same structure.
   const deep = tile === T.DEEP;
   const sheet: TileLook['sheet'] = 'walls';
-  // Frogatto's rock already carries its own shading, so the band tint only
-  // grades it; over-darkening turns the whole screen into mush.
-  let tint = scaleColor(bandTint, deep ? 1 : 1.05);
-  if (o[0]) tint = scaleColor(tint, deep ? 1.25 : 1.2);
-  tint = scaleColor(tint, 0.9 + ((h % 7) / 7) * 0.2);
+  // Deliberate high-contrast grade: the rock is pushed to near-black so it
+  // reads as *mass*, and every platform is legible only from its lit rim.
+  // Letting the source art keep its own mid-grey is what made earlier passes
+  // look like grey brick wallpaper.
+  // Mid-dark, not black: the mass stays readable, but it sits well under the
+  // lit rim so silhouette still does the work.
+  let tint = scaleColor(deep ? 0x5c6480 : 0x6e7488, 0.78 + ((h % 5) / 5) * 0.2);
+  if (o[0]) tint = scaleColor(tint, 1.35);
+  void bandTint;
 
   // Must sit on the cave backdrop: the wall cells are decals with alpha gaps,
   // and any contrast here prints a visible square around every tile.
-  const base = deep ? 0x0b0f18 : 0x0a0d16;
+  // Matched to the cave backdrop. The wall cells are decals with alpha gaps, so
+  // a contrasting plate prints a square around every tile; at the backdrop value
+  // the gaps simply become shadow.
+  const base = deep ? 0x05070c : 0x06080e;
   // Deep rock uses the same dense faces; only the tint turns cold. The mossy
   // `cave` art is painted over black and reads as a box when tiled as mass, so
   // it is reserved for the sparse decal pass in the renderer.

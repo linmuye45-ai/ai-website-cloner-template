@@ -9,7 +9,7 @@
 export const TILE = 32;
 /** Camera magnification. At 16px tiles this shows ~40x22 tiles, i.e. a
  *  side-scrolling action game rather than a poster. */
-export const ZOOM = 2;
+export const ZOOM = 3;
 export const VIEW = { w: 1280, h: 720 } as const;
 
 export const WORLD = { w: 110, h: 700 } as const;
@@ -27,8 +27,10 @@ export const T = {
 export const TILE_HP: Record<number, number> = {
   [T.ROCK]: 3,
   [T.DEEP]: 6,
-  [T.ORE]: 2,
-  [T.RICH]: 3,
+  // Ore is far softer than rock: a seam carved by a parry is also a way through.
+  // That is how 「刀痕成矿」 pays for itself twice — essence and shortcuts.
+  [T.ORE]: 1,
+  [T.RICH]: 1,
   [T.BRAZIER]: 999,
   [T.BEDROCK]: 9999,
 };

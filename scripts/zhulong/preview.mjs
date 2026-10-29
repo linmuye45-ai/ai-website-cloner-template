@@ -66,11 +66,13 @@ const { tileLook, ledgeLook, MOSS } = require(path.join(SIM_OUT, 'look.js'));
 const MOSS_DECAL = [1, 5, 7, 13, 15, 19, 30, 31, 39, 46, 47];
 
 GlobalFonts.registerFromPath(path.join(ROOT, 'public/vendor/sunnyland/fonts/VonwaonBitmap-16px.ttf'), 'Vonwaon');
-const props = (n) => path.join(ROOT, 'public/vendor/zhulong/props', `${n}.png`);
-const lightFile = (n) => path.join(ROOT, 'public/vendor/zhulong/light', `${n}.png`);
+const lightFile = (n) => path.join(ROOT, 'public/vendor/frogatto/light', `${n}.png`);
 
 const img = new Map();
 async function preload() {
+  for (const n of ['brazier', 'coin-gold-enormous']) img.set(`p_${n}`, await loadImage(path.join(ROOT, 'public/vendor/frogatto/props', `${n}.png`)));
+  img.set('brick-phases', await loadImage(path.join(ROOT, 'public/vendor/frogatto/brick-phases.png')));
+  img.set('ore-cells', await loadImage(path.join(ROOT, 'public/vendor/frogatto/ore-cells.png')));
   for (const n of ['dungeon-walls', 'dungeon-floor-cement', 'cave', 'dungeon-pillars', 'parallax-wall']) {
     img.set(`t_${n}`, await loadImage(path.join(ROOT, 'public/vendor/frogatto', `${n}.png`)));
   }
@@ -173,35 +175,129 @@ function drawWorld(ctx, sim, cam, opts = {}) {
   ctx.imageSmoothingEnabled = false;
   const rims = [];
   const glows = [];
-  const ATLAS = { walls: 'dungeon-walls', floor: 'dungeon-floor-cement', cave: 'cave' };
+  // ---- rock mass -------------------------------------------------------
+  // One continuous masonry material on a 48px world grid, clipped to the solid
+  // tiles. Tiling boulder cells at 32px made the wall read as bubble wrap; a
+  // continuous brick field plus a lit rim reads as carved stone.
+  // 48px masonry sampled through a 3x3 phase sheet: nine frames cover every
+  // possible 32px tile origin inside a 48px brick, so the course is continuous
+  // across the map with no seams and no scaling.
+  const phases = img.get('brick-phases');
+  const worldL = tx0 * TILE;
+  const worldT = ty0 * TILE;
+  const worldW = (tx1 - tx0 + 1) * TILE;
+  const worldH = (ty1 - ty0 + 1) * TILE;
+
+  const solidMask = createCanvas(worldW, worldH);
+  {
+    const m = solidMask.getContext('2d');
+    m.fillStyle = '#fff';
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
+        const t = world.get(tx, ty);
+        if (t === T.AIR || t === T.BRAZIER) continue;
+        m.fillRect(tx * TILE - worldL, ty * TILE - worldT, TILE, TILE);
+      }
+    }
+  }
+
+  const mass = createCanvas(worldW, worldH);
+  {
+    const mx = mass.getContext('2d');
+    mx.imageSmoothingEnabled = false;
+    // Native 48px, no scaling (scaling 1.5x banded the brick), and odd courses
+    // offset by half a tile so the repetition never lines up into a grid.
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
+        const t = world.get(tx, ty);
+        if (t === T.AIR || t === T.BRAZIER) continue;
+        const ox = ((tx * TILE) % 48) / 16;
+        const oy = ((ty * TILE) % 48) / 16;
+        mx.drawImage(phases, ox * 32, oy * 32, 32, 32, tx * TILE - worldL, ty * TILE - worldT, 32, 32);
+      }
+    }
+    // One vertical grade over the whole field, never per tile or per block:
+    // any per-cell plate prints a checkerboard over continuous masonry.
+    mx.globalAlpha = 1;
+    mx.fillStyle = 'rgba(6,8,16,0.35)';
+    mx.fillRect(0, 0, worldW, worldH);
+    const dg = mx.createLinearGradient(0, 0, 0, worldH);
+    dg.addColorStop(0, 'rgba(3,4,9,0.42)');
+    dg.addColorStop(1, 'rgba(3,4,9,0.06)');
+    mx.fillStyle = dg;
+    mx.fillRect(0, 0, worldW, worldH);
+    mx.globalAlpha = 1;
+    mx.globalCompositeOperation = 'destination-in';
+    mx.drawImage(solidMask, 0, 0);
+  }
+  ctx.drawImage(mass, worldL, worldT);
+
   for (let ty = ty0; ty <= ty1; ty += 1) {
     for (let tx = tx0; tx <= tx1; tx += 1) {
       const t = world.get(tx, ty);
       if (t === T.AIR || t === T.BRAZIER) continue;
-      const ledge = ledgeLook((x, y) => world.get(x, y), tx, ty, bandNum);
       const look = tileLook((x, y) => world.get(x, y), tx, ty, bandNum);
-      const sheet = ATLAS[ledge ? 'floor' : look.sheet];
-      const cell = ledge ? ledge.cell : look.cell;
-      const tint = rgbHex(ledge ? ledge.tint : look.tint);
-      // pass 1: solid mass so the wall never shows holes
-      if (!ledge) {
-        ctx.fillStyle = rgbHex(look.base);
-        ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE);
-      }
-      const key = `t_${sheet}`;
-      ctx.drawImage(cellSlice(key, sheet, cell, tint), tx * TILE, ty * TILE, TILE, TILE);
-      if (look.glow) glows.push({ tx, ty, r: look.glow });
-      if (!ledge) rims.push({ tx, ty, o: look.open, tint: look.tint, deep: t === 2 });
+      rims.push({ tx, ty, o: look.open, tint: look.tint, deep: t === 2 });
+    }
+  }
+
+  // ore: Frogatto's cave crackle, re-mapped onto a copper→gold ramp by
+  // scripts/zhulong/make-ore.mjs. Drawn over the masonry it was carved out of.
+  const oreSheet = img.get('ore-cells');
+  for (let ty = ty0; ty <= ty1; ty += 1) {
+    for (let tx = tx0; tx <= tx1; tx += 1) {
+      const t = world.get(tx, ty);
+      if (t !== T.ORE && t !== T.RICH) continue;
+      const rich = t === T.RICH;
+      const f = (hash2(tx, ty) >>> 2) % 4;
+      ctx.globalAlpha = 1;
+      ctx.drawImage(oreSheet, f * 32, 0, 32, 32, tx * TILE, ty * TILE, 32, 32);
+      glows.push({ tx, ty, r: rich ? 2 : 1 });
     }
   }
 
   // rim light: the only thing separating rock from cave
   for (const r of rims) {
     const x = r.tx * TILE; const y = r.ty * TILE;
-    if (r.o[0]) { ctx.globalAlpha = 0.3; ctx.fillStyle = mulHex(r.tint, 1.8); ctx.fillRect(x, y, TILE, 2); }
-    if (r.o[1]) { ctx.globalAlpha = 0.16; ctx.fillStyle = mulHex(r.tint, 1.2); ctx.fillRect(x + TILE - 2, y, 2, TILE); }
-    if (r.o[3]) { ctx.globalAlpha = 0.24; ctx.fillStyle = mulHex(r.tint, 0.45); ctx.fillRect(x, y, 2, TILE); }
-    if (r.o[2]) { ctx.globalAlpha = 0.34; ctx.fillStyle = mulHex(r.tint, 0.35); ctx.fillRect(x, y + TILE - 2, TILE, 2); }
+    // Lit rim: the single brightest thing on a rock face, and the only cue the
+    // player needs to read a platform in a dark shaft.
+    if (r.o[0]) {
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = '#a8f8e2';
+      ctx.fillRect(x, y, TILE, 2);
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#5fc9b4';
+      ctx.fillRect(x, y + 2, TILE, 2);
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#3d8f86';
+      ctx.fillRect(x, y + 4, TILE, 3);
+    }
+    if (r.o[1]) { ctx.globalAlpha = 0.30; ctx.fillStyle = '#5f8fa8'; ctx.fillRect(x + TILE - 2, y, 2, TILE); }
+    if (r.o[3]) { ctx.globalAlpha = 0.14; ctx.fillStyle = '#5f8fa8'; ctx.fillRect(x, y, 2, TILE); }
+    if (r.o[2]) { ctx.globalAlpha = 0.42; ctx.fillStyle = '#2a3348'; ctx.fillRect(x, y + TILE - 2, TILE, 2); }
+    ctx.globalAlpha = 1;
+  }
+
+  // Directional seam tell: the parry leaves a streak on the side the force went,
+  // so the player reads *which wall* got the ore without any tutorial text.
+  if (sim.lastVein) {
+    const v = sim.lastVein;
+    const a = Math.max(0, v.t / 1.1);
+    const cx = v.x * TILE + 16;
+    const cy = v.y * TILE + 16;
+    ctx.globalAlpha = a * 0.75;
+    ctx.strokeStyle = '#ffe08a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - v.dir * 26, cy);
+    ctx.lineTo(cx + v.dir * 18, cy);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + v.dir * 18, cy);
+    ctx.lineTo(cx + v.dir * 10, cy - 6);
+    ctx.moveTo(cx + v.dir * 18, cy);
+    ctx.lineTo(cx + v.dir * 10, cy + 6);
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
@@ -225,31 +321,18 @@ function drawWorld(ctx, sim, cam, opts = {}) {
 
   // set dressing
 
-  // braziers
+  // braziers: real Frogatto prop, 50x64 cells, frame 0 unlit, 8+ lit loop
+  const brazier = img.get('p_brazier');
   for (let ty = ty0; ty <= ty1; ty += 1) {
     for (let tx = tx0; tx <= tx1; tx += 1) {
       if (world.get(tx, ty) !== T.BRAZIER) continue;
-      const bob = Math.sin(sim.time * 6 + tx) * 1;
-      // brazier: a stone bowl with a live flame, drawn as light rather than sprite
-      ctx.fillStyle = '#4a4458';
-      ctx.fillRect(tx * TILE + 6, ty * TILE + 20, 20, 8);
-      ctx.fillStyle = '#6b6480';
-      ctx.fillRect(tx * TILE + 8, ty * TILE + 18, 16, 4);
-      const fl = 9 + Math.sin(sim.time * 9 + tx) * 3;
-      ctx.fillStyle = '#ff7a2f';
-      ctx.beginPath();
-      ctx.moveTo(tx * TILE + 16, ty * TILE + 4 - fl);
-      ctx.lineTo(tx * TILE + 22, ty * TILE + 18);
-      ctx.lineTo(tx * TILE + 10, ty * TILE + 18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#ffc46b';
-      ctx.beginPath();
-      ctx.moveTo(tx * TILE + 16, ty * TILE + 9 - fl * 0.5);
-      ctx.lineTo(tx * TILE + 19, ty * TILE + 18);
-      ctx.lineTo(tx * TILE + 13, ty * TILE + 18);
-      ctx.closePath();
-      ctx.fill();
+      const f = 8 + (Math.floor(sim.time * 11 + tx * 3) % 7);
+      const sx = (f % 8) * 50 + 1;
+      const sy = Math.floor(f / 8) * 64 + 1;
+      // the prop is 48x48 and the bowl's base sits on the tile floor
+      // 34px: big enough to read as a built object, small enough that the hero
+      // (24px) is never hidden behind it.
+      ctx.drawImage(brazier, sx, sy, 48, 48, tx * TILE - 2, (ty + 1) * TILE - 34, 34, 34);
     }
   }
 
@@ -458,11 +541,29 @@ function drawBackdrop(ctx, cam, sim) {
   // Open air is a cold blue haze. Without it a mined tunnel looks exactly like
   // the rock it was cut from, which is the fastest way to lose a player.
   const g = ctx.createLinearGradient(0, 0, 0, VIEW.h);
-  g.addColorStop(0, '#090b13');
-  g.addColorStop(0.55, '#0a0d16');
-  g.addColorStop(1, '#0b0f1a');
+  g.addColorStop(0, '#05070e');
+  g.addColorStop(0.55, '#070a12');
+  g.addColorStop(1, '#080d18');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+
+  // Parallax shafts: the dungeon pillars set, dropped into the background at
+  // low alpha. Without them the open air reads as blank void; with them the
+  // cavern has depth and the corridor feels like it is inside a structure.
+  if (img.has('t_dungeon-pillars')) {
+    const pil = img.get('t_dungeon-pillars');
+    const ps = 2;
+    const pw = pil.width * ps;
+    const ph = pil.height * ps;
+    const px0 = -(((cam.x * 0.3) % (pw * 2)) + pw * 2) % (pw * 2);
+    const py0 = -(((cam.y * 0.22) % ph) + ph) % ph;
+    ctx.globalAlpha = 0.10;
+    ctx.imageSmoothingEnabled = false;
+    for (let y = py0; y < VIEW.h; y += ph) {
+      for (let x = px0; x < VIEW.w; x += pw * 2) ctx.drawImage(pil, x, y, pw, ph);
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // far wall: the same stone mass, pushed back by parallax and fog
   if (!img.has('far')) {
@@ -471,19 +572,19 @@ function drawBackdrop(ctx, cam, sim) {
     const x = c.getContext('2d');
     x.drawImage(base, 0, 0);
     x.globalCompositeOperation = 'multiply';
-    x.fillStyle = '#2c2740';
+    x.fillStyle = '#4c4468';
     x.fillRect(0, 0, c.width, c.height);
     x.globalCompositeOperation = 'destination-in';
     x.drawImage(base, 0, 0);
     img.set('far', c);
   }
   const far = img.get('far');
-  const scale = 4;
+  const scale = 2;
   const w = far.width * scale;
   const hh = far.height * scale;
   const ox = -(((cam.x * 0.45) % w) + w) % w;
   const oy = -(((cam.y * 0.45) % hh) + hh) % hh;
-  ctx.globalAlpha = 0.34;
+  ctx.globalAlpha = 0.6;
   ctx.imageSmoothingEnabled = false;
   for (let y = oy; y < VIEW.h; y += hh) {
     for (let x = ox; x < VIEW.w; x += w) ctx.drawImage(far, x, y, w, hh);
@@ -556,7 +657,7 @@ async function main() {
       if (sim.world.get(x, y) === T.BRAZIER && sim.world.get(x, y + 1) !== T.AIR) {
         // stand on the rock under the brazier instead of teleporting mid-air
         sim.px = x * TILE + 3;
-        sim.py = (y + 1) * TILE - 14 - 0.01;
+        sim.py = (y + 1) * TILE - 24 - 0.01;
         sim.vx = 0;
         sim.vy = 0;
         sim.enemies.length = 0;
@@ -570,17 +671,47 @@ async function main() {
   sim.upgrades.push('edge');
   for (let i = 0; i < 40; i += 1) sim.update(1 / 60, { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false });
   shoot('03-brazier');
+  if (process.env.ZH_DEBUG) {
+    const z = ZOOM; const px = Math.floor(sim.px / TILE); const py = Math.floor(sim.py / TILE);
+    console.log('player tile', px, py);
+    for (let y = py - 3; y <= py + 4; y += 1) {
+      let row = '';
+      for (let x = px - 8; x <= px + 8; x += 1) row += '.123456'[sim.world.get(x, y)];
+      console.log(String(y).padStart(4), row);
+    }
+  }
 
-  // 4. force a parry so 「刀痕成矿」 is visible in a frame
+  // 4. force a parry with a wall behind the player, so 「刀痕成矿」 carves into
+  //    stone where the seam is actually legible
+  {
+    const py = Math.floor(sim.py / TILE);
+    let best = null;
+    for (let ty = py - 20; ty <= py + 20 && !best; ty += 1) {
+      for (let tx = 6; tx < sim.world.w - 8; tx += 1) {
+        if (sim.world.get(tx, ty) !== T.AIR) continue;
+        // air pocket with solid stone immediately to the left, two rows tall
+        if (sim.world.get(tx - 1, ty) === T.ROCK && sim.world.get(tx, ty + 1) !== T.AIR) {
+          best = { tx, ty };
+          break;
+        }
+      }
+    }
+    if (best) {
+      sim.px = best.tx * TILE + 6;
+      sim.py = (best.ty + 1) * TILE - 24 - 0.01;
+      sim.vx = 0;
+      sim.vy = 0;
+    }
+  }
+  sim.enemies.length = 0;
   const e = {
-    id: 999, x: sim.px + 16, y: sim.py, vx: 0, vy: 0, w: 12, h: 14, hp: 40, maxHp: 40,
+    id: 999, x: sim.px + 18, y: sim.py, vx: 0, vy: 0, w: 12, h: 14, hp: 40, maxHp: 40,
     state: 'windup', t: 0.08, dir: -1, kind: 'knight', dmg: 15, flash: 0, armored: true, hitdone: false,
   };
   sim.enemies.push(e);
   sim.parryT = 0.2;
-  sim.instantParry?.(e);
-  sim.say('刀痕成矿');
-  for (let i = 0; i < 20; i += 1) sim.update(1 / 60, { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false });
+  sim.forceParry(e);
+  for (let i = 0; i < 8; i += 1) sim.update(1 / 60, { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false });
   shoot('04-vein');
 
   // 5. the tide pressing down on the player

@@ -100,8 +100,8 @@ export class World {
    * wider and a screen of play is an empty auditorium.
    */
   widthAt(row: number): number {
-    const base = 3.6 + this.noise(0, row, 12, 3) * 2.2;
-    const bulge = Math.pow(Math.max(0, Math.sin(row * 0.037 + 0.8)), 4) * 2.6;
+    const base = 2.9 + this.noise(0, row, 12, 3) * 1.6;
+    const bulge = Math.pow(Math.max(0, Math.sin(row * 0.037 + 0.8)), 4) * 1.3;
     return base + bulge;
   }
 
@@ -129,8 +129,8 @@ export class World {
     const chambers: { x: number; y: number; w: number; h: number }[] = [];
     for (let y = 14; y < H - 20; y += 22 + Math.floor(rng() * 12)) {
       const side = rng() > 0.5 ? 1 : -1;
-      const cw = 14 + Math.floor(rng() * 12);
-      const ch = 9 + Math.floor(rng() * 6);
+      const cw = 10 + Math.floor(rng() * 7);
+      const ch = 6 + Math.floor(rng() * 4);
       const cx = Math.round(this.centreAt(y) + side * (this.widthAt(y) + 5 + rng() * 6) - cw / 2);
       const x0 = Math.max(2, Math.min(W - cw - 2, cx));
       const y0 = Math.max(3, Math.min(H - ch - 3, y));
@@ -229,10 +229,16 @@ export class World {
   }
 
   /**
-   * 「刀痕成矿」 — the signature mechanic. A perfect parry transcribes the
-   * blow's force into the nearest stone, growing a vein the player can mine.
+   * 「刀痕成矿」: a parried blow is driven *through* the player and into the wall
+   * behind them, cutting a seam of ore as it goes.
+   *
+   * `dir` is the direction the force was travelling (+1 right, -1 left, 0 radial).
+   * The seam therefore grows away from the attacker — that is the mechanical
+   * hook: where you stand when you parry decides which wall gets the ore.
+   * Mining by hand still yields nothing; carving with a parry both pays out and
+   * opens the wall, because ore is far softer than rock.
    */
-  carveVein(cx: number, cy: number, rich: boolean, size: number): { x: number; y: number }[] {
+  carveVein(cx: number, cy: number, rich: boolean, size: number, dir = 0): { x: number; y: number }[] {
     let bx = -1;
     let by = -1;
     let bd = Infinity;
@@ -254,13 +260,23 @@ export class World {
     const target = rich ? T.RICH : T.ORE;
     let x = bx;
     let y = by;
+    const step = dir;
+
     for (let i = 0; i < size; i += 1) {
       const t = this.get(x, y);
       if (t === T.ROCK || t === T.DEEP) {
         this.set(x, y, target);
         out.push({ x, y });
       }
-      // Follow the wall face rather than tunnelling into open air.
+
+      // Follow the driving direction while there is still stone ahead; the seam
+      // only curls once it runs out of rock, so a parry reads as a clean strike
+      // rather than a random splatter.
+      const aheadX = x + step;
+      if (step !== 0 && (this.get(aheadX, y) === T.ROCK || this.get(aheadX, y) === T.DEEP)) {
+        x = aheadX;
+        continue;
+      }
       const dirs = this.rng() > 0.5 ? [1, -1] : [-1, 1];
       let moved = false;
       for (const dx of dirs) {
@@ -273,6 +289,7 @@ export class World {
       }
       if (!moved) y += this.rng() > 0.5 ? 1 : -1;
     }
+
     return out;
   }
 

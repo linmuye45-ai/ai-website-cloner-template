@@ -117,6 +117,8 @@ export class RunSim {
   parries = 0;
   comboT = 0;
   combo = 0;
+  /** Last carved seam, so the HUD can draw its direction for a moment. */
+  lastVein: { x: number; y: number; dir: number; n: number; t: number } | null = null;
 
   bestRow = 0;
   time = 0;
@@ -254,6 +256,10 @@ export class RunSim {
     this.flaskCd = Math.max(0, this.flaskCd - dt);
     this.comboT = Math.max(0, this.comboT - dt);
     if (this.comboT <= 0) this.combo = 0;
+    if (this.lastVein) {
+      this.lastVein.t -= dt;
+      if (this.lastVein.t <= 0) this.lastVein = null;
+    }
     this.shakeT = Math.max(0, this.shakeT - dt);
 
     // ---- movement ------------------------------------------------------
@@ -681,6 +687,14 @@ export class RunSim {
     }
   }
 
+  /**
+   * Parry entry point for tooling and the render harness: the sim itself routes
+   * through the same path, so a frame captured here is a frame the player sees.
+   */
+  forceParry(e: Enemy): void {
+    this.perfectParry(e);
+  }
+
   private perfectParry(e: Enemy): void {
     this.perfects += 1;
     this.parries += 1;
@@ -694,9 +708,17 @@ export class RunSim {
     e.state = 'stagger';
     e.t = ENEMY.staggerTime;
     e.vx = -e.dir * 120;
+    // The blow's momentum carries through: it is driven away from the attacker.
+    const forceDir = e.x + e.w / 2 <= this.px + PLAYER.w / 2 ? 1 : -1;
     const size = this.up('vein') ? 7 : 5;
     const rich = this.up('vein') || this.rng() > 0.5;
-    const made = this.world.carveVein(Math.floor(e.x / TILE), Math.floor(e.y / TILE), rich, size);
+    const made = this.world.carveVein(
+      Math.floor((e.x + e.w / 2) / TILE),
+      Math.floor((e.y + e.h / 2) / TILE),
+      rich,
+      size,
+      forceDir,
+    );
     for (const t of made) {
       this.chips.push({
         x: t.x * TILE + 8,
@@ -707,7 +729,10 @@ export class RunSim {
         kind: rich ? 1 : 0,
       });
     }
-    if (made.length > 0) this.say('刀痕成矿');
+    if (made.length > 0) {
+      this.say(forceDir > 0 ? '刀痕成矿 →' : '← 刀痕成矿');
+      this.lastVein = { x: made[0].x, y: made[0].y, dir: forceDir, n: made.length, t: 1.1 };
+    }
   }
 
   damage(amount: number, fatal = false, dir = 0): void {

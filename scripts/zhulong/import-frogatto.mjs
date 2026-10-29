@@ -319,6 +319,8 @@ const SPRITES = [
   'moth-black', 'skeeter', 'spider-hanging-black', 'hornbug-red', 'fumper',
 ];
 const HEROES = ['pato-spritesheet1', 'nene-spritesheet1', 'kinguin-spritesheet1'];
+/** Props keep their authored layout (frame grids are read from the red guides). */
+const PROPS = ['brazier', 'torch', 'coin-gold-enormous', 'cave-foreground-stalagmites', 'crumbling-bricks-grey-rock'];
 const TILESHEETS = ['dungeon-walls', 'dungeon-floor-cement', 'dungeon-pillars', 'dungeon-parallax-wall', 'dungeon-parallax-floor', 'cave'];
 
 mkdirSync(OUT, { recursive: true });
@@ -332,6 +334,16 @@ for (const name of list) {
   const r = writeSheet(name, keyed, keyed.boxes);
   if (r) report.sprites.push(r);
 }
+}
+
+for (const name of PROPS) {
+  const p = path.join(SRC, 'images/props', `${name}.png`);
+  if (!existsSync(p)) continue;
+  const keyed = await loadKeyed(p);
+  const dir = path.join(OUT, 'props');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${name}.png`), keyed.canvas.toBuffer('image/png'));
+  report.sprites.push({ name: `props/${name}`, frames: keyed.boxes.length, fw: keyed.w, fh: keyed.h });
 }
 
 for (const name of TILESHEETS) {
