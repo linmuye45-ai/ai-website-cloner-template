@@ -1,0 +1,174 @@
+{
+  "sprites": [
+    {
+      "name": "kitty-ninja",
+      "frames": 47,
+      "fw": 102,
+      "fh": 48
+    },
+    {
+      "name": "kitty-sword",
+      "frames": 68,
+      "fw": 63,
+      "fh": 54
+    },
+    {
+      "name": "kitty-butler",
+      "frames": 15,
+      "fw": 85,
+      "fh": 43
+    },
+    {
+      "name": "kitty-spear",
+      "frames": 38,
+      "fw": 85,
+      "fh": 36
+    },
+    {
+      "name": "bat-black",
+      "frames": 13,
+      "fw": 26,
+      "fh": 39
+    },
+    {
+      "name": "beetle-black-armor",
+      "frames": 13,
+      "fw": 25,
+      "fh": 28
+    },
+    {
+      "name": "beetle-black",
+      "frames": 17,
+      "fw": 25,
+      "fh": 28
+    },
+    {
+      "name": "mushroom-walker-green",
+      "frames": 15,
+      "fw": 31,
+      "fh": 37
+    },
+    {
+      "name": "jellybug-green",
+      "frames": 8,
+      "fw": 37,
+      "fh": 29
+    },
+    {
+      "name": "maggot-grey",
+      "frames": 22,
+      "fw": 28,
+      "fh": 28
+    },
+    {
+      "name": "moth-black",
+      "frames": 47,
+      "fw": 39,
+      "fh": 39
+    },
+    {
+      "name": "skeeter",
+      "frames": 8,
+      "fw": 20,
+      "fh": 24
+    },
+    {
+      "name": "spider-hanging-black",
+      "frames": 44,
+      "fw": 57,
+      "fh": 56
+    },
+    {
+      "name": "hornbug-red",
+      "frames": 21,
+      "fw": 39,
+      "fh": 39
+    },
+    {
+      "name": "fumper",
+      "frames": 15,
+      "fw": 31,
+      "fh": 30
+    },
+    {
+      "name": "pato-spritesheet1",
+      "frames": 28,
+      "fw": 73,
+      "fh": 53
+    },
+    {
+      "name": "nene-spritesheet1",
+      "frames": 35,
+      "fw": 51,
+      "fh": 52
+    },
+    {
+      "name": "kinguin-spritesheet1",
+      "frames": 63,
+      "fw": 48,
+      "fh": 48
+    },
+    {
+      "name": "props/brazier",
+      "frames": 8,
+      "fw": 400,
+      "fh": 128
+    },
+    {
+      "name": "props/torch",
+      "frames": 8,
+      "fw": 128,
+      "fh": 128
+    },
+    {
+      "name": "props/coin-gold-enormous",
+      "frames": 10,
+      "fw": 252,
+      "fh": 104
+    },
+    {
+      "name": "props/cave-foreground-stalagmites",
+      "frames": 0,
+      "fw": 512,
+      "fh": 512
+    },
+    {
+      "name": "props/crumbling-bricks-grey-rock",
+      "frames": 0,
+      "fw": 256,
+      "fh": 64
+    }
+  ],
+  "tiles": [
+    {
+      "name": "dungeon-walls",
+      "cols": 16,
+      "rows": 8
+    },
+    {
+      "name": "dungeon-floor-cement",
+      "cols": 8,
+      "rows": 8
+    },
+    {
+      "name": "dungeon-pillars",
+      "cols": 4,
+      "rows": 4
+    },
+    {
+      "name": "dungeon-parallax-wall",
+      "cols": 2,
+      "rows": 2
+    },
+    {
+      "name": "dungeon-parallax-floor",
+      "cols": 2,
+      "rows": 0
+    },
+    {
+      "name": "cave",
+      "cols": 16,
+      "rows": 8
+    }
+  ]
+}
