@@ -2,19 +2,33 @@ import { T, TILE_HP, WORLD } from './config';
 import { mulberry32, type Rng } from './math';
 
 /**
- * The shaft. A dense tile grid rather than sparse objects: digging rewrites
- * cells constantly, so a flat typed array keeps it cheap and cache-friendly.
+ * The Long Vein.
+ *
+ * A tile grid rather than loose objects, because digging rewrites cells
+ * constantly. Generation is a layered process:
+ *   1. solid rock
+ *   2. a winding main shaft (guaranteed route down)
+ *   3. chambers hung off the shaft, alternating sides
+ *   4. galleries reconnecting every chamber
+ *   5. ledges inside chambers so fights have geometry
+ *   6. ore veins, biased to cave walls
+ *   7. braziers as banking anchors
  */
+export interface Decor {
+  x: number;
+  y: number;
+  key: string;
+}
+
 export class World {
   readonly w = WORLD.w;
   readonly h = WORLD.h;
   tiles: Uint8Array;
-  /** Remaining sword hits before a tile breaks. */
   hp: Uint8Array;
-  /** Per-tile wear marker 0-3, purely for the damage crack overlay. */
   wear: Uint8Array;
-  /** Tile coordinates that currently hold a live ore vein. */
   readonly rng: Rng;
+  /** Set dressing placed on cave floors, purely visual. */
+  decor: Decor[] = [];
 
   constructor(seed: number) {
     this.rng = mulberry32(seed);
@@ -50,7 +64,6 @@ export class World {
     this.wear[i] = 0;
   }
 
-  /** Value-noise in [0,1), sampled on a coarse lattice with smooth steps. */
   private noise(x: number, y: number, scale: number, salt: number): number {
     const fx = x / scale;
     const fy = y / scale;
@@ -71,146 +84,146 @@ export class World {
     return a + (b - a) * sy;
   }
 
-  /**
-   * Level generation.
-   *
-   * A thin wormhole through solid rock looks like a wall, not a place. Real
-   * digging games give you rooms: chambers you drop into, ledges to fight on,
-   * and passages that connect sideways. The loop below carves, in order:
-   *
-   *   1. a winding main shaft (the guaranteed descent route)
-   *   2. chambers every ~30 rows, randomly offset left/right
-   *   3. horizontal galleries linking chambers to the shaft
-   *   4. ledges and rubble inside chambers so they are traversable
-   *   5. ore, biased to cave walls and chamber floors
-   *   6. braziers on the shaft floor as banking anchors
-   */
+  /** Horizontal centre of the shaft at a given row. */
+  centreAt(row: number): number {
+    return (
+      this.w / 2 +
+      Math.sin(row * 0.009) * 26 +
+      Math.sin(row * 0.031 + 1.7) * 11 +
+      Math.sin(row * 0.077 + 0.4) * 5
+    );
+  }
+
   private generate(): void {
     const rng = this.rng;
     const W = this.w;
     const H = this.h;
 
-    // Everything starts as stone; carving happens below.
-    for (let i = 0; i < this.tiles.length; i += 1) {
-      this.tiles[i] = T.STONE;
-      this.hp[i] = TILE_HP[T.STONE];
-    }
+    this.tiles.fill(T.ROCK);
+    for (let i = 0; i < this.hp.length; i += 1) this.hp[i] = TILE_HP[T.ROCK];
 
-    const centreAt = (row: number): number =>
-      W / 2 + Math.sin(row * 0.021) * 8 + Math.sin(row * 0.073 + 1.3) * 3.5;
-
-    // 1. Main shaft.
+    // 1. main shaft
     for (let y = 0; y < H; y += 1) {
-      const c = centreAt(y);
-      const half = 2.6 + this.noise(0, y, 26, 3) * 2.2;
+      const c = this.centreAt(y);
+      const half = 3 + this.noise(0, y, 18, 3) * 2;
       for (let x = 0; x < W; x += 1) {
         if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
       }
     }
 
-    // 2. Chambers: big open rooms, alternating side, always reconnected.
+    // 2. chambers + galleries
     const chambers: { x: number; y: number; w: number; h: number }[] = [];
-    for (let y = 26; y < H - 40; y += 26 + Math.floor(rng() * 12)) {
-      const cw = 12 + Math.floor(rng() * 10);
-      const ch = 7 + Math.floor(rng() * 5);
+    for (let y = 22; y < H - 30; y += 24 + Math.floor(rng() * 10)) {
+      const cw = 16 + Math.floor(rng() * 12);
+      const ch = 9 + Math.floor(rng() * 6);
       const side = rng() > 0.5 ? 1 : -1;
-      const cx = Math.round(W / 2 + side * (10 + rng() * 14) - cw / 2);
+      const cx = Math.round(this.centreAt(y) + side * (14 + rng() * 16) - cw / 2);
       const x0 = Math.max(2, Math.min(W - cw - 2, cx));
-      const y0 = Math.max(4, Math.min(H - ch - 4, y));
+      const y0 = Math.max(3, Math.min(H - ch - 3, y));
       chambers.push({ x: x0, y: y0, w: cw, h: ch });
 
       for (let ty = y0; ty < y0 + ch; ty += 1) {
         for (let tx = x0; tx < x0 + cw; tx += 1) {
-          // Rounded corners so rooms do not look like rectangles.
           const ex = Math.min(tx - x0, x0 + cw - 1 - tx);
           const ey = Math.min(ty - y0, y0 + ch - 1 - ty);
-          const r = this.noise(tx, ty, 4, 17);
-          if (ex === 0 && r < 0.45) continue;
+          const r = this.noise(tx, ty, 3, 17);
+          if (ex === 0 && r < 0.5) continue;
           if (ey === 0 && r < 0.35) continue;
           this.set(tx, ty, T.AIR);
         }
       }
 
-      // 3. Gallery back to the shaft, so a chamber is never a dead end.
+      // gallery back to the shaft
       const gy = y0 + Math.floor(ch / 2);
-      const shaftX = Math.round(centreAt(gy));
-      const from = Math.min(shaftX, x0 + cw);
-      const to = Math.max(shaftX, x0 + cw);
-      for (let tx = from; tx <= to; tx += 1) {
-        this.set(tx, gy, T.AIR);
-        this.set(tx, gy + 1, T.AIR);
-        this.set(tx, gy + 2, T.AIR);
+      const shaftX = Math.round(this.centreAt(gy));
+      const lo = Math.min(shaftX, x0 + cw);
+      const hi = Math.max(shaftX, x0 + cw);
+      for (let tx = lo; tx <= hi; tx += 1) {
+        for (let dy = 0; dy < 3; dy += 1) this.set(tx, gy + dy, T.AIR);
       }
     }
 
-    // 4. Ledges inside chambers: something to stand on and fight around.
+    // 3. ledges in chambers
     for (const c of chambers) {
-      const shelves = 1 + Math.floor(rng() * 3);
-      for (let i = 0; i < shelves; i += 1) {
+      const n = 1 + Math.floor(rng() * 3);
+      for (let i = 0; i < n; i += 1) {
         const sy = c.y + 2 + Math.floor(rng() * Math.max(1, c.h - 3));
-        const sx = c.x + 2 + Math.floor(rng() * Math.max(1, c.w - 6));
-        const len = 3 + Math.floor(rng() * 4);
+        const sx = c.x + 2 + Math.floor(rng() * Math.max(1, c.w - 8));
+        const len = 4 + Math.floor(rng() * 5);
         for (let tx = sx; tx < Math.min(c.x + c.w - 1, sx + len); tx += 1) {
-          this.set(tx, sy, T.STONE);
+          this.set(tx, sy, T.ROCK);
         }
       }
     }
 
-    // Re-ensure the shaft is open where shelves may have crossed it.
+    // 3b. set dressing: chests, barrels and skull altars on cave floors
+    const PROPS = ['barrel', 'chest', 'skull_altar'];
+    for (const c of chambers) {
+      for (let tx = c.x + 1; tx < c.x + c.w - 1; tx += 1) {
+        for (let ty = c.y + 1; ty < c.y + c.h; ty += 1) {
+          if (this.get(tx, ty) !== T.AIR) continue;
+          if (this.get(tx, ty + 1) === T.AIR) continue;
+          if (this.get(tx, ty - 1) !== T.AIR) continue;
+          if (rng() > 0.09) continue;
+          this.decor.push({ x: tx, y: ty, key: PROPS[Math.floor(rng() * PROPS.length)] });
+          ty = c.y + c.h;
+          break;
+        }
+      }
+    }
+
+    // 4. reopen the shaft where ledges may have crossed it
     for (let y = 0; y < H; y += 1) {
-      const c = centreAt(y);
-      const half = 2.4 + this.noise(0, y, 26, 3) * 2.0;
+      const c = this.centreAt(y);
+      const half = 2.6 + this.noise(0, y, 18, 3) * 1.8;
       for (let x = 0; x < W; x += 1) {
         if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
       }
     }
 
-    // 5. Ore, biased to walls and chamber floors.
+    // 5. deep stone pockets and ore along walls
     for (let y = 4; y < H - 4; y += 1) {
       for (let x = 1; x < W - 1; x += 1) {
         const t = this.get(x, y);
-        if (t !== T.STONE) continue;
-        const nearAir =
-          this.get(x + 1, y) === T.AIR || this.get(x - 1, y) === T.AIR ||
-          this.get(x, y + 1) === T.AIR || this.get(x, y - 1) === T.AIR;
-        if (!nearAir) continue;
+        if (t !== T.ROCK) continue;
         const depth = y / H;
-        const roll = this.noise(x, y, 6, 41);
-        if (roll > 0.86 - depth * 0.08) {
-          this.set(x, y, rng() > 0.7 ? T.ORE_RICH : T.ORE);
+        if (this.noise(x, y, 7, 71) > 0.74 + depth * 0.14) {
+          this.set(x, y, T.DEEP);
+          continue;
         }
+        // No free ore anywhere: the only veins in this world are the ones a
+        // perfect parry transcribes into the wall (「刀痕成矿」).
+        void depth;
       }
     }
 
-    // 6. Hard borders, entry chamber, braziers.
+    // 6. borders, entry hall, braziers
     for (let y = 0; y < H; y += 1) {
       for (let x = 0; x < W; x += 1) {
-        if (x === 0 || x === W - 1 || y === 0 || y === 1 || y === H - 1) {
+        if (x === 0 || x === W - 1 || y < 2 || y === H - 1) {
           this.tiles[y * W + x] = T.BEDROCK;
-          this.hp[y * W + x] = 999;
+          this.hp[y * W + x] = 9999;
         }
       }
     }
-    const startX = Math.round(centreAt(6));
-    for (let y = 2; y < 10; y += 1) {
-      for (let x = startX - 6; x <= startX + 6; x += 1) this.set(x, y, T.AIR);
+    const startX = Math.round(this.centreAt(6));
+    for (let y = 2; y < 12; y += 1) {
+      for (let x = startX - 8; x <= startX + 8; x += 1) this.set(x, y, T.AIR);
     }
-    for (let x = startX - 6; x <= startX + 6; x += 1) this.set(x, 10, T.STONE);
+    for (let x = startX - 8; x <= startX + 8; x += 1) this.set(x, 12, T.ROCK);
+    this.decor.push({ x: startX - 6, y: 11, key: 'skull_altar' });
+    this.decor.push({ x: startX + 6, y: 11, key: 'barrel' });
 
-    for (let r = 34; r < H - 30; r += 52) {
-      const cx = Math.round(centreAt(r));
-      for (let y = r - 2; y <= r; y += 1) {
-        for (let x = cx - 3; x <= cx + 3; x += 1) this.set(x, y, T.AIR);
+    for (let r = 40; r < H - 40; r += 58) {
+      const cx = Math.round(this.centreAt(r));
+      for (let y = r - 3; y <= r; y += 1) {
+        for (let x = cx - 4; x <= cx + 4; x += 1) this.set(x, y, T.AIR);
       }
-      for (let x = cx - 3; x <= cx + 3; x += 1) this.set(x, r + 1, T.STONE);
+      for (let x = cx - 4; x <= cx + 4; x += 1) this.set(x, r + 1, T.ROCK);
       this.set(cx, r, T.BRAZIER);
     }
   }
 
-  /**
-   * One sword hit against a tile. Returns the tile that broke (or -1).
-   * Ore yields are handled by the caller so the economy stays in one place.
-   */
   hitTile(x: number, y: number, power = 1): { broke: number; hit: boolean } {
     if (!this.inside(x, y)) return { broke: -1, hit: false };
     const i = y * this.w + x;
@@ -226,42 +239,44 @@ export class World {
   }
 
   /**
-   * 「刀痕成矿」 — the signature move. A perfect parry carves a vein into the
-   * nearest stone, so the player's defensive timing literally mines the map.
+   * 「刀痕成矿」 — the signature mechanic. A perfect parry transcribes the
+   * blow's force into the nearest stone, growing a vein the player can mine.
    */
   carveVein(cx: number, cy: number, rich: boolean, size: number): { x: number; y: number }[] {
-    let bestX = -1;
-    let bestY = -1;
-    let bestD = Infinity;
-    for (let y = cy - 4; y <= cy + 4; y += 1) {
-      for (let x = cx - 4; x <= cx + 4; x += 1) {
+    let bx = -1;
+    let by = -1;
+    let bd = Infinity;
+    for (let y = cy - 5; y <= cy + 5; y += 1) {
+      for (let x = cx - 5; x <= cx + 5; x += 1) {
         const t = this.get(x, y);
-        if (t !== T.STONE && t !== T.DEEP) continue;
+        if (t !== T.ROCK && t !== T.DEEP) continue;
         const d = (x - cx) ** 2 + (y - cy) ** 2;
-        if (d < bestD) {
-          bestD = d;
-          bestX = x;
-          bestY = y;
+        if (d < bd) {
+          bd = d;
+          bx = x;
+          by = y;
         }
       }
     }
-    if (bestX < 0) return [];
+    if (bx < 0) return [];
 
     const out: { x: number; y: number }[] = [];
-    const target = rich ? T.ORE_RICH : T.ORE;
-    let x = bestX;
-    let y = bestY;
+    const target = rich ? T.RICH : T.ORE;
+    let x = bx;
+    let y = by;
     for (let i = 0; i < size; i += 1) {
-      if (this.get(x, y) === T.STONE || this.get(x, y) === T.DEEP) {
+      const t = this.get(x, y);
+      if (t === T.ROCK || t === T.DEEP) {
         this.set(x, y, target);
         out.push({ x, y });
       }
-      // Walk the vein along the wall face rather than into open air.
+      // Follow the wall face rather than tunnelling into open air.
       const dirs = this.rng() > 0.5 ? [1, -1] : [-1, 1];
       let moved = false;
       for (const dx of dirs) {
-        if (this.get(x + dx, y) !== T.AIR && (this.get(x, y + 1) === T.AIR || this.get(x, y - 1) === T.AIR)) {
-          x += dx;
+        const nx = x + dx;
+        if (this.get(nx, y) !== T.AIR && (this.get(x, y + 1) === T.AIR || this.get(x, y - 1) === T.AIR)) {
+          x = nx;
           moved = true;
           break;
         }
@@ -271,20 +286,19 @@ export class World {
     return out;
   }
 
-  /** Finds the nearest brazier within range of a world-pixel position. */
-  brazierNear(px: number, py: number, range = 74): { x: number; y: number } | null {
-    const tx = Math.floor(px / 24);
-    const ty = Math.floor(py / 24);
+  brazierNear(px: number, py: number, range = 70): { x: number; y: number } | null {
+    const tx = Math.floor(px / 16);
+    const ty = Math.floor(py / 16);
     let best: { x: number; y: number } | null = null;
-    let bestD = Infinity;
+    let bd = Infinity;
     for (let y = ty - 5; y <= ty + 5; y += 1) {
       for (let x = tx - 5; x <= tx + 5; x += 1) {
         if (this.get(x, y) !== T.BRAZIER) continue;
-        const wx = x * 24 + 12;
-        const wy = y * 24 + 12;
+        const wx = x * 16 + 8;
+        const wy = y * 16 + 8;
         const d = (wx - px) ** 2 + (wy - py) ** 2;
-        if (d < range * range && d < bestD) {
-          bestD = d;
+        if (d < range * range && d < bd) {
+          bd = d;
           best = { x: wx, y: wy };
         }
       }

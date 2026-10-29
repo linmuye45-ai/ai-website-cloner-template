@@ -1,155 +1,89 @@
 /**
- * Locked 52-colour palette from docs/art-bible/palette.json.
- * Index 0 is reserved transparency, so ink is 1.
+ * ZHULONG · 烛龙 — a descent into the Long Vein.
  *
- * Art direction: 「烛火照古龙」 — everything is lit by a single ember source,
- * so stone reads cold and blue, and only fire/ore carry warmth.
+ * Art direction: 「烛火照古龙」. One ember is the only light source, so stone
+ * reads cold blue-grey and warmth only exists where fire or ore exists.
+ * All sprites come from Kenney's CC0 packs (see public/vendor/zhulong).
  */
-export const PAL = {
-  ink: 0x16131f,
-  panel: 0x211c2e,
-  stone1: 0x2a2733,
-  stone2: 0x3a3646,
-  stone3: 0x4e495c,
-  stone4: 0x676078,
-  stone5: 0x857d94,
-  stone6: 0xa79fb4,
-  stone7: 0xcbc3d6,
-  teal1: 0x10282c,
-  teal2: 0x173f47,
-  teal3: 0x1f5c66,
-  teal4: 0x2d7f8a,
-  teal5: 0x49a8b0,
-  teal6: 0x86d4d2,
-  red1: 0x3a1420,
-  red2: 0x6a2230,
-  red3: 0x9c3540,
-  red4: 0xd15c52,
-  red5: 0xf29578,
-  ember1: 0x5c2417,
-  ember2: 0xa8451e,
-  ember3: 0xe8782c,
-  ember4: 0xf7b733,
-  ember5: 0xffe9a8,
-  parch1: 0xd8c9a3,
-  parch2: 0xf0e6c8,
-  metal3: 0x6b7686,
-  metal4: 0xb9c4d2,
-} as const;
 
-export const toCss = (hex: number): string => `#${hex.toString(16).padStart(6, '0')}`;
-
-export const TILE = 32;
+export const TILE = 16;
+/** Camera magnification. At 16px tiles this shows ~40x22 tiles, i.e. a
+ *  side-scrolling action game rather than a poster. */
+export const ZOOM = 3;
 export const VIEW = { w: 1280, h: 720 } as const;
 
-/** Tile ids kept as small ints so the world can live in a typed array. */
+export const WORLD = { w: 220, h: 1400 } as const;
+
 export const T = {
   AIR: 0,
-  STONE: 1,
+  ROCK: 1,
   DEEP: 2,
   ORE: 3,
-  ORE_RICH: 4,
+  RICH: 4,
   BRAZIER: 5,
   BEDROCK: 6,
 } as const;
 
-/** Tile hardness in sword hits. */
 export const TILE_HP: Record<number, number> = {
-  [T.STONE]: 4,
-  [T.DEEP]: 8,
-  [T.ORE]: 3,
-  [T.ORE_RICH]: 4,
-  [T.BRAZIER]: 99,
-  [T.BEDROCK]: 999,
+  [T.ROCK]: 3,
+  [T.DEEP]: 6,
+  [T.ORE]: 2,
+  [T.RICH]: 3,
+  [T.BRAZIER]: 999,
+  [T.BEDROCK]: 9999,
 };
 
-export const WORLD = { w: 72, h: 1200 } as const; // in tiles → 2304 x 38400 px
-
 export const PLAYER = {
-  w: 30,
-  h: 62,
-  speed: 210,
-  accel: 1900,
-  friction: 2400,
-  jump: 560,
-  gravity: 1350,
-  maxFall: 820,
-  maxHp: 120,
-  /** Frames of coyote time, in seconds. */
+  w: 10,
+  h: 14,
+  speed: 104,
+  accel: 1500,
+  friction: 1900,
+  jump: 218,
+  gravity: 720,
+  maxFall: 430,
+  maxHp: 100,
   coyote: 0.1,
-  /** Buffered jump input window. */
   buffer: 0.12,
-  attackDur: 0.26,
-  attackCd: 0.34,
-  attackReach: 74,
-  attackDamage: 11,
-  mineDamage: 1,
-  parryActive: 0.2,
-  parryCd: 0.42,
-  iframes: 0.5,
+  attackDur: 0.24,
+  attackCd: 0.32,
+  reach: 20,
+  damage: 12,
+  minePower: 1,
+  parryActive: 0.22,
+  parryCd: 0.34,
+  iframes: 0.55,
 } as const;
 
-export const COMBAT = {
-  /** Enemy strike windup; the last `parryWindow` seconds are parryable. */
-  windup: 0.5,
-  parryWindow: 0.22,
-  enemyDamage: 14,
-  postureBreak: 1.15,
+export const ENEMY = {
+  windup: 0.46,
+  parryWindow: 0.2,
+  damage: 13,
+  staggerTime: 1.1,
 } as const;
 
-/** Depth bands: name, flavour line, and the tile/ore gradient they use. */
 export interface Band {
   from: number;
   name: string;
   line: string;
-  wall: number;
-  wallDark: number;
+  /** Tint multiplied over the rock atlas, so one tileset spans all depths. */
+  tint: number;
+  /** Ambient darkness of the layer behind the rock. */
+  backdrop: number;
 }
 
 export const BANDS: Band[] = [
-  {
-    from: 0,
-    name: '残垣',
-    line: '刀还在，人不在。',
-    wall: PAL.stone3,
-    wallDark: PAL.stone2,
-  },
-  {
-    from: 210,
-    name: '断脉',
-    line: '石头记得每一次呼吸。',
-    wall: PAL.stone2,
-    wallDark: PAL.stone1,
-  },
-  {
-    from: 470,
-    name: '烛骸',
-    line: '火照过的地方，才有影子。',
-    wall: 0x3a2c3a,
-    wallDark: 0x241a26,
-  },
-  {
-    from: 760,
-    name: '无回',
-    line: '往下的人，不数台阶。',
-    wall: 0x2c2436,
-    wallDark: 0x1a1522,
-  },
-  {
-    from: 1020,
-    name: '龙喉',
-    line: '它睡了很久，等你很久。',
-    wall: 0x3a1c22,
-    wallDark: 0x220f16,
-  },
+  { from: 0, name: '残垣', line: '刀还在，人不在。', tint: 0xa8bcd8, backdrop: 0x0d0b14 },
+  { from: 240, name: '断脉', line: '石头记得每一次呼吸。', tint: 0x94a6bf, backdrop: 0x0a0911 },
+  { from: 560, name: '烛骸', line: '火照过的地方，才有影子。', tint: 0xb59a80, backdrop: 0x100a10 },
+  { from: 900, name: '无回', line: '往下的人，不数台阶。', tint: 0x8f88b8, backdrop: 0x0b0814 },
+  { from: 1180, name: '龙喉', line: '它睡了很久，等你很久。', tint: 0xc08872, backdrop: 0x140810 },
 ];
 
 export function bandAt(row: number): Band {
-  let band = BANDS[0];
-  for (const b of BANDS) {
-    if (row >= b.from) band = b;
-  }
-  return band;
+  let b = BANDS[0];
+  for (const band of BANDS) if (row >= band.from) b = band;
+  return b;
 }
 
-export const SAVE_KEY = 'zhulong-v1';
+export const SAVE_KEY = 'zhulong-v2';

@@ -47,8 +47,9 @@ export default function ZhulongClient() {
       try {
         const { createZhulongGame } = await import('@/zhulong/createZhulongGame');
         if (cancelled || !hostRef.current) return;
-        game = createZhulongGame(hostRef.current);
-        game.events.on('error', (err: unknown) => {
+        game = await createZhulongGame(hostRef.current);
+        const made = game;
+        made.events.on('error', (err: unknown) => {
           if (!cancelled) setError(String(err));
         });
       } catch (err) {

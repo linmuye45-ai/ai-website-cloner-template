@@ -1,462 +1,521 @@
+#!/usr/bin/env node
 /**
- * Offline frame previewer.
+ * Offline visual check for ZHULONG.
  *
- * There is no browser engine in this sandbox, so this mirrors the draw rules of
- * ZhulongScene against the *real* simulation state and rasterises them with
- * Canvas2D. It exists to catch composition problems (too dark, unreadable,
- * empty shaft) that headless logic tests cannot see.
+ * There is no browser in the sandbox, so this compiles the real simulation with
+ * tsc and re-draws it with @napi-rs/canvas using the same tile rules, the same
+ * light-mask plates and the same prop files the Phaser scene uses. If a frame
+ * looks wrong here, it looks wrong in the browser.
  *
- * Keep the draw order and constants in lockstep with EchoScene/ZhulongScene.
+ *   node scripts/zhulong/preview.mjs
  */
-import { createCanvas } from '@napi-rs/canvas';
-import { writeFileSync } from 'node:fs';
-import { RunSim } from '../../.tmp-zhulong/RunSim.js';
-import { PAL, PLAYER, T, TILE, VIEW, bandAt } from '../../.tmp-zhulong/config.js';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, writeFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 
-const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
-const mix = (a, b, t) => {
-  const k = t < 0 ? 0 : t > 1 ? 1 : t;
-  const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
-  const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
-  const c = (x, y) => Math.max(0, Math.min(255, Math.round(x + (y - x) * k)));
-  return (c(ar, br) << 16) | (c(ag, bg) << 8) | c(ab, bb);
+const ROOT = path.resolve(import.meta.dirname, '../..');
+const OUT = path.join(ROOT, '.preview');
+const SIM_OUT = path.join(OUT, 'sim');
+
+const VIEW = { w: 1280, h: 720 };
+const TILE = 16;
+const ZOOM = 3;
+const T = { AIR: 0, ROCK: 1, DEEP: 2, ORE: 3, RICH: 4, BRAZIER: 5, BEDROCK: 6 };
+const C = {
+  void: '#05030a', paper: '#e8e3f0', dim: '#7c7893', line: '#2c2540',
+  ember: '#ff7a2f', emberHot: '#ffc46b', jade: '#49a8b0', jadeLight: '#9fe3dd',
+  gold: '#f7c948', blood: '#9c3540', bloodLight: '#d15c52', tide: '#b02a3c',
+  stone: '#8b8aa3',
 };
-const hash = (x, y) => {
-  let n = (x * 73856093) ^ (y * 19349663);
-  n = (n ^ (n >>> 13)) * 1274126177;
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
-};
+const BAND_TINT = ['#a8bcd8', '#94a6bf', '#b59a80', '#8f88b8', '#c08872'];
+const BAND_NAME = ['残垣', '断脉', '烛骸', '无回', '龙喉'];
+const BAND_FROM = [0, 240, 560, 900, 1180];
 
-const W = VIEW.w;
-const H = VIEW.h;
-const ZOOM = 1.75;
-/** Convert world coords to screen coords at the game's camera zoom. */
-const sxOf = (wx, camX) => (wx - camX) * ZOOM;
-const syOf = (wy, camY) => (wy - camY) * ZOOM;
-
-function renderBackdrop(ctx, sim, camX, camY, now) {
-  const viewW = W / ZOOM;
-  const viewH = H / ZOOM;
-  const band = bandAt(Math.floor(sim.py / TILE));
-  const far = (wx) => wx + camX * 0.75;
-  const near = (wx) => wx + camX * 0.45;
-  const farY = (wy) => wy + camY * 0.75;
-  const nearY = (wy) => wy + camY * 0.45;
-
-  ctx.fillStyle = hex(mix(0x06040b, band.wallDark, 0.35));
-  ctx.fillRect(0, 0, W, H);
-
-  const top = Math.floor((camY * 0.25) / 64) * 64;
-  const rows = Math.ceil(viewH / 64) + 6;
-
-  const farBase = mix(band.wallDark, PAL.ink, 0.72);
-  for (let r = 0; r < rows; r += 1) {
-    const wy = top + r * 64;
-    const h = hash(7, Math.floor(wy / 64));
-    if (h < 0.4) continue;
-    const py = syOf(farY(wy), camY);
-    const px = sxOf(far(camX - 200), camX);
-    const wpx = (viewW + 400) * ZOOM;
-    ctx.fillStyle = hex(farBase);
-    ctx.globalAlpha = 0.55;
-    ctx.fillRect(px, py, wpx, 56 * ZOOM);
-    ctx.fillStyle = hex(mix(farBase, PAL.stone4, 0.16));
-    ctx.globalAlpha = 0.4;
-    ctx.fillRect(px, py, wpx, 2 * ZOOM);
-    ctx.fillStyle = hex(mix(farBase, PAL.ink, 0.5));
-    ctx.globalAlpha = 0.5;
-    ctx.fillRect(px, py + 54 * ZOOM, wpx, 2 * ZOOM);
-    const off = ((h * 97) % 60) * ZOOM;
-    ctx.fillStyle = hex(mix(farBase, PAL.ink, 0.4));
-    ctx.globalAlpha = 0.35;
-    for (let vx = 0; vx < wpx; vx += 60 * ZOOM) {
-      ctx.fillRect(px + vx + off, py + 4 * ZOOM, 2 * ZOOM, 48 * ZOOM);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  for (let r = 0; r < Math.ceil(rows / 3); r += 1) {
-    const wy = top + r * 192;
-    const h = hash(23, Math.floor(wy / 192));
-    if (h < 0.55) continue;
-    const px = sxOf(far(camX + ((h * 811) % Math.max(1, viewW))), camX);
-    const py = syOf(farY(wy), camY);
-    const w = (120 + h * 90) * ZOOM;
-    ctx.fillStyle = hex(mix(band.wallDark, PAL.ink, 0.62));
-    ctx.globalAlpha = 0.5;
-    ctx.fillRect(px, py, w, 170 * ZOOM);
-    ctx.fillStyle = hex(mix(0x06040b, band.wallDark, 0.2));
-    ctx.globalAlpha = 0.85;
-    ctx.fillRect(px + 14 * ZOOM, py + 34 * ZOOM, w - 28 * ZOOM, 136 * ZOOM);
-    ctx.globalAlpha = 1;
-  }
-
-  for (let r = 0; r < rows; r += 1) {
-    const wy = top + r * 64;
-    const h = hash(13, Math.floor(wy / 64));
-    if (h < 0.62) continue;
-    const x = (((h * 613) % 13) - 6) * 74;
-    const px = sxOf(near(camX + viewW / 2 + x), camX);
-    const py = syOf(nearY(wy), camY);
-    const len = (80 + h * 260) * ZOOM;
-    const col = mix(band.wall, PAL.ink, 0.7);
-    ctx.fillStyle = hex(col);
-    ctx.globalAlpha = 0.75;
-    ctx.fillRect(px, py, 3 * ZOOM, len);
-    ctx.fillStyle = hex(mix(col, PAL.stone5, 0.18));
-    ctx.globalAlpha = 0.6;
-    for (let k = 0; k < len; k += 14 * ZOOM) {
-      ctx.fillRect(px - 2 * ZOOM, py + k, 7 * ZOOM, 4 * ZOOM);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  const t = now / 1000;
-  for (let i = 0; i < 26; i += 1) {
-    const seed = hash(i, Math.floor(sim.py / 400));
-    const px = ((seed * 7331 + t * (6 + seed * 14)) % (viewW + 40)) * ZOOM - 20;
-    const py = ((seed * 4217 + t * (10 + seed * 9)) % (viewH + 40)) * ZOOM - 20;
-    ctx.fillStyle = hex(PAL.ember2);
-    ctx.globalAlpha = 0.18 + seed * 0.22;
-    ctx.fillRect(px, py, 2, 2);
-    ctx.globalAlpha = 1;
-  }
+function hash2(x, y) {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = (h ^ (h >>> 13)) * 1274126177;
+  return (h ^ (h >>> 16)) >>> 0;
 }
 
-function renderWorld(ctx, sim, camX, camY, now) {
-  ctx.fillStyle = hex(PAL.ink);
-  ctx.fillRect(0, 0, W, H);
+function bandIndex(row) {
+  let b = 0;
+  for (let i = 0; i < BAND_FROM.length; i += 1) if (row >= BAND_FROM[i]) b = i;
+  return b;
+}
 
+mkdirSync(SIM_OUT, { recursive: true });
+execFileSync(
+  'npx',
+  ['tsc', 'src/zhulong/sim/config.ts', 'src/zhulong/sim/math.ts', 'src/zhulong/sim/world.ts', 'src/zhulong/sim/look.ts', 'src/zhulong/sim/RunSim.ts',
+    '--outDir', SIM_OUT, '--module', 'commonjs', '--target', 'es2022', '--moduleResolution', 'node10', '--skipLibCheck'],
+  { cwd: ROOT, stdio: 'inherit' },
+);
+
+const { createRequire } = await import('node:module');
+const require = createRequire(import.meta.url);
+const { RunSim } = require(path.join(SIM_OUT, 'RunSim.js'));
+const { tileLook, MASS_COLS, frameAt } = require(path.join(SIM_OUT, 'look.js'));
+
+GlobalFonts.registerFromPath(path.join(ROOT, 'public/vendor/sunnyland/fonts/VonwaonBitmap-16px.ttf'), 'Vonwaon');
+const props = (n) => path.join(ROOT, 'public/vendor/zhulong/props', `${n}.png`);
+const rockFile = (i) => path.join(ROOT, 'public/vendor/zhulong/rock', `tile_${String(i).padStart(4, '0')}.png`);
+const lightFile = (n) => path.join(ROOT, 'public/vendor/zhulong/light', `${n}.png`);
+
+const img = new Map();
+async function preload() {
+  img.set('mass', await loadImage(path.join(ROOT, 'public/vendor/zhulong/rockmass.png')));
+  const names = readdirSync(path.join(ROOT, 'public/vendor/zhulong/props')).map((f) => f.replace('.png', ''));
+  for (const n of names) img.set(`p_${n}`, await loadImage(props(n)));
+  for (const n of ['circle_a', 'circle_b', 'circle_a_noise', 'circle_a_streaks']) img.set(`l_${n}`, await loadImage(lightFile(n)));
+}
+
+const sliceCache = new Map();
+/** One tinted 16x16 window of the seamless rock mass. */
+function massSlice(frame, color) {
+  const ck = `${frame}|${color}`;
+  if (sliceCache.has(ck)) return sliceCache.get(ck);
+  const base = img.get('mass');
+  const sx = (frame % MASS_COLS) * 16;
+  const sy = Math.floor(frame / MASS_COLS) * 16;
+  const c = createCanvas(16, 16);
+  const x = c.getContext('2d');
+  x.drawImage(base, sx, sy, 16, 16, 0, 0, 16, 16);
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = color;
+  x.fillRect(0, 0, 16, 16);
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(base, sx, sy, 16, 16, 0, 0, 16, 16);
+  sliceCache.set(ck, c);
+  return c;
+}
+
+const tintCache = new Map();
+function tinted(key, color) {
+  const ck = `${key}|${color}`;
+  if (tintCache.has(ck)) return tintCache.get(ck);
+  const base = img.get(key);
+  if (!base) throw new Error(`missing texture ${key} (have: ${[...img.keys()].filter((k) => k.startsWith('rock')).join(',')})`);
+  const c = createCanvas(base.width, base.height);
+  const x = c.getContext('2d');
+  x.drawImage(base, 0, 0);
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = color;
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(base, 0, 0);
+  tintCache.set(ck, c);
+  return c;
+}
+
+function rgbHex(n) {
+  return `#${n.toString(16).padStart(6, '0')}`;
+}
+
+function mulHex(n, mul) {
+  const r = Math.min(255, Math.round(((n >> 16) & 0xff) * mul));
+  const g = Math.min(255, Math.round(((n >> 8) & 0xff) * mul));
+  const b = Math.min(255, Math.round((n & 0xff) * mul));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function drawWorld(ctx, sim, cam, opts = {}) {
   const world = sim.world;
-  const viewW = W / ZOOM;
-  const viewH = H / ZOOM;
-  const x0 = Math.max(0, Math.floor(camX / TILE) - 1);
-  const x1 = Math.min(world.w - 1, Math.ceil((camX + viewW) / TILE) + 1);
-  const y0 = Math.max(0, Math.floor(camY / TILE) - 1);
-  const y1 = Math.min(world.h - 1, Math.ceil((camY + viewH) / TILE) + 1);
-  const S = TILE * ZOOM;
-  const pulse = 0.72 + Math.sin(now / 340) * 0.28;
+  const z = ZOOM;
+  ctx.save();
+  ctx.scale(z, z);
+  ctx.translate(-cam.x, -cam.y);
 
-  for (let ty = y0; ty <= y1; ty += 1) {
-    const band = bandAt(ty);
-    for (let tx = x0; tx <= x1; tx += 1) {
-      const i = ty * world.w + tx;
-      const tile = world.tiles[i];
-      if (tile === T.AIR) continue;
-      const px = (tx * TILE - camX) * ZOOM;
-      const py = (ty * TILE - camY) * ZOOM;
+  const band = bandIndex(Math.floor((sim.py + 14) / TILE));
+  const bandNum = BAND_TINT[band] ? parseInt(BAND_TINT[band].slice(1), 16) : 0xffffff;
+  const tx0 = Math.floor(cam.x / TILE);
+  const tx1 = Math.ceil((cam.x + VIEW.w / z) / TILE);
+  const ty0 = Math.floor(cam.y / TILE);
+  const ty1 = Math.ceil((cam.y + VIEW.h / z) / TILE);
 
-      if (tile === T.ORE || tile === T.ORE_RICH) {
-        const rich = tile === T.ORE_RICH;
-        const base = rich ? PAL.ember3 : PAL.teal4;
-        const hot = rich ? PAL.ember5 : PAL.teal6;
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.62));
-        ctx.fillRect(px, py, S, S);
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.35));
-        ctx.fillRect(px + 2, py + 2, S - 4, S - 4);
-        const h = hash(tx, ty);
-        const cw = (6 + Math.floor(h * 5)) * ZOOM;
-        const cx = px + (5 + Math.floor(h * 12)) * ZOOM;
-        ctx.fillStyle = hex(base);
-        ctx.fillRect(cx, py + 6 * ZOOM, cw, S - 12 * ZOOM);
-        ctx.fillStyle = hex(hot);
-        ctx.globalAlpha = 0.75 + pulse * 0.25;
-        ctx.fillRect(cx + ZOOM, py + 9 * ZOOM, Math.max(2, cw - 4 * ZOOM), S - 20 * ZOOM);
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.5));
-        ctx.fillRect(px, py + S - 3 * ZOOM, S, 3 * ZOOM);
-        ctx.fillRect(px + S - 3 * ZOOM, py, 3 * ZOOM, S);
-        continue;
-      }
-      if (tile === T.BRAZIER) {
-        ctx.fillStyle = hex(PAL.stone1);
-        ctx.fillRect(px + 3 * ZOOM, py + 11 * ZOOM, S - 6 * ZOOM, S - 13 * ZOOM);
-        ctx.fillStyle = hex(PAL.metal3);
-        ctx.fillRect(px + 4 * ZOOM, py + 12 * ZOOM, S - 8 * ZOOM, 4 * ZOOM);
-        ctx.fillStyle = hex(PAL.ember2);
-        ctx.fillRect(px + 6 * ZOOM, py + 14 * ZOOM, S - 12 * ZOOM, S - 18 * ZOOM);
-        ctx.fillStyle = hex(PAL.ember3);
-        ctx.fillRect(px + 8 * ZOOM, py + 16 * ZOOM, S - 16 * ZOOM, S - 22 * ZOOM);
-        ctx.fillStyle = hex(PAL.ember5);
-        ctx.globalAlpha = pulse;
-        ctx.fillRect(px + 12 * ZOOM, py + 18 * ZOOM, S - 24 * ZOOM, S - 28 * ZOOM);
-        ctx.globalAlpha = 1;
-        continue;
-      }
-      if (tile === T.BEDROCK) {
-        ctx.fillStyle = '#0a0812';
-        ctx.fillRect(px, py, S, S);
-        ctx.fillStyle = '#120e1c';
-        ctx.fillRect(px + 4 * ZOOM, py + 4 * ZOOM, S - 8 * ZOOM, S - 8 * ZOOM);
-        continue;
-      }
-
-      const h = hash(tx, ty);
-      const deepBlock = tile === T.DEEP;
-      let base = deepBlock ? band.wallDark : band.wall;
-      const big = hash(Math.floor(tx / 8), Math.floor(ty / 8));
-      const mid = hash(Math.floor(tx / 3), Math.floor(ty / 3));
-      base = mix(base, PAL.stone6, 0.42 + (big - 0.5) * 0.55 + (mid - 0.5) * 0.2);
-      base = mix(base, PAL.ink, h * 0.07);
-      ctx.fillStyle = hex(base);
-      ctx.fillRect(px, py, S, S);
-      if (h > 0.55) {
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.28));
-        ctx.fillRect(px + (4 + Math.floor(h * 20)) * ZOOM, py + (6 + Math.floor(mid * 16)) * ZOOM, 3 * ZOOM, 2 * ZOOM);
-      }
-      if (big > 0.66 && h > 0.3) {
-        ctx.fillStyle = hex(mix(base, PAL.stone7, 0.16));
-        ctx.fillRect(px + (2 + Math.floor(mid * 22)) * ZOOM, py + (3 + Math.floor(h * 20)) * ZOOM, 2 * ZOOM, 3 * ZOOM);
-      }
-      if (world.tiles[i - world.w] === T.AIR) {
-        ctx.fillStyle = hex(mix(base, PAL.stone7, 0.62));
-        ctx.fillRect(px, py, S, 3 * ZOOM);
-        ctx.fillStyle = hex(mix(base, PAL.stone6, 0.22));
-        ctx.fillRect(px, py + 3 * ZOOM, S, 3 * ZOOM);
-      }
-      if (world.tiles[i + world.w] === T.AIR) {
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.7));
-        ctx.fillRect(px, py + S - 4 * ZOOM, S, 4 * ZOOM);
-      }
-      if (world.tiles[i - 1] === T.AIR) {
-        ctx.fillStyle = hex(mix(base, PAL.stone6, 0.3));
-        ctx.fillRect(px, py, 2 * ZOOM, S);
-      }
-      if (world.tiles[i + 1] === T.AIR) {
-        ctx.fillStyle = hex(mix(base, PAL.ink, 0.45));
-        ctx.fillRect(px + S - 2 * ZOOM, py, 2 * ZOOM, S);
-      }
+  ctx.imageSmoothingEnabled = false;
+  const rims = [];
+  const glows = [];
+  for (let ty = ty0; ty <= ty1; ty += 1) {
+    for (let tx = tx0; tx <= tx1; tx += 1) {
+      const t = world.get(tx, ty);
+      if (t === T.AIR || t === T.BRAZIER) continue;
+      const look = tileLook((x, y) => world.get(x, y), tx, ty, bandNum);
+      const tint = rgbHex(look.tint);
+      rims.push({ tx, ty, o: look.open, tint: look.tint, glow: look.glow });
+      ctx.drawImage(massSlice(look.file, tint), tx * TILE, ty * TILE);
+      if (look.glow) glows.push({ tx, ty, r: look.glow });
     }
   }
 
-  // Rising tide.
-  const tideY = syOf(sim.miasmaY, camY);
-  if (tideY > -200 && tideY < H + 200) {
-    const a = 0.35 * (0.75 + Math.sin(now / 220) * 0.25);
-    ctx.fillStyle = hex(PAL.red1);
-    ctx.globalAlpha = a;
-    ctx.fillRect(0, tideY - 420, W, 420);
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = hex(PAL.red2);
-    ctx.fillRect(0, tideY - 120, W, 120);
+  // rim light: the only thing separating rock from cave
+  for (const r of rims) {
+    const x = r.tx * TILE; const y = r.ty * TILE;
+    if (r.o[0]) { ctx.globalAlpha = 0.5; ctx.fillStyle = mulHex(r.tint, 2.1); ctx.fillRect(x, y, TILE, 1); }
+    if (r.o[1]) { ctx.globalAlpha = 0.2; ctx.fillStyle = mulHex(r.tint, 1.15); ctx.fillRect(x + TILE - 1, y, 1, TILE); }
+    if (r.o[3]) { ctx.globalAlpha = 0.22; ctx.fillStyle = mulHex(r.tint, 0.5); ctx.fillRect(x, y, 1, TILE); }
+    if (r.o[2]) { ctx.globalAlpha = 0.3; ctx.fillStyle = mulHex(r.tint, 0.4); ctx.fillRect(x, y + TILE - 1, TILE, 1); }
     ctx.globalAlpha = 1;
-    ctx.fillStyle = hex(PAL.red3);
-    ctx.fillRect(0, tideY - 3, W, 5);
   }
-}
 
-function renderActors(ctx, sim, camX, camY, now = 1000) {
+  // ore is emissive, so it gets a soft bloom before the darkness pass
+  for (const o of glows) {
+    const cx = o.tx * TILE + 8;
+    const cy = o.ty * TILE + 8;
+    const rad = o.r === 2 ? 20 : 12;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, o.r === 2 ? 'rgba(255,196,107,0.75)' : 'rgba(247,201,72,0.55)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+    // a hard bright core so a vein is unmistakable in the dark
+    ctx.fillStyle = o.r === 2 ? '#ffefc0' : '#ffe08a';
+    ctx.fillRect(cx - 2, cy - 2, 4, 4);
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(cx - 3, cy - 3, 6, 6);
+    ctx.globalAlpha = 1;
+  }
+
+  // set dressing
+  for (const d of world.decor ?? []) {
+    if (d.x < tx0 - 1 || d.x > tx1 + 1 || d.y < ty0 - 1 || d.y > ty1 + 1) continue;
+    ctx.drawImage(img.get(`p_${d.key}`), d.x * TILE, d.y * TILE);
+  }
+
+  // braziers
+  for (let ty = ty0; ty <= ty1; ty += 1) {
+    for (let tx = tx0; tx <= tx1; tx += 1) {
+      if (world.get(tx, ty) !== T.BRAZIER) continue;
+      const bob = Math.sin(sim.time * 6 + tx) * 1;
+      ctx.save(); ctx.translate(tx * TILE + 8, ty * TILE + 8 + bob); ctx.scale(1.6, 1.6); ctx.drawImage(img.get('p_torch'), -8, -8); ctx.restore();
+    }
+  }
+
+  // enemies
+  const enemyKey = { knight: 'p_knight', imp: 'p_demon', slime: 'p_slime', skeleton: 'p_skeleton', ghoul: 'p_ghoul' };
   for (const e of sim.enemies) {
-    const x = sxOf(e.x, camX);
-    const y = syOf(e.y, camY);
-    if (x < -60 || x > W + 60 || y < -60 || y > H + 60) continue;
-    const windup = e.state === 'windup';
-    const body =
-      e.state === 'stagger' ? PAL.stone5
-        : e.flash > 0 ? PAL.parch2
-          : e.kind === 'lancer' ? PAL.red3
-            : e.kind === 'lantern' ? PAL.ember3
-              : PAL.red2;
-    if (windup) {
-      const prog = 1 - Math.max(0, e.t) / 0.5;
-      ctx.strokeStyle = hex(PAL.red4);
-      ctx.globalAlpha = 0.35 + prog * 0.6;
-      ctx.lineWidth = 2;
+    if (e.state === 'dead' && e.t > 1.2) continue;
+    const src = img.get(enemyKey[e.kind] ?? 'p_ghoul');
+    ctx.save();
+    ctx.globalAlpha = e.state === 'dead' ? Math.max(0, 1 - e.t / 1.4) : 1;
+    ctx.translate(e.x + e.w / 2, e.y + e.h / 2);
+    if (e.state === 'windup') {
+      const k = 1 + (1 - Math.max(0, e.t) / 0.46) * 0.35;
+      ctx.scale(k, k);
+    }
+    if (e.dir < 0) ctx.scale(-1, 1);
+    ctx.drawImage(src, -8, -8);
+    ctx.restore();
+    if (e.state === 'windup') {
+      const p = 1 - Math.max(0, e.t) / 0.46;
+      ctx.strokeStyle = p > 0.55 ? C.bloodLight : C.blood;
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.4 + p * 0.6;
       ctx.beginPath();
-      const a0 = e.facing > 0 ? -0.9 : Math.PI - 0.9;
-      ctx.arc(x, y, 22 + prog * 18, a0, a0 + 1.8);
+      ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 9 + p * 9, e.dir > 0 ? -0.7 : Math.PI + 0.7, e.dir > 0 ? 0.7 : Math.PI - 0.7, e.dir < 0);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    ctx.fillStyle = hex(PAL.ink);
-    ctx.fillRect(x - 17, y - 25, 34, 50);
-    ctx.fillStyle = hex(body);
-    ctx.fillRect(x - 13, y - 22, 26, 44);
-    ctx.fillStyle = hex(mix(body, PAL.ink, 0.45));
-    ctx.fillRect(x - 13, y + 10, 26, 12);
-    ctx.fillStyle = hex(mix(body, PAL.parch2, 0.35));
-    ctx.fillRect(x - 13, y - 22, 26, 5);
-    ctx.fillStyle = hex(PAL.ember5);
-    ctx.fillRect(x + e.facing * 6 - 2, y - 12, 5, 5);
   }
 
-  // Player.
-  const px = sxOf(sim.px, camX);
-  const py = syOf(sim.py, camY);
-  if (sim.parryT > 0) {
-    ctx.strokeStyle = hex(PAL.teal6);
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(px, py, 26 + (1 - sim.parryT / 0.2) * 14, 0, Math.PI * 2);
-    ctx.stroke();
+  // essence chips
+  for (const c of sim.chips) {
+    const key = c.kind === 1 ? 'p_potion_blue' : c.kind === 2 ? 'p_potion_red' : 'p_potion_green';
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.scale(0.4, 0.4);
+    ctx.drawImage(img.get(key), -8, -8);
+    ctx.restore();
   }
-  const moving = Math.abs(sim.vx) > 12 && sim.onGround;
-  const phase = sim.time * 11;
-  const stride = moving ? Math.sin(phase) : 0;
-  const lift = sim.onGround ? 0 : 3;
-  const sway = moving ? Math.sin(phase) * 2 : Math.sin(now / 700) * 1.2;
 
-  ctx.fillStyle = hex(PAL.ink);
-  ctx.fillRect(px - 10 + stride * 4, py + 20, 9, 13 + lift);
-  ctx.fillRect(px + 1 - stride * 4, py + 20, 9, 13 + lift);
-  ctx.fillStyle = hex(PAL.teal1);
-  ctx.fillRect(px - 8 + stride * 4, py + 22, 6, 9 + lift);
-  ctx.fillRect(px + 3 - stride * 4, py + 22, 6, 9 + lift);
-
-  ctx.fillStyle = hex(PAL.ink);
-  ctx.fillRect(px - 17 + sway, py - 31, 34, 58);
-  ctx.fillStyle = hex(PAL.teal2);
-  ctx.fillRect(px - 14 + sway, py - 28, 28, 52);
-  ctx.fillStyle = hex(PAL.teal3);
-  ctx.fillRect(px - 14 + sway, py - 28, 28, 34);
-  ctx.fillStyle = hex(PAL.teal5);
-  ctx.fillRect(px - 14 + sway, py - 28, 28, 9);
-  ctx.fillStyle = hex(PAL.teal6);
-  ctx.fillRect(px + (sim.facing > 0 ? 9 : -11) + sway, py - 25, 2, 16);
-  ctx.fillStyle = hex(PAL.teal1);
-  ctx.fillRect(px - 14 + sway, py + 14, 9, 12);
-  ctx.fillRect(px + 1 + sway, py + 18, 12, 8);
-  ctx.fillStyle = hex(PAL.teal1);
-  ctx.fillRect(px - (sim.facing > 0 ? 20 : -12) - stride * 3, py - 14, 8, 20);
-
-  ctx.fillStyle = hex(PAL.ink);
-  ctx.fillRect(px - 13 + sway, py - 46, 26, 20);
-  ctx.fillStyle = hex(PAL.teal1);
-  ctx.fillRect(px - 9 + sway, py - 42, 18, 13);
-  ctx.fillStyle = hex(PAL.parch1);
-  ctx.fillRect(px + (sim.facing > 0 ? 2 : -6) + sway, py - 37, 4, 4);
-
+  // slash + pulses
   if (sim.attackT > 0) {
-    const prog = 1 - sim.attackT / PLAYER.attackDur;
-    const a0 = sim.facing > 0 ? -1.15 : Math.PI - 0.55;
-    ctx.strokeStyle = hex(PAL.parch2);
-    ctx.globalAlpha = 0.9 * (1 - prog);
-    ctx.lineWidth = 4;
+    const p = 1 - sim.attackT / 0.24;
+    const reach = (20 + (sim.upgrades.includes('reach') ? 5 : 0)) * (0.5 + p);
+    ctx.strokeStyle = C.emberHot;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.9 - p * 0.9;
     ctx.beginPath();
-    ctx.arc(px, py, sim.reach * 0.85, a0, a0 + 1.7 * (0.4 + prog));
+    ctx.arc(sim.px + 5, sim.py + 7, reach, sim.face > 0 ? -1.1 : Math.PI + 1.1, sim.face > 0 ? 1.1 : Math.PI - 1.1, sim.face < 0);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-}
-
-/** Torchlight mask: clear hole near the player, ink outside. */
-const MASK_CLEAR = 0.3;
-function renderLight(ctx, sim, camX, camY) {
-  const sx = sxOf(sim.px, camX);
-  const sy = syOf(sim.py, camY);
-  const lr = sim.lightRadius;
-  const reach = Math.hypot(W, H) / 2;
-  const scale = Math.max(lr / (MASK_CLEAR * 512), (reach * 2) / 512);
-  const R = (512 * scale) / 2;
-  const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, R);
-  g.addColorStop(0, 'rgba(6,4,11,0)');
-  g.addColorStop(MASK_CLEAR, 'rgba(6,4,11,0)');
-  g.addColorStop(0.46, 'rgba(6,4,11,0.10)');
-  g.addColorStop(0.62, 'rgba(5,3,10,0.40)');
-  g.addColorStop(0.8, 'rgba(4,2,8,0.74)');
-  g.addColorStop(0.93, 'rgba(3,1,6,0.94)');
-  g.addColorStop(1, 'rgba(3,1,6,0.97)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-}
-
-function renderHud(ctx, sim) {
-  const hpPct = Math.max(0, Math.min(1, sim.hp / sim.maxHp));
-  const barW = 220;
-  const bx = W - 28 - barW;
-  ctx.fillStyle = hex(PAL.ink);
-  ctx.globalAlpha = 0.85;
-  ctx.fillRect(bx, 66, barW, 9);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = hex(hpPct > 0.5 ? PAL.red4 : hpPct > 0.25 ? PAL.ember3 : PAL.red3);
-  ctx.fillRect(bx, 66, barW * hpPct, 9);
-
-  ctx.fillStyle = hex(PAL.parch2);
-  ctx.font = '20px monospace';
-  ctx.fillText(`${sim.depthMetres} m`, 28, 38);
-  ctx.fillStyle = hex(PAL.ember4);
-  ctx.font = '15px sans-serif';
-  ctx.fillText(bandAt(sim.row).name, 28, 62);
-  ctx.fillStyle = hex(PAL.stone5);
-  ctx.font = '14px sans-serif';
-  const line = bandAt(sim.row).line;
-  ctx.fillText(line, W / 2 - ctx.measureText(line).width / 2, 40);
-  ctx.fillStyle = hex(PAL.stone6);
-  ctx.font = '12px monospace';
-  const hp = `${Math.ceil(sim.hp)} / ${sim.maxHp}`;
-  ctx.fillText(hp, W - 28 - ctx.measureText(hp).width, 28);
-  const soul = `精魄 ${sim.essence}  ·  盆 ${sim.banked}`;
-  ctx.fillStyle = hex(PAL.ember4);
-  ctx.fillText(soul, W - 28 - ctx.measureText(soul).width, 50);
-}
-
-function shoot(sim, name, { camX, camY, now = 1000, hud = true }) {
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext('2d');
-  renderBackdrop(ctx, sim, camX, camY, now);
-  renderWorld(ctx, sim, camX, camY, now);
-  renderActors(ctx, sim, camX, camY, now);
-  renderLight(ctx, sim, camX, camY);
-  if (hud) renderHud(ctx, sim);
-  writeFileSync(`/tmp/${name}.png`, canvas.toBuffer('image/png'));
-  const lum = averageLuma(ctx);
-  console.log(`${name}.png  luma=${lum.toFixed(1)}  depth=${sim.depthMetres}m  enemies=${sim.enemies.length}`);
-  return lum;
-}
-
-function averageLuma(ctx) {
-  const d = ctx.getImageData(0, 0, W, H).data;
-  let sum = 0;
-  for (let i = 0; i < d.length; i += 4 * 16) {
-    sum += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+  for (const p of sim.pulses) {
+    ctx.strokeStyle = p.kind === 1 ? C.jadeLight : p.kind === 2 ? C.emberHot : C.gold;
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
-  return sum / (d.length / (4 * 16));
+  for (const p of sim.particles) {
+    ctx.fillStyle = p.kind === 1 ? C.emberHot : p.kind === 2 ? C.jadeLight : C.stone;
+    ctx.globalAlpha = Math.max(0, p.life / p.max);
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+    ctx.globalAlpha = 1;
+  }
+
+  // player
+  if (!(sim.dead && sim.deathT > 0.5)) {
+    ctx.save();
+    ctx.translate(sim.px + 5, sim.py + 7);
+    if (sim.attackT > 0) ctx.rotate(sim.face * (-18 + (1 - sim.attackT / 0.24) * 36) * Math.PI / 180);
+    if (sim.face < 0) ctx.scale(-1, 1);
+    ctx.globalAlpha = sim.iframes > 0 && Math.floor(sim.iframes * 24) % 2 === 0 ? 0.35 : 1;
+    ctx.drawImage(img.get('p_wizard'), -8, -8);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // ---- darkness plate, exactly like the scene's RenderTexture -------------
+  if (opts.light !== false) {
+    const plate = createCanvas(VIEW.w, VIEW.h);
+    const p = plate.getContext('2d');
+    p.fillStyle = 'rgba(2,1,8,0.66)';
+    p.fillRect(0, 0, VIEW.w, VIEW.h);
+    p.globalCompositeOperation = 'destination-out';
+    const screen = (wx, wy) => ({ x: (wx - cam.x) * z, y: (wy - cam.y) * z });
+    const hole = (wx, wy, radius, texture) => {
+      const s = screen(wx, wy);
+      const d = radius * 2 * z;
+      p.drawImage(img.get(texture), s.x - d / 2, s.y - d / 2, d, d);
+    };
+    hole(sim.px + 5, sim.py + 7, 104, 'l_circle_a');
+    hole(sim.px + 5, sim.py + 7, 46, 'l_circle_b');
+    for (const e of sim.enemies) if (e.state === 'windup') hole(e.x + e.w / 2, e.y + e.h / 2, 40, 'l_circle_a_streaks');
+    for (const pu of sim.pulses) hole(pu.x, pu.y, pu.r * 2.4, 'l_circle_b');
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
+        const t = world.get(tx, ty);
+        if (t === T.BRAZIER) hole(tx * TILE + 8, ty * TILE + 8, 130, 'l_circle_a_noise');
+        else if (t === T.ORE) hole(tx * TILE + 8, ty * TILE + 8, 26, 'l_circle_b');
+        else if (t === T.RICH) hole(tx * TILE + 8, ty * TILE + 8, 40, 'l_circle_b');
+      }
+    }
+    ctx.drawImage(plate, 0, 0);
+
+    ctx.globalCompositeOperation = 'lighter';
+    const warm = (wx, wy, radius, color, alpha) => {
+      const s = screen(wx, wy);
+      const d = radius * 2 * z;
+      const layer = createCanvas(VIEW.w, VIEW.h);
+      const lx = layer.getContext('2d');
+      lx.globalAlpha = alpha;
+      lx.drawImage(img.get('l_circle_a_noise'), s.x - d / 2, s.y - d / 2, d, d);
+      lx.globalCompositeOperation = 'source-in';
+      lx.fillStyle = color;
+      lx.fillRect(0, 0, VIEW.w, VIEW.h);
+      ctx.globalAlpha = 1;
+      ctx.drawImage(layer, 0, 0);
+    };
+    warm(sim.px + 5, sim.py + 7, 92, C.ember, 0.28);
+    warm(sim.px + 5, sim.py + 7, 190, C.emberDeep, 0.1);
+    for (let ty = ty0; ty <= ty1; ty += 1) {
+      for (let tx = tx0; tx <= tx1; tx += 1) {
+        if (world.get(tx, ty) === T.BRAZIER) warm(tx * TILE + 8, ty * TILE + 6, 66, C.emberHot, 0.24);
+      }
+    }
+    // the tide: a red-black press coming down the shaft
+    if (sim.tideActive > 0) {
+      const front = (sim.tideFront - cam.y) * z;
+      const top = Math.max(0, front - 300);
+      const h = Math.max(0, Math.min(front, VIEW.h) - top);
+      const grad = ctx.createLinearGradient(0, top, 0, front);
+      grad.addColorStop(0, 'rgba(12,3,8,0.97)');
+      grad.addColorStop(0.82, 'rgba(52,6,16,0.9)');
+      grad.addColorStop(1, 'rgba(120,20,34,0.5)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, top, VIEW.w, h);
+      if (front > 0 && front < VIEW.h) {
+        ctx.fillStyle = 'rgba(214,74,68,0.85)';
+        ctx.fillRect(0, front - 2, VIEW.w, 2);
+        ctx.fillStyle = 'rgba(255,140,110,0.25)';
+        ctx.fillRect(0, front - 8, VIEW.w, 6);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
 }
 
-// ---- shallow: player at spawn -------------------------------------------
-const a = new RunSim(2024);
-a.start();
-for (let i = 0; i < 240; i += 1) {
-  a.update(1 / 60, {
-    left: false, right: false, jump: false, jumpPressed: false,
-    attack: false, attackPressed: false, parryPressed: false, interactPressed: false,
+function text(ctx, x, y, body, size, color, align = 'left', alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.font = `${size}px Vonwaon`;
+  ctx.textAlign = align;
+  ctx.fillText(body, x, y);
+  ctx.restore();
+}
+
+function drawHud(ctx, sim) {
+  const W = VIEW.w;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(20, 18, 268, 62);
+  ctx.strokeStyle = C.line;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(20.5, 18.5, 267, 61);
+  ctx.fillStyle = C.blood;
+  ctx.fillRect(30, 30, 200 * (sim.hp / sim.maxHp), 9);
+  text(ctx, 238, 44, `${Math.ceil(sim.hp)}`, 15, C.paper);
+  ctx.drawImage(img.get('p_potion_red'), 32, 48, 16, 16);
+  text(ctx, 54, 61, `烛血 ${sim.flask}`, 15, C.paper);
+
+  text(ctx, W - 24, 42, `${sim.depth} m`, 24, C.paper, 'right');
+  text(ctx, W - 24, 68, `${BAND_NAME[bandIndex(sim.row)]}　${sim.upgrades.length} 式`, 14, C.dim, 'right');
+
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(20, VIEW.h - 76, 232, 56);
+  ctx.strokeStyle = C.line;
+  ctx.strokeRect(20.5, VIEW.h - 75.5, 231, 55);
+  text(ctx, 40, VIEW.h - 54, `精魂 ${sim.essence}`, 17, C.jadeLight);
+  text(ctx, 40, VIEW.h - 30, `入炉 ${sim.banked}　·　精进 ${sim.upgrades.length}`, 13, C.dim);
+
+  if (sim.combo > 1) text(ctx, W / 2, 56, `${sim.combo} 连`, 28, C.emberHot, 'center');
+
+  sim.log.slice(0, 3).forEach((l, i) => {
+    const a = Math.min(1, 3.6 - (sim.time - l.t));
+    text(ctx, W / 2, VIEW.h - 130 + i * 22, l.text, 16, i === 0 ? C.emberHot : C.paper, 'center', a);
   });
-}
-shoot(a, 'zh-01-spawn', {
-  camX: Math.max(0, Math.min(a.world.w * TILE - W / ZOOM, a.px - (W / ZOOM) / 2)),
-  camY: Math.max(0, Math.min(a.world.h * TILE - H / ZOOM, a.py - (H / ZOOM) / 2)),
-});
 
-// ---- deeper with enemies ------------------------------------------------
-const b = new RunSim(99);
-b.start();
-b.px = (b.world.w / 2) * TILE;
-b.py = 420 * TILE;
-b.miasmaRow = 330;
-for (let i = 0; i < 60 * 40; i += 1) {
-  b.update(1 / 60, {
-    left: i % 240 < 100, right: i % 240 >= 120, jump: i % 40 === 0, jumpPressed: i % 40 === 0,
-    attack: true, attackPressed: i % 8 === 0, parryPressed: i % 23 === 0, interactPressed: false,
-  });
-  if (b.status === 'shop') b.closeShop();
-  if (b.status === 'dead') break;
-  if (b.enemies.length >= 3 && b.depthMetres > 380) break;
+  const braz = sim.world.brazierNear(sim.px, sim.py);
+  if (braz) text(ctx, W / 2, VIEW.h - 176, '按 F：入炉精魂 / 刀法精进', 14, C.paper, 'center');
+  if (sim.tideWarn > 0) {
+    ctx.fillStyle = C.tide;
+    ctx.globalAlpha = 0.12;
+    ctx.fillRect(0, 0, W, 90);
+    ctx.globalAlpha = 1;
+    text(ctx, W / 2, 96, '暗潮将起', 17, C.bloodLight, 'center');
+  }
 }
-shoot(b, 'zh-02-deep', {
-  camX: Math.max(0, Math.min(b.world.w * TILE - W / ZOOM, b.px - (W / ZOOM) / 2)),
-  camY: Math.max(0, Math.min(b.world.h * TILE - H / ZOOM, b.py - (H / ZOOM) / 2)),
-});
 
-// ---- same frame with the torch mask off, to judge raw tile readability ---
-{
-  const canvas = createCanvas(W, H);
+function drawBackdrop(ctx, cam, sim) {
+  const g = ctx.createLinearGradient(0, 0, 0, VIEW.h);
+  g.addColorStop(0, '#0a0712');
+  g.addColorStop(0.55, '#0c0916');
+  g.addColorStop(1, '#100b18');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+
+  // far wall: the same stone mass, pushed back by parallax and fog
+  if (!img.has('far')) {
+    const base = img.get('mass');
+    const c = createCanvas(base.width, base.height);
+    const x = c.getContext('2d');
+    x.drawImage(base, 0, 0);
+    x.globalCompositeOperation = 'multiply';
+    x.fillStyle = '#2a2b45';
+    x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = 'destination-in';
+    x.drawImage(base, 0, 0);
+    img.set('far', c);
+  }
+  const far = img.get('far');
+  const scale = 2.2;
+  const w = far.width * scale;
+  const hh = far.height * scale;
+  const ox = -(((cam.x * 0.45) % w) + w) % w;
+  const oy = -(((cam.y * 0.45) % hh) + hh) % hh;
+  ctx.globalAlpha = 0.3;
+  ctx.imageSmoothingEnabled = false;
+  for (let y = oy; y < VIEW.h; y += hh) {
+    for (let x = ox; x < VIEW.w; x += w) ctx.drawImage(far, x, y, w, hh);
+  }
+  ctx.globalAlpha = 1;
+
+  // dust motes drifting up through the shaft
+  for (let i = 0; i < 70; i += 1) {
+    const seed = i * 127.1;
+    const bx = (seed * 13.37) % VIEW.w;
+    const speed = 10 + (i % 5) * 4;
+    const by = (VIEW.h - ((sim.time * speed + seed * 7.1) % VIEW.h)) % VIEW.h;
+    const sway = Math.sin(sim.time * 0.8 + i) * 10;
+    ctx.globalAlpha = 0.1 + (i % 4) * 0.05;
+    ctx.fillStyle = i % 7 === 0 ? C.emberHot : '#8a86a8';
+    ctx.fillRect(Math.round(bx + sway), Math.round(by), 2, 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+const BOT = {
+  update(sim, t) {
+    const input = { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false };
+    const below = sim.world.get(sim.col, sim.row + 1);
+    if (below !== 0 && below !== 5) input.attackPressed = t % 0.36 < 0.016;
+    const target = Math.round(sim.world.centreAt(sim.row));
+    input.moveX = Math.sign(target - sim.col) || 1;
+    if (sim.vy > 40 && sim.grounded) input.jumpPressed = false;
+    return input;
+  },
+};
+
+async function main() {
+  await preload();
+  const sim = new RunSim(20261029);
+  const views = [];
+
+  const canvas = createCanvas(VIEW.w, VIEW.h);
   const ctx = canvas.getContext('2d');
-  const camX = Math.max(0, Math.min(b.world.w * TILE - W / ZOOM, b.px - (W / ZOOM) / 2));
-  const camY = Math.max(0, Math.min(b.world.h * TILE - H / ZOOM, b.py - (H / ZOOM) / 2));
-  renderBackdrop(ctx, b, camX, camY, 1000);
-  renderWorld(ctx, b, camX, camY, 1000);
-  renderActors(ctx, b, camX, camY, 1000);
-  renderHud(ctx, b);
-  writeFileSync('/tmp/zh-03-nolight.png', canvas.toBuffer('image/png'));
-  console.log(`zh-03-nolight.png  luma=${averageLuma(ctx).toFixed(1)}  (no torch mask)`);
+
+  const shoot = (name) => {
+    const cam = {
+      x: sim.px + 5 - VIEW.w / (2 * ZOOM),
+      y: sim.py + 7 - VIEW.h / (2 * ZOOM),
+    };
+    cam.x = Math.max(0, Math.min(sim.world.w * TILE - VIEW.w / ZOOM, cam.x));
+    cam.y = Math.max(0, Math.min(sim.world.h * TILE - VIEW.h / ZOOM, cam.y));
+    ctx.clearRect(0, 0, VIEW.w, VIEW.h);
+    drawBackdrop(ctx, cam, sim);
+    drawWorld(ctx, sim, cam);
+    drawHud(ctx, sim);
+    const file = path.join(OUT, `${name}.png`);
+    writeFileSync(file, canvas.toBuffer('image/png'));
+    views.push(file);
+    console.log('wrote', file, `${VIEW.w}x${VIEW.h}`, `depth=${sim.depth}`, `enemies=${sim.enemies.length}`);
+  };
+
+  // 1. entry hall
+  for (let i = 0; i < 30; i += 1) sim.update(1 / 60, BOT.update(sim, i / 60));
+  shoot('01-entry');
+
+  // 2. dig down for a while
+  for (let i = 0; i < 60 * 14; i += 1) sim.update(1 / 60, BOT.update(sim, i / 60));
+  shoot('02-dig');
+
+  // 3. teleport to a brazier so the firelight read can be checked
+  for (let y = 40; y < sim.world.h - 20; y += 1) {
+    let found = false;
+    for (let x = 2; x < sim.world.w - 2; x += 1) {
+      if (sim.world.get(x, y) === T.BRAZIER) {
+        sim.px = x * TILE + 2;
+        sim.py = (y - 1) * TILE;
+        found = true;
+        break;
+      }
+    }
+    if (found) break;
+  }
+  sim.essence = 12;
+  sim.upgrades.push('edge');
+  for (let i = 0; i < 40; i += 1) sim.update(1 / 60, { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false });
+  shoot('03-brazier');
+
+  // 4. force a parry so 「刀痕成矿」 is visible in a frame
+  const e = {
+    id: 999, x: sim.px + 16, y: sim.py, vx: 0, vy: 0, w: 12, h: 14, hp: 40, maxHp: 40,
+    state: 'windup', t: 0.08, dir: -1, kind: 'knight', dmg: 15, flash: 0, armored: true, hitdone: false,
+  };
+  sim.enemies.push(e);
+  sim.parryT = 0.2;
+  sim.instantParry?.(e);
+  sim.say('刀痕成矿');
+  for (let i = 0; i < 20; i += 1) sim.update(1 / 60, { moveX: 0, jumpPressed: false, jumpHeld: false, attackPressed: false, parryPressed: false, drinkPressed: false });
+  shoot('04-vein');
+
+  // 5. the tide pressing down on the player
+  sim.tideActive = 4;
+  sim.tideFront = sim.py - 40;
+  shoot('05-tide');
 }
+
+await main();

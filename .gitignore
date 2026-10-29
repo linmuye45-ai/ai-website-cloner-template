@@ -54,3 +54,4 @@ __pycache__/
 .venv-art/
 .tmp-echo/
 .tmp-zhulong/
+.preview/
