@@ -238,7 +238,14 @@ export class World {
    * Mining by hand still yields nothing; carving with a parry both pays out and
    * opens the wall, because ore is far softer than rock.
    */
-  carveVein(cx: number, cy: number, rich: boolean, size: number, dir = 0): { x: number; y: number }[] {
+  carveVein(
+    cx: number,
+    cy: number,
+    rich: boolean,
+    size: number,
+    dir = 0,
+    from?: { x: number; y: number } | null,
+  ): { x: number; y: number }[] {
     let bx = -1;
     let by = -1;
     let bd = Infinity;
@@ -252,6 +259,16 @@ export class World {
           bx = x;
           by = y;
         }
+      }
+    }
+    // Continue an existing seam when the chain is still live: a run of parries
+    // draws one continuous cut instead of a scatter of blobs. That is what makes
+    // the loop a *route* rather than a payout.
+    if (from) {
+      const ft = this.get(from.x, from.y);
+      if (ft === T.ORE || ft === T.RICH) {
+        bx = from.x;
+        by = from.y;
       }
     }
     if (bx < 0) return [];

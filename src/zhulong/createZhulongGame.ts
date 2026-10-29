@@ -826,17 +826,29 @@ export class GameScene extends Phaser.Scene {
     this.setHud('depth', W - 24, 20, `${sim.depth} m`, 22, C.paper, 1);
     this.setHud('band', W - 24, 50, `${sim.band.name}　${sim.upgrades.length} 式`, 12, C.dim, 1);
 
-    // ---- bottom-left: essence -------------------------------------------
+    // ---- bottom-left: essence + 「刀势」 ----------------------------------
+    // Panel is sized to the widest line it holds so nothing clips.
+    const PANEL_W = 318;
     g.fillStyle(0x000000, 0.55);
-    g.fillRect(20, VIEW.h - 76, 232, 56);
+    g.fillRect(20, VIEW.h - 84, PANEL_W, 64);
     g.lineStyle(1, C.line, 0.9);
-    g.strokeRect(20.5, VIEW.h - 75.5, 231, 55);
-    this.setHud('ess', 40, VIEW.h - 70, `精魂 ${sim.essence}`, 16, C.jadeLight, 0);
-    this.setHud('bank', 40, VIEW.h - 44, `入炉 ${sim.banked}　·　精进 ${sim.upgrades.length}`, 12, C.dim, 0);
+    g.strokeRect(20.5, VIEW.h - 83.5, PANEL_W - 1, 63);
+    // The live cut: pips fill as the chain grows and all die when it breaks, so
+    // the player sees the mechanic without a tutorial line.
+    {
+      const n = Math.min(5, sim.chain);
+      for (let i = 0; i < 5; i += 1) {
+        g.fillStyle(i < n ? 0xffd98a : 0x8a86a8, i < n ? 0.95 : 0.16);
+        g.fillRect(40 + i * 18, VIEW.h - 58, 12, 5);
+      }
+    }
+    this.setHud('chain', 40 + 5 * 18 + 12, VIEW.h - 66, sim.chain > 0 ? `刀势 ×${Math.min(5, sim.chain)}` : '刀势 断', 12, sim.chain > 0 ? C.emberHot : C.dim, 0);
+    this.setHud('ess', 40, VIEW.h - 34, `精魂 ${sim.essence}`, 16, C.jadeLight, 0);
+    this.setHud('bank', 158, VIEW.h - 33, `入炉 ${sim.banked}　精进 ${sim.upgrades.length}`, 12, C.dim, 0);
     if (sim.essence > 0) {
       const warned = sim.pending > 0;
       g.fillStyle(warned ? C.tide : C.jade, 0.25 + Math.sin(sim.time * 4) * 0.1);
-      g.fillRect(20, VIEW.h - 76, 6, 56);
+      g.fillRect(20, VIEW.h - 84, 6, 64);
     }
 
     // ---- combo / log ----------------------------------------------------

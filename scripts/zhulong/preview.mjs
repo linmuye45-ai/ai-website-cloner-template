@@ -512,14 +512,31 @@ function drawHud(ctx, sim) {
   text(ctx, W - 24, 42, `${sim.depth} m`, 24, C.paper, 'right');
   text(ctx, W - 24, 68, `${BANDS[bandIndex(sim.row)].name}　${sim.upgrades.length} 式`, 14, C.dim, 'right');
 
+  // Bottom-left resource panel. Width is measured against the widest line it
+  // holds (essence + banked + chain label) so the plate never clips its text.
+  const PANEL_W = 318;
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.fillRect(20, VIEW.h - 76, 232, 56);
+  ctx.fillRect(20, VIEW.h - 84, PANEL_W, 64);
   ctx.strokeStyle = C.line;
-  ctx.strokeRect(20.5, VIEW.h - 75.5, 231, 55);
-  text(ctx, 40, VIEW.h - 54, `精魂 ${sim.essence}`, 17, C.jadeLight);
-  text(ctx, 40, VIEW.h - 30, `入炉 ${sim.banked}　·　精进 ${sim.upgrades.length}`, 13, C.dim);
+  ctx.strokeRect(20.5, VIEW.h - 83.5, PANEL_W - 1, 63);
+  // 「刀势」: the live cut, as pips in the bottom panel. Placed here rather than by
+  // the combo counter so it reads as a resource, next to what it pays out.
+  {
+    const n = Math.min(5, sim.chain);
+    for (let i = 0; i < 5; i += 1) {
+      ctx.globalAlpha = i < n ? 0.95 : 0.16;
+      ctx.fillStyle = i < n ? '#ffd98a' : '#8a86a8';
+      ctx.fillRect(40 + i * 18, VIEW.h - 58, 12, 5);
+    }
+    ctx.globalAlpha = 1;
+    text(ctx, 40 + 5 * 18 + 12, VIEW.h - 62, n > 0 ? `刀势 ×${n}` : '刀势 断', 12, n > 0 ? C.emberHot : C.dim);
+  }
+
+  text(ctx, 40, VIEW.h - 34, `精魂 ${sim.essence}`, 17, C.jadeLight);
+  text(ctx, 158, VIEW.h - 33, `入炉 ${sim.banked}　精进 ${sim.upgrades.length}`, 12, C.dim);
 
   if (sim.combo > 1) text(ctx, W / 2, 56, `${sim.combo} 连`, 28, C.emberHot, 'center');
+
 
   sim.log.slice(0, 3).forEach((l, i) => {
     const a = Math.min(1, 3.6 - (sim.time - l.t));

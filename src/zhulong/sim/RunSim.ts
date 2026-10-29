@@ -119,6 +119,9 @@ export class RunSim {
   combo = 0;
   /** Last carved seam, so the HUD can draw its direction for a moment. */
   lastVein: { x: number; y: number; dir: number; n: number; t: number } | null = null;
+  /** 「刀势」: chain length and the tile the current cut has reached. */
+  chain = 0;
+  chainAt: { x: number; y: number } | null = null;
 
   bestRow = 0;
   time = 0;
@@ -255,7 +258,12 @@ export class RunSim {
     this.iframes = Math.max(0, this.iframes - dt);
     this.flaskCd = Math.max(0, this.flaskCd - dt);
     this.comboT = Math.max(0, this.comboT - dt);
-    if (this.comboT <= 0) this.combo = 0;
+    if (this.comboT <= 0) {
+      this.combo = 0;
+      // The cut goes cold: a new parry starts a fresh seam instead of extending.
+      this.chain = 0;
+      this.chainAt = null;
+    }
     if (this.lastVein) {
       this.lastVein.t -= dt;
       if (this.lastVein.t <= 0) this.lastVein = null;
@@ -710,15 +718,23 @@ export class RunSim {
     e.vx = -e.dir * 120;
     // The blow's momentum carries through: it is driven away from the attacker.
     const forceDir = e.x + e.w / 2 <= this.px + PLAYER.w / 2 ? 1 : -1;
-    const size = this.up('vein') ? 7 : 5;
-    const rich = this.up('vein') || this.rng() > 0.5;
+    // 「刀势」: each parry in a chain extends the previous seam, so a clean streak
+    // reads as one long cut through the rock — and a longer cut is both a richer
+    // vein and a tunnel you can use. Dropping the chain costs you the line.
+    const chain = Math.min(5, this.chain);
+    const size = (this.up('vein') ? 7 : 5) + chain;
+    const rich = this.up('vein') || chain >= 2 || this.rng() > 0.5;
     const made = this.world.carveVein(
       Math.floor((e.x + e.w / 2) / TILE),
       Math.floor((e.y + e.h / 2) / TILE),
       rich,
       size,
       forceDir,
+      this.chainAt,
     );
+    if (made.length > 0) this.chain = Math.min(5, this.chain + 1);
+    const last = made[made.length - 1];
+    if (last) this.chainAt = { x: last.x, y: last.y };
     for (const t of made) {
       this.chips.push({
         x: t.x * TILE + 8,
@@ -737,6 +753,9 @@ export class RunSim {
 
   damage(amount: number, fatal = false, dir = 0): void {
     if (this.iframes > 0 && !fatal) return;
+    // Taking a hit breaks the chain: the seam is severed where it stopped.
+    this.chain = 0;
+    this.chainAt = null;
     this.hp -= amount;
     this.iframes = PLAYER.iframes;
     this.hitStop = 0.08;
