@@ -118,17 +118,35 @@ func _process(delta):
 		shadow.global_position = global_position + Vector2(4, 14)
 		shadow.scale = Vector2.ONE * y_factor * 0.9
 
+var joystick: Node = null  # 虚拟摇杆引用（平板）
+
 func _physics_process(_delta):
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		velocity = Vector2.ZERO
 		return
 	
-	# 输入
+	# 输入（键盘 + 虚拟摇杆 双源）
 	move_input = Vector2.ZERO
-	move_input.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	move_input.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	# 优先读取虚拟摇杆（小米平板）
+	if joystick and joystick.has_method("get_vector"):
+		var jv = joystick.get_vector()
+		if jv.length() > 0.08:
+			move_input = jv
+		else:
+			# 回落到键盘/手柄
+			move_input.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+			move_input.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	else:
+		# 尝试自动查找摇杆
+		if not joystick:
+			joystick = get_tree().get_first_node_in_group("joystick")
+		move_input.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+		move_input.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	if move_input.length() > 1:
 		move_input = move_input.normalized()
+	# 小米平板横屏时，摇杆灵敏度微调
+	if joystick and joystick.is_active():
+		move_input *= 0.98  # 轻微平滑，避免抖动
 	
 	# WASD+摇杆已处理，额外支持鼠标？不需要
 	

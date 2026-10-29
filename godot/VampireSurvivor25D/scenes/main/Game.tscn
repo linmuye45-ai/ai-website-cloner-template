@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://src/ui/GameOverScreen.gd" id="7"]
 [ext_resource type="Script" path="res://src/systems/VFXManager.gd" id="8"]
 [ext_resource type="Script" path="res://src/systems/UpgradeSystem.gd" id="9"]
+[ext_resource type="Script" path="res://src/ui/Joystick.gd" id="11"]
+[ext_resource type="Script" path="res://src/systems/MetaProgression.gd" id="12"]
 
 [node name="Game" type="Node2D"]
 
@@ -28,6 +30,9 @@ script = ExtResource("8")
 
 [node name="UpgradeSystem" type="Node" parent="." groups=["upgrade_system"]]
 script = ExtResource("9")
+
+[node name="MetaProgression" type="Node" parent="."]
+script = ExtResource("12")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -243,6 +248,42 @@ size_flags_horizontal = 4
 text = "返回主菜单"
 
 [ext_resource type="Script" path="res://src/ui/PauseMenu.gd" id="10"]
+
+[node name="JoystickLayer" type="CanvasLayer" parent="." groups=["joystick_layer"]]
+layer = 20
+
+[node name="Joystick" type="Control" parent="JoystickLayer" groups=["joystick"]]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = -220.0
+offset_right = 160.0
+offset_bottom = -40.0
+script = ExtResource("11")
+
+[node name="BG" type="TextureRect" parent="JoystickLayer/Joystick"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Knob" type="TextureRect" parent="JoystickLayer/Joystick/BG"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
 
 [node name="PauseMenu" type="CanvasLayer" parent="."]
 layer = 9

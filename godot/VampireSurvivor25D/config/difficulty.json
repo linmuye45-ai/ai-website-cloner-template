@@ -90,5 +90,18 @@
   ],
   "victory_time": 360,
   "xp_gem_merge_distance": 16,
-  "magnet_duration": 4.0
+  "magnet_duration": 4.0,
+  "endless": {
+    "enabled": true,
+    "loop": true,
+    "hp_cap": 5.0,
+    "speed_cap": 1.35,
+    "bonus_gem_every": 60,
+    "crate_interval": 75
+  },
+  "tablet_tuning": {
+    "start_spawn_rate": 1.1,
+    "ramp_speed": 1.15,
+    "first_boss_at": 180
+  }
 }
