@@ -13,9 +13,10 @@ import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
-const OUT = path.join(ROOT, '.preview');
+const OUT = path.join(tmpdir(), 'zhulong-preview');
 const SIM_OUT = path.join(OUT, 'sim');
 
 const VIEW = { w: 1280, h: 720 };
@@ -59,7 +60,6 @@ const { tileLook, MASS_COLS, frameAt } = require(path.join(SIM_OUT, 'look.js'));
 
 GlobalFonts.registerFromPath(path.join(ROOT, 'public/vendor/sunnyland/fonts/VonwaonBitmap-16px.ttf'), 'Vonwaon');
 const props = (n) => path.join(ROOT, 'public/vendor/zhulong/props', `${n}.png`);
-const rockFile = (i) => path.join(ROOT, 'public/vendor/zhulong/rock', `tile_${String(i).padStart(4, '0')}.png`);
 const lightFile = (n) => path.join(ROOT, 'public/vendor/zhulong/light', `${n}.png`);
 
 const img = new Map();
@@ -87,24 +87,6 @@ function massSlice(frame, color) {
   x.globalCompositeOperation = 'destination-in';
   x.drawImage(base, sx, sy, 16, 16, 0, 0, 16, 16);
   sliceCache.set(ck, c);
-  return c;
-}
-
-const tintCache = new Map();
-function tinted(key, color) {
-  const ck = `${key}|${color}`;
-  if (tintCache.has(ck)) return tintCache.get(ck);
-  const base = img.get(key);
-  if (!base) throw new Error(`missing texture ${key} (have: ${[...img.keys()].filter((k) => k.startsWith('rock')).join(',')})`);
-  const c = createCanvas(base.width, base.height);
-  const x = c.getContext('2d');
-  x.drawImage(base, 0, 0);
-  x.globalCompositeOperation = 'multiply';
-  x.fillStyle = color;
-  x.fillRect(0, 0, c.width, c.height);
-  x.globalCompositeOperation = 'destination-in';
-  x.drawImage(base, 0, 0);
-  tintCache.set(ck, c);
   return c;
 }
 
@@ -242,8 +224,8 @@ function drawWorld(ctx, sim, cam, opts = {}) {
   }
   for (const p of sim.pulses) {
     ctx.strokeStyle = p.kind === 1 ? C.jadeLight : p.kind === 2 ? C.emberHot : C.gold;
-    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-    ctx.lineWidth = 2;
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife) * 0.8;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     ctx.stroke();
@@ -284,7 +266,7 @@ function drawWorld(ctx, sim, cam, opts = {}) {
     hole(sim.px + 5, sim.py + 7, 104, 'l_circle_a');
     hole(sim.px + 5, sim.py + 7, 46, 'l_circle_b');
     for (const e of sim.enemies) if (e.state === 'windup') hole(e.x + e.w / 2, e.y + e.h / 2, 40, 'l_circle_a_streaks');
-    for (const pu of sim.pulses) hole(pu.x, pu.y, pu.r * 2.4, 'l_circle_b');
+    for (const pu of sim.pulses) hole(pu.x, pu.y, pu.r * 1.6, 'l_circle_b');
     for (let ty = ty0; ty <= ty1; ty += 1) {
       for (let tx = tx0; tx <= tx1; tx += 1) {
         const t = world.get(tx, ty);
@@ -486,9 +468,13 @@ async function main() {
   for (let y = 40; y < sim.world.h - 20; y += 1) {
     let found = false;
     for (let x = 2; x < sim.world.w - 2; x += 1) {
-      if (sim.world.get(x, y) === T.BRAZIER) {
-        sim.px = x * TILE + 2;
-        sim.py = (y - 1) * TILE;
+      if (sim.world.get(x, y) === T.BRAZIER && sim.world.get(x, y + 1) !== T.AIR) {
+        // stand on the rock under the brazier instead of teleporting mid-air
+        sim.px = x * TILE + 3;
+        sim.py = (y + 1) * TILE - 14 - 0.01;
+        sim.vx = 0;
+        sim.vy = 0;
+        sim.enemies.length = 0;
         found = true;
         break;
       }

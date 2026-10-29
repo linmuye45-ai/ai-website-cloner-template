@@ -60,6 +60,7 @@ export function tileLook(
     isAir(get(tx - 1, ty)) ? 1 : 0,
   ] as [number, number, number, number];
   const open = o[0] + o[1] + o[2] + o[3] > 0;
+  void open;
 
   if (tile === T.ORE || tile === T.RICH) {
     const rich = tile === T.RICH;

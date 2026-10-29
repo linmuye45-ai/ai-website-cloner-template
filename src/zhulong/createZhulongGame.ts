@@ -4,7 +4,7 @@ import type { Band } from './sim/config';
 import { RunSim } from './sim/RunSim';
 import { C, LIGHT_KEYS, PROP_KEYS, hex, lightUrl, propUrl } from './art';
 import { ASSET_BASE } from '@/phaser-game/assets';
-import { MASS_COLS, tileLook } from './sim/look';
+import { tileLook } from './sim/look';
 
 type Keys = Record<string, Phaser.Input.Keyboard.Key>;
 
@@ -392,7 +392,6 @@ export class GameScene extends Phaser.Scene {
     const ty0 = Math.floor(top / TILE);
     const ty1 = Math.ceil(bottom / TILE);
 
-    const band = sim.band;
     this.oreCells.length = 0;
     let slot = 0;
     for (let ty = ty0; ty <= ty1 && slot < this.tilePool.length; ty += 1) {
@@ -404,7 +403,7 @@ export class GameScene extends Phaser.Scene {
           slot += 1;
           continue;
         }
-        const look = tileLook((x, y) => sim.world.get(x, y), tx, ty, band.tint);
+        const look = tileLook((x, y) => sim.world.get(x, y), tx, ty, sim.band.tint);
         const ck = `${look.file}|${look.tint}`;
         if (look.glow) this.oreCells.push({ x: tx * TILE + 8, y: ty * TILE + 8, r: look.glow });
         if (this.cellKey[slot] !== ck) {
@@ -556,8 +555,8 @@ export class GameScene extends Phaser.Scene {
       g.strokePath();
     }
     for (const p of sim.pulses) {
-      const a = Math.max(0, p.life / p.maxLife);
-      g.lineStyle(2, p.kind === 1 ? C.jadeLight : p.kind === 2 ? C.emberHot : C.gold, a);
+      const a = Math.max(0, p.life / p.maxLife) * 0.8;
+      g.lineStyle(1, p.kind === 1 ? C.jadeLight : p.kind === 2 ? C.emberHot : C.gold, a);
       g.strokeCircle(p.x, p.y, p.r);
     }
     for (const p of sim.particles) {
@@ -590,7 +589,6 @@ export class GameScene extends Phaser.Scene {
   private composeLight(): void {
     const sim = this.sim;
     const rt = this.dark;
-    const band = sim.band;
     rt.clear();
     rt.fill(0x020108,0.66);
 

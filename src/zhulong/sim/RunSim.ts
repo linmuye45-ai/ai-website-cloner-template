@@ -189,30 +189,47 @@ export class RunSim {
     return false;
   }
 
+  /**
+   * Axis-separated movement with sub-stepping.
+   *
+   * A single 620 px/s fall advances 10+ px per frame, which is wider than the
+   * body, so one big step can put the feet on the far side of a floor and drop
+   * the player out of the level. Steps are cut to 4 px, which is less than any
+   * solid feature, so nothing is ever skipped.
+   */
   private moveAxis(dx: number, dy: number): void {
-    if (dx !== 0) {
-      const nx = this.px + dx;
-      if (!this.rectHits(nx, this.py, PLAYER.w, PLAYER.h)) {
-        this.px = nx;
-      } else {
-        // step up single tiles so 1-high lips do not stop a descent
-        const up = this.py - TILE * 0.85;
-        if (!this.rectHits(nx, up, PLAYER.w, PLAYER.h)) {
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 4));
+    const sx = dx / steps;
+    const sy = dy / steps;
+    for (let i = 0; i < steps; i += 1) {
+      if (sx !== 0) {
+        const nx = this.px + sx;
+        if (!this.rectHits(nx, this.py, PLAYER.w, PLAYER.h)) {
           this.px = nx;
-          this.py = up;
-        } else this.vx = 0;
-      }
-    }
-    if (dy !== 0) {
-      const ny = this.py + dy;
-      if (!this.rectHits(this.px, ny, PLAYER.w, PLAYER.h)) {
-        this.py = ny;
-      } else {
-        if (dy > 0) {
-          this.py = Math.floor((this.py + PLAYER.h) / TILE) * TILE - PLAYER.h - 0.01;
-          this.grounded = true;
+        } else {
+          // step up single tiles so a 1-high lip does not stop a descent
+          const up = this.py - TILE * 0.85;
+          if (!this.rectHits(nx, up, PLAYER.w, PLAYER.h)) {
+            this.px = nx;
+            this.py = up;
+          } else {
+            this.vx = 0;
+            break;
+          }
         }
-        this.vy = 0;
+      }
+      if (sy !== 0) {
+        const ny = this.py + sy;
+        if (!this.rectHits(this.px, ny, PLAYER.w, PLAYER.h)) {
+          this.py = ny;
+        } else {
+          if (sy > 0) {
+            this.py = Math.floor((this.py + PLAYER.h) / TILE) * TILE - PLAYER.h - 0.01;
+            this.grounded = true;
+          }
+          this.vy = 0;
+          break;
+        }
       }
     }
   }
@@ -285,14 +302,14 @@ export class RunSim {
     if (input.parryPressed && this.parryCd <= 0) {
       this.parryCd = PLAYER.parryCd;
       this.parryT = PLAYER.parryActive * (this.up('parry') ? 1.35 : 1);
-      this.pulses.push({ x: this.px + this.face * 10, y: this.py + 10, r: 4, max: 22, life: 0.22, maxLife: 0.22, kind: 1 });
+      this.pulses.push({ x: this.px + this.face * 10, y: this.py + 7, r: 3, max: 15, life: 0.16, maxLife: 0.16, kind: 1 });
     }
 
     if (input.drinkPressed && this.flask > 0 && this.flaskCd <= 0 && this.hp < this.maxHp) {
       this.flask -= 1;
       this.flaskCd = 1.2;
       this.hp = Math.min(this.maxHp, this.hp + 45);
-      this.pulses.push({ x: this.px, y: this.py + 10, r: 6, max: 40, life: 0.5, maxLife: 0.5, kind: 2 });
+      this.pulses.push({ x: this.px, y: this.py + 7, r: 5, max: 24, life: 0.35, maxLife: 0.35, kind: 2 });
       this.say('饮下烛血');
     }
 
@@ -307,7 +324,7 @@ export class RunSim {
         if (this.essence * 3 >= this.threshold) this.say(`入炉 · 精魂 +${gain}`);
         this.essence = 0;
         this.hp = Math.min(this.maxHp, this.hp + 8 * dt * 6);
-        this.pulses.push({ x: braz.x, y: braz.y, r: 4, max: 34, life: 0.4, maxLife: 0.4, kind: 2 });
+        this.pulses.push({ x: braz.x, y: braz.y, r: 4, max: 20, life: 0.3, maxLife: 0.3, kind: 2 });
       }
     } else if (this.essence > 0) {
       this.pending += dt;
@@ -361,7 +378,7 @@ export class RunSim {
         if (c.life > 0) {
           const v = c.kind === 1 ? 5 : c.kind === 2 ? 3 : 2;
           this.essence += v;
-          this.pulses.push({ x: c.x, y: c.y, r: 2, max: 9, life: 0.18, maxLife: 0.18, kind: 0 });
+          this.pulses.push({ x: c.x, y: c.y, r: 1, max: 7, life: 0.14, maxLife: 0.14, kind: 0 });
         }
         this.chips.splice(i, 1);
       }
@@ -673,7 +690,7 @@ export class RunSim {
     this.iframes = 0.3;
     this.hitStop = 0.12;
     this.shake(7, 0.28);
-    this.pulses.push({ x: e.x + e.w / 2, y: e.y + e.h / 2, r: 6, max: 54, life: 0.42, maxLife: 0.42, kind: 1 });
+    this.pulses.push({ x: e.x + e.w / 2, y: e.y + e.h / 2, r: 5, max: 26, life: 0.24, maxLife: 0.24, kind: 1 });
     e.state = 'stagger';
     e.t = ENEMY.staggerTime;
     e.vx = -e.dir * 120;

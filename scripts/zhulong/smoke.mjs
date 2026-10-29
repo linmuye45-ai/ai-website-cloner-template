@@ -13,9 +13,10 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
-const OUT = path.join(ROOT, '.preview/sim');
+const OUT = path.join(tmpdir(), 'zhulong-preview', 'sim');
 mkdirSync(OUT, { recursive: true });
 
 execFileSync(
