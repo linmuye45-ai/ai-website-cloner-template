@@ -52,3 +52,4 @@ temp/
 __pycache__/
 *.py[cod]
 .venv-art/
+.tmp-echo/

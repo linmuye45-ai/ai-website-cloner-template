@@ -3,7 +3,7 @@
 ## 永久网址（GitHub Pages，不受沙箱重置影响）
 
 - 地址：https://linmuye45-ai.github.io/ai-website-cloner-template/
-- 入口：`/play/`（Phaser 版 Sunny Land）、`/game/`（自研引擎 Ember Trail）
+- 入口：`/echo/`（ECHOWEAVE 回声织网，旗舰作品）、`/play/`（Phaser 版 Sunny Land）、`/game/`（自研引擎 Ember Trail）
 - 内容存放在仓库 `gh-pages` 分支，由 GitHub 基础设施托管，沙箱重启、
   `node_modules` 被清空都不影响线上访问。
 
