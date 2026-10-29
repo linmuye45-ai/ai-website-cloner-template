@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=3 uid="uid://world_main"]
+
+[ext_resource type="Shader" path="res://assets/shaders/grid_ground.gdshader" id="1"]
+
+[sub_resource type="ShaderMaterial" id="1"]
+shader = ExtResource("1")
+shader_parameter/grid_color = Color(0.15, 0.13, 0.32, 1)
+shader_parameter/bg_color = Color(0.08, 0.08, 0.14, 1)
+shader_parameter/grid_size = 64.0
+shader_parameter/line_width = 1.2
+
+[sub_resource type="RectangleShape2D" id="2"]
+size = Vector2(4000, 20)
+
+[sub_resource type="RectangleShape2D" id="3"]
+size = Vector2(4000, 20)
+
+[sub_resource type="RectangleShape2D" id="4"]
+size = Vector2(20, 4000)
+
+[sub_resource type="RectangleShape2D" id="5"]
+size = Vector2(20, 4000)
+
+[node name="World" type="Node2D"]
+
+[node name="Ground" type="ColorRect" parent="."]
+material = SubResource("1")
+offset_left = -3000.0
+offset_top = -3000.0
+offset_right = 3000.0
+offset_bottom = 3000.0
+color = Color(0.08, 0.08, 0.14, 1)
+
+[node name="Decor" type="Node2D" parent="."]
+
+[node name="Walls" type="StaticBody2D" parent="."]
+collision_layer = 64
+collision_mask = 0
+
+[node name="TopWall" type="CollisionShape2D" parent="Walls"]
+position = Vector2(0, -2000)
+shape = SubResource("2")
+
+[node name="BottomWall" type="CollisionShape2D" parent="Walls"]
+position = Vector2(0, 2000)
+shape = SubResource("3")
+
+[node name="LeftWall" type="CollisionShape2D" parent="Walls"]
+position = Vector2(-2000, 0)
+shape = SubResource("4")
+
+[node name="RightWall" type="CollisionShape2D" parent="Walls"]
+position = Vector2(2000, 0)
+shape = SubResource("5")

@@ -1,0 +1,81 @@
+{
+  "enemies": [
+    {
+      "id": "slime",
+      "name": "史莱姆",
+      "hp": 20,
+      "damage": 8,
+      "speed": 45,
+      "xp_value": 5,
+      "scale": 1.0,
+      "color": "#4ADE80",
+      "elite_chance": 0.02
+    },
+    {
+      "id": "bat",
+      "name": "蝙蝠",
+      "hp": 12,
+      "damage": 6,
+      "speed": 85,
+      "xp_value": 4,
+      "scale": 0.8,
+      "color": "#A78BFA",
+      "elite_chance": 0.03
+    },
+    {
+      "id": "skeleton",
+      "name": "骷髅",
+      "hp": 35,
+      "damage": 12,
+      "speed": 55,
+      "xp_value": 8,
+      "scale": 1.1,
+      "color": "#E5E7EB",
+      "elite_chance": 0.025
+    },
+    {
+      "id": "golem",
+      "name": "石像鬼",
+      "hp": 80,
+      "damage": 20,
+      "speed": 30,
+      "xp_value": 15,
+      "scale": 1.4,
+      "color": "#9CA3AF",
+      "elite_chance": 0.05
+    },
+    {
+      "id": "specter",
+      "name": "幽灵",
+      "hp": 25,
+      "damage": 10,
+      "speed": 70,
+      "xp_value": 7,
+      "scale": 1.0,
+      "color": "#60A5FA",
+      "elite_chance": 0.03
+    },
+    {
+      "id": "elite_slime",
+      "name": "精英史莱姆",
+      "hp": 120,
+      "damage": 18,
+      "speed": 50,
+      "xp_value": 25,
+      "scale": 1.6,
+      "color": "#F59E0B",
+      "elite_chance": 0.0
+    },
+    {
+      "id": "boss_vampire",
+      "name": "吸血鬼领主",
+      "hp": 800,
+      "damage": 30,
+      "speed": 60,
+      "xp_value": 100,
+      "scale": 2.2,
+      "color": "#DC2626",
+      "elite_chance": 0.0
+    }
+  ]
+}

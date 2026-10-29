@@ -1,0 +1,147 @@
+{
+  "weapons": [
+    {
+      "id": "magic_missile",
+      "name": "魔法飞弹",
+      "desc": "向最近敌人发射追踪飞弹",
+      "type": "active",
+      "base_damage": 12,
+      "base_cooldown": 0.6,
+      "projectile_speed": 500,
+      "count": 1,
+      "max_level": 8,
+      "evolution": "mega_missile",
+      "evolution_req": [
+        "magic_missile_lv5",
+        "speed_lv3"
+      ]
+    },
+    {
+      "id": "holy_ring",
+      "name": "圣环",
+      "desc": "环绕自身的旋转圣光",
+      "type": "active",
+      "base_damage": 14,
+      "base_cooldown": 0.4,
+      "count": 2,
+      "radius": 90,
+      "max_level": 8,
+      "evolution": "holy_nova",
+      "evolution_req": [
+        "holy_ring_lv5",
+        "max_hp_lv3"
+      ]
+    },
+    {
+      "id": "lightning_chain",
+      "name": "闪电链",
+      "desc": "在敌人间跳跃的闪电",
+      "type": "active",
+      "base_damage": 18,
+      "base_cooldown": 1.2,
+      "chain_count": 3,
+      "chain_range": 180,
+      "max_level": 6,
+      "evolution": "thunder_storm",
+      "evolution_req": [
+        "lightning_chain_lv5",
+        "attack_speed_lv3"
+      ]
+    },
+    {
+      "id": "flame_zone",
+      "name": "火焰区域",
+      "desc": "在地面生成持续灼烧区域",
+      "type": "active",
+      "base_damage": 8,
+      "base_cooldown": 2.0,
+      "duration": 3.0,
+      "radius": 110,
+      "max_level": 6
+    },
+    {
+      "id": "shield",
+      "name": "护盾反弹",
+      "desc": "短暂无敌并反弹近身敌人",
+      "type": "active",
+      "base_damage": 20,
+      "base_cooldown": 5.0,
+      "duration": 1.2,
+      "radius": 85,
+      "max_level": 6
+    },
+    {
+      "id": "speed",
+      "name": "疾风之靴",
+      "desc": "+12%移动速度",
+      "type": "passive",
+      "stat": "move_speed",
+      "value": 0.12,
+      "max_level": 5
+    },
+    {
+      "id": "attack_speed",
+      "name": "急速施法",
+      "desc": "-10%武器冷却",
+      "type": "passive",
+      "stat": "attack_speed",
+      "value": 0.1,
+      "max_level": 5
+    },
+    {
+      "id": "max_hp",
+      "name": "生命精华",
+      "desc": "+20最大生命",
+      "type": "passive",
+      "stat": "max_hp",
+      "value": 20,
+      "max_level": 5
+    },
+    {
+      "id": "pickup_range",
+      "name": "磁力光环",
+      "desc": "+25%拾取范围",
+      "type": "passive",
+      "stat": "pickup_range",
+      "value": 0.25,
+      "max_level": 5
+    },
+    {
+      "id": "damage_up",
+      "name": "毁灭之力",
+      "desc": "+15%伤害",
+      "type": "passive",
+      "stat": "damage",
+      "value": 0.15,
+      "max_level": 5
+    },
+    {
+      "id": "mega_missile",
+      "name": "歼灭飞弹",
+      "desc": "超大范围爆炸飞弹",
+      "type": "evolved",
+      "base_damage": 35,
+      "base_cooldown": 0.5,
+      "projectile_speed": 600,
+      "count": 3
+    },
+    {
+      "id": "holy_nova",
+      "name": "圣光新星",
+      "desc": "全屏圣光爆发",
+      "type": "evolved",
+      "base_damage": 40,
+      "base_cooldown": 1.0,
+      "radius": 220
+    },
+    {
+      "id": "thunder_storm",
+      "name": "雷暴",
+      "desc": "召唤追踪落雷",
+      "type": "evolved",
+      "base_damage": 50,
+      "base_cooldown": 0.8,
+      "chain_count": 6
+    }
+  ]
+}

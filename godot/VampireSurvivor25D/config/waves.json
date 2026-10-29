@@ -1,0 +1,88 @@
+{
+  "waves": [
+    {
+      "time": 0,
+      "stage": 1,
+      "name": "苏醒",
+      "bg_color": "#0B1020",
+      "spawn_rate": 0.9,
+      "enemy_types": [
+        "slime",
+        "bat"
+      ],
+      "elite": false,
+      "boss": false
+    },
+    {
+      "time": 60,
+      "stage": 2,
+      "name": "潮汐",
+      "bg_color": "#1A0F2B",
+      "spawn_rate": 0.6,
+      "enemy_types": [
+        "slime",
+        "bat",
+        "skeleton"
+      ],
+      "elite": true,
+      "boss": false
+    },
+    {
+      "time": 120,
+      "stage": 3,
+      "name": "围猎",
+      "bg_color": "#2A0A1A",
+      "spawn_rate": 0.4,
+      "enemy_types": [
+        "bat",
+        "skeleton",
+        "golem"
+      ],
+      "elite": true,
+      "boss": false
+    },
+    {
+      "time": 180,
+      "stage": 4,
+      "name": "深渊",
+      "bg_color": "#1A1F0A",
+      "spawn_rate": 0.3,
+      "enemy_types": [
+        "skeleton",
+        "golem",
+        "specter"
+      ],
+      "elite": true,
+      "boss": false
+    },
+    {
+      "time": 240,
+      "stage": 5,
+      "name": "领主降临",
+      "bg_color": "#3A0A0A",
+      "spawn_rate": 0.35,
+      "enemy_types": [
+        "golem",
+        "specter"
+      ],
+      "elite": true,
+      "boss": true
+    },
+    {
+      "time": 300,
+      "stage": 6,
+      "name": "永夜",
+      "bg_color": "#000000",
+      "spawn_rate": 0.2,
+      "enemy_types": [
+        "slime",
+        "bat",
+        "skeleton",
+        "golem",
+        "specter"
+      ],
+      "elite": true,
+      "boss": true
+    }
+  ]
+}

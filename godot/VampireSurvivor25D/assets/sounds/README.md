@@ -1,0 +1,1 @@
+占位音效：AudioManager.gd 程序化生成 WAV，无需外部文件。正式音效可放入 .wav/.ogg，AudioManager会自动加载。
