@@ -77,8 +77,12 @@ const s3 = new RunSim(7);
 s3.start();
 s3.px = 30 * TILE;
 s3.py = 50 * TILE;
-// Force a rich vein directly beside the player and mine it by hand.
-s3.world.set(31, Math.floor(s3.py / TILE), T.ORE_RICH);
+s3.facing = 1;
+// Place the vein exactly where the blade tip lands, derived from the sim
+// itself so tuning reach never silently breaks this test again.
+const tipTile = Math.floor((s3.px + s3.reach) / TILE);
+const rowTile = Math.floor(s3.py / TILE);
+s3.world.set(tipTile, rowTile, T.ORE_RICH);
 const essenceBefore = s3.essence;
 for (let i = 0; i < 12 && s3.essence === essenceBefore; i += 1) {
   s3.facing = 1;

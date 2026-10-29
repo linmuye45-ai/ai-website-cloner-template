@@ -39,7 +39,7 @@ export const PAL = {
 
 export const toCss = (hex: number): string => `#${hex.toString(16).padStart(6, '0')}`;
 
-export const TILE = 24;
+export const TILE = 32;
 export const VIEW = { w: 1280, h: 720 } as const;
 
 /** Tile ids kept as small ints so the world can live in a typed array. */
@@ -63,25 +63,25 @@ export const TILE_HP: Record<number, number> = {
   [T.BEDROCK]: 999,
 };
 
-export const WORLD = { w: 96, h: 1600 } as const; // in tiles → 2304 x 38400 px
+export const WORLD = { w: 72, h: 1200 } as const; // in tiles → 2304 x 38400 px
 
 export const PLAYER = {
-  w: 15,
-  h: 21,
-  speed: 178,
+  w: 30,
+  h: 62,
+  speed: 210,
   accel: 1900,
   friction: 2400,
-  jump: 430,
+  jump: 560,
   gravity: 1350,
   maxFall: 820,
-  maxHp: 100,
+  maxHp: 120,
   /** Frames of coyote time, in seconds. */
   coyote: 0.1,
   /** Buffered jump input window. */
   buffer: 0.12,
   attackDur: 0.26,
   attackCd: 0.34,
-  attackReach: 42,
+  attackReach: 74,
   attackDamage: 11,
   mineDamage: 1,
   parryActive: 0.2,
@@ -115,28 +115,28 @@ export const BANDS: Band[] = [
     wallDark: PAL.stone2,
   },
   {
-    from: 280,
+    from: 210,
     name: '断脉',
     line: '石头记得每一次呼吸。',
     wall: PAL.stone2,
     wallDark: PAL.stone1,
   },
   {
-    from: 620,
+    from: 470,
     name: '烛骸',
     line: '火照过的地方，才有影子。',
     wall: 0x3a2c3a,
     wallDark: 0x241a26,
   },
   {
-    from: 1000,
+    from: 760,
     name: '无回',
     line: '往下的人，不数台阶。',
     wall: 0x2c2436,
     wallDark: 0x1a1522,
   },
   {
-    from: 1350,
+    from: 1020,
     name: '龙喉',
     line: '它睡了很久，等你很久。',
     wall: 0x3a1c22,

@@ -11,6 +11,9 @@ import { World } from './world';
 
 export type RunStatus = 'title' | 'playing' | 'shop' | 'dead';
 
+/** Stone dust colour, reused by mining puffs. */
+const PAL_DUST = 0x676078;
+
 export type EnemyKind = 'wraith' | 'lancer' | 'lantern';
 
 export interface Enemy {
@@ -442,17 +445,34 @@ export class RunSim {
     // Then the wall in front: this is the mining action.
     const tipX = this.px + this.facing * this.reach;
     const tx = Math.floor(tipX / TILE);
+    let brokeSomething = false;
     for (let dy = -1; dy <= 1; dy += 1) {
-      const ty = Math.floor((this.py + dy * 12) / TILE);
+      const ty = Math.floor((this.py + dy * 18) / TILE);
       const res = this.world.hitTile(tx, ty, PLAYER.mineDamage);
-      if (res.hit) {
-        this.puff(tx * TILE + 12, ty * TILE + 12, 4, 0x676078);
-      }
+      if (res.hit) this.puff(tx * TILE + 16, ty * TILE + 16, 4, PAL_DUST);
       if (res.broke >= 0) {
         this.onTileBroken(tx, ty, res.broke);
+        brokeSomething = true;
         break;
       }
     }
+
+    // Down-swing. Without it the player literally cannot descend, which is a
+    // control problem rather than a difficulty one: every digging game lets you
+    // break the floor you are standing on.
+    const footY = Math.floor((this.py + PLAYER.h / 2 + 2) / TILE);
+    for (const dx of [0, this.facing]) {
+      const bx = Math.floor((this.px + dx * 14) / TILE);
+      if (this.world.get(bx, footY) === T.AIR) continue;
+      const res = this.world.hitTile(bx, footY, PLAYER.mineDamage);
+      if (res.hit) this.puff(bx * TILE + 16, footY * TILE + 16, 4, PAL_DUST);
+      if (res.broke >= 0) {
+        this.onTileBroken(bx, footY, res.broke);
+        brokeSomething = true;
+        break;
+      }
+    }
+    if (brokeSomething) this.events.push({ type: 'mine', amount: 0 });
   }
 
   private onTileBroken(x: number, y: number, tile: number): void {

@@ -2,6 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type * as Phaser from 'phaser';
+import { ASSET_BASE } from '@/phaser-game/assets';
+
+/**
+ * The pixel CJK face lives in the CC0 Sunny Land pack. The URL must go through
+ * ASSET_BASE or it 404s under the GitHub Pages subpath, so the @font-face rule
+ * is injected at runtime instead of being hard-coded in globals.css.
+ */
+const FONT_CSS = `
+@font-face {
+  font-family: 'VonwaonBitmap';
+  src: url('${ASSET_BASE}/vendor/sunnyland/fonts/VonwaonBitmap-16px.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 400;
+}`;
 
 /**
  * Full-viewport game mount. Deliberately no surrounding copy: the game itself
@@ -14,6 +28,10 @@ export default function ZhulongClient() {
   useEffect(() => {
     let cancelled = false;
     let game: Phaser.Game | null = null;
+
+    const style = document.createElement('style');
+    style.textContent = FONT_CSS;
+    document.head.appendChild(style);
 
     const onError = (e: ErrorEvent) => {
       if (!cancelled) setError(e.message || 'unknown');
@@ -42,6 +60,7 @@ export default function ZhulongClient() {
       cancelled = true;
       window.removeEventListener('error', onError);
       window.removeEventListener('unhandledrejection', onRejection);
+      style.remove();
       game?.destroy(true);
     };
   }, []);

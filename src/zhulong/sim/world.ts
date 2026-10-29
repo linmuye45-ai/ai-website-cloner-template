@@ -71,82 +71,139 @@ export class World {
     return a + (b - a) * sy;
   }
 
+  /**
+   * Level generation.
+   *
+   * A thin wormhole through solid rock looks like a wall, not a place. Real
+   * digging games give you rooms: chambers you drop into, ledges to fight on,
+   * and passages that connect sideways. The loop below carves, in order:
+   *
+   *   1. a winding main shaft (the guaranteed descent route)
+   *   2. chambers every ~30 rows, randomly offset left/right
+   *   3. horizontal galleries linking chambers to the shaft
+   *   4. ledges and rubble inside chambers so they are traversable
+   *   5. ore, biased to cave walls and chamber floors
+   *   6. braziers on the shaft floor as banking anchors
+   */
   private generate(): void {
     const rng = this.rng;
-    for (let y = 0; y < this.h; y += 1) {
-      // A gentle S-curve so the shaft is not a straight drop.
-      const drift = Math.sin(y * 0.017) * 7 + Math.sin(y * 0.061 + 1.3) * 3;
-      const centre = this.w / 2 + drift;
-      const halfWidth = 3.4 + this.noise(0, y, 22, 3) * 2.6;
+    const W = this.w;
+    const H = this.h;
 
-      for (let x = 0; x < this.w; x += 1) {
-        const i = y * this.w + x;
-        const dxc = Math.abs(x - centre);
+    // Everything starts as stone; carving happens below.
+    for (let i = 0; i < this.tiles.length; i += 1) {
+      this.tiles[i] = T.STONE;
+      this.hp[i] = TILE_HP[T.STONE];
+    }
 
-        // Borders are indestructible so the play area can never be escaped.
-        if (x === 0 || x === this.w - 1 || y < 3) {
-          this.tiles[i] = T.BEDROCK;
-          this.hp[i] = 999;
-          continue;
-        }
+    const centreAt = (row: number): number =>
+      W / 2 + Math.sin(row * 0.021) * 8 + Math.sin(row * 0.073 + 1.3) * 3.5;
 
-        let tile: number = T.STONE;
-
-        if (dxc < halfWidth) {
-          tile = T.AIR;
-        } else {
-          // Caves and seams branching off the main shaft.
-          const cave =
-            this.noise(x, y, 13, 11) * 0.65 + this.noise(x, y, 5, 29) * 0.35;
-          if (cave > 0.66) tile = T.AIR;
-
-          // Deeper bands get denser, harder stone.
-          const depth = y / this.h;
-          if (tile !== T.AIR && this.noise(x, y, 9, 7) > 0.78 - depth * 0.2) {
-            tile = T.DEEP;
-          }
-        }
-
-        this.tiles[i] = tile;
-        this.hp[i] = TILE_HP[tile] ?? 1;
+    // 1. Main shaft.
+    for (let y = 0; y < H; y += 1) {
+      const c = centreAt(y);
+      const half = 2.6 + this.noise(0, y, 26, 3) * 2.2;
+      for (let x = 0; x < W; x += 1) {
+        if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
       }
     }
 
-    // Guarantee the entry chamber is open and has a floor.
-    for (let y = 3; y < 9; y += 1) {
-      for (let x = this.w / 2 - 5; x <= this.w / 2 + 5; x += 1) {
-        this.set(Math.round(x), y, T.AIR);
+    // 2. Chambers: big open rooms, alternating side, always reconnected.
+    const chambers: { x: number; y: number; w: number; h: number }[] = [];
+    for (let y = 26; y < H - 40; y += 26 + Math.floor(rng() * 12)) {
+      const cw = 12 + Math.floor(rng() * 10);
+      const ch = 7 + Math.floor(rng() * 5);
+      const side = rng() > 0.5 ? 1 : -1;
+      const cx = Math.round(W / 2 + side * (10 + rng() * 14) - cw / 2);
+      const x0 = Math.max(2, Math.min(W - cw - 2, cx));
+      const y0 = Math.max(4, Math.min(H - ch - 4, y));
+      chambers.push({ x: x0, y: y0, w: cw, h: ch });
+
+      for (let ty = y0; ty < y0 + ch; ty += 1) {
+        for (let tx = x0; tx < x0 + cw; tx += 1) {
+          // Rounded corners so rooms do not look like rectangles.
+          const ex = Math.min(tx - x0, x0 + cw - 1 - tx);
+          const ey = Math.min(ty - y0, y0 + ch - 1 - ty);
+          const r = this.noise(tx, ty, 4, 17);
+          if (ex === 0 && r < 0.45) continue;
+          if (ey === 0 && r < 0.35) continue;
+          this.set(tx, ty, T.AIR);
+        }
+      }
+
+      // 3. Gallery back to the shaft, so a chamber is never a dead end.
+      const gy = y0 + Math.floor(ch / 2);
+      const shaftX = Math.round(centreAt(gy));
+      const from = Math.min(shaftX, x0 + cw);
+      const to = Math.max(shaftX, x0 + cw);
+      for (let tx = from; tx <= to; tx += 1) {
+        this.set(tx, gy, T.AIR);
+        this.set(tx, gy + 1, T.AIR);
+        this.set(tx, gy + 2, T.AIR);
       }
     }
-    for (let x = this.w / 2 - 5; x <= this.w / 2 + 5; x += 1) {
-      this.set(Math.round(x), 9, T.STONE);
-    }
 
-    // Scatter natural ore so early mining is possible before any parry.
-    for (let y = 12; y < this.h - 6; y += 1) {
-      for (let x = 1; x < this.w - 1; x += 1) {
-        if (this.get(x, y) !== T.STONE && this.get(x, y) !== T.DEEP) continue;
-        const depth = y / this.h;
-        const roll = this.noise(x, y, 7, 41);
-        if (roll > 0.9 - depth * 0.06) {
-          this.set(x, y, rng() > 0.72 ? T.ORE_RICH : T.ORE);
+    // 4. Ledges inside chambers: something to stand on and fight around.
+    for (const c of chambers) {
+      const shelves = 1 + Math.floor(rng() * 3);
+      for (let i = 0; i < shelves; i += 1) {
+        const sy = c.y + 2 + Math.floor(rng() * Math.max(1, c.h - 3));
+        const sx = c.x + 2 + Math.floor(rng() * Math.max(1, c.w - 6));
+        const len = 3 + Math.floor(rng() * 4);
+        for (let tx = sx; tx < Math.min(c.x + c.w - 1, sx + len); tx += 1) {
+          this.set(tx, sy, T.STONE);
         }
       }
     }
 
-    // Braziers: safe anchors you can bank essence at. Always on the shaft.
-    for (let r = 34; r < this.h - 30; r += 56) {
-      const drift = Math.sin(r * 0.017) * 7 + Math.sin(r * 0.061 + 1.3) * 3;
-      const cx = Math.round(this.w / 2 + drift);
-      for (let y = r - 2; y <= r + 2; y += 1) {
-        for (let x = cx - 3; x <= cx + 3; x += 1) {
-          if (Math.abs(x - cx) <= 2 && y <= r) this.set(x, y, T.AIR);
+    // Re-ensure the shaft is open where shelves may have crossed it.
+    for (let y = 0; y < H; y += 1) {
+      const c = centreAt(y);
+      const half = 2.4 + this.noise(0, y, 26, 3) * 2.0;
+      for (let x = 0; x < W; x += 1) {
+        if (Math.abs(x - c) <= half) this.set(x, y, T.AIR);
+      }
+    }
+
+    // 5. Ore, biased to walls and chamber floors.
+    for (let y = 4; y < H - 4; y += 1) {
+      for (let x = 1; x < W - 1; x += 1) {
+        const t = this.get(x, y);
+        if (t !== T.STONE) continue;
+        const nearAir =
+          this.get(x + 1, y) === T.AIR || this.get(x - 1, y) === T.AIR ||
+          this.get(x, y + 1) === T.AIR || this.get(x, y - 1) === T.AIR;
+        if (!nearAir) continue;
+        const depth = y / H;
+        const roll = this.noise(x, y, 6, 41);
+        if (roll > 0.86 - depth * 0.08) {
+          this.set(x, y, rng() > 0.7 ? T.ORE_RICH : T.ORE);
         }
       }
-      for (let x = cx - 3; x <= cx + 3; x += 1) {
-        this.set(x, r + 2, T.STONE);
+    }
+
+    // 6. Hard borders, entry chamber, braziers.
+    for (let y = 0; y < H; y += 1) {
+      for (let x = 0; x < W; x += 1) {
+        if (x === 0 || x === W - 1 || y === 0 || y === 1 || y === H - 1) {
+          this.tiles[y * W + x] = T.BEDROCK;
+          this.hp[y * W + x] = 999;
+        }
       }
-      this.set(cx, r + 1, T.BRAZIER);
+    }
+    const startX = Math.round(centreAt(6));
+    for (let y = 2; y < 10; y += 1) {
+      for (let x = startX - 6; x <= startX + 6; x += 1) this.set(x, y, T.AIR);
+    }
+    for (let x = startX - 6; x <= startX + 6; x += 1) this.set(x, 10, T.STONE);
+
+    for (let r = 34; r < H - 30; r += 52) {
+      const cx = Math.round(centreAt(r));
+      for (let y = r - 2; y <= r; y += 1) {
+        for (let x = cx - 3; x <= cx + 3; x += 1) this.set(x, y, T.AIR);
+      }
+      for (let x = cx - 3; x <= cx + 3; x += 1) this.set(x, r + 1, T.STONE);
+      this.set(cx, r, T.BRAZIER);
     }
   }
 
