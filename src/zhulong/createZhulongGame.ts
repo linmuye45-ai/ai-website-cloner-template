@@ -706,11 +706,17 @@ export class GameScene extends Phaser.Scene {
       this.setHud('prompt', braz.x, braz.y - 34, '烛炉', 12, C.emberHot, 0.5);
       this.hudTexts.prompt.setDepth(2);
       this.setHud('prompt2', W / 2, VIEW.h - 176, '按 F：入炉精魂 / 刀法精进', 13, C.paper, 0.5);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.F)) this.openShop();
+      if (this.pauseKind === 'none' && !this.paused && Phaser.Input.Keyboard.JustDown(this.keys.F)) this.openShop();
     } else {
       this.setHud('prompt', 0, 0, '', 12, C.emberHot, 0.5);
       this.setHud('prompt2', 0, 0, '', 12, C.paper, 0.5);
     }
+
+    // ---- first-minute coaching -----------------------------------------
+    if (sim.time < 9 && sim.depth < 60) {
+      this.setHud('hint', W / 2, VIEW.h - 210, 'A / D 移动　空格 跳　J 挥刀　K 架刀　L 烛血', 13, C.paper, 0.5);
+      this.hudTexts.hint.setAlpha(Math.min(1, (9 - sim.time) / 2), 0);
+    } else this.setHud('hint', 0, 0, '', 12, C.paper, 0.5);
 
     // ---- tide warning ---------------------------------------------------
     if (sim.tideWarn > 0) {
@@ -750,7 +756,7 @@ export class GameScene extends Phaser.Scene {
   private mkText(): void {
     this.flaskIcon = this.add.image(38, 56, 'p_potion_red').setScale(1).setOrigin(0.5);
     this.uiRoot.add(this.flaskIcon);
-    for (const k of ['hp', 'flask', 'depth', 'band', 'ess', 'bank', 'combo', 'log0', 'log1', 'log2', 'log3', 'log4', 'log5', 'prompt', 'prompt2', 'tide', 'banner']) {
+    for (const k of ['hp', 'flask', 'depth', 'band', 'ess', 'bank', 'combo', 'log0', 'log1', 'log2', 'log3', 'log4', 'log5', 'prompt', 'prompt2', 'tide', 'banner', 'hint']) {
       const t = this.add
         .text(0, 0, '', { fontFamily: 'VonwaonBitmap, monospace', fontSize: '16px', color: '#ffffff' })
         .setResolution(2);
