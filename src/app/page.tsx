@@ -1,234 +1,371 @@
 import type { Metadata } from "next";
-import { ReunionTool } from "@/components/reunion/tool";
-import { PRICING } from "@/lib/reunion";
+import {
+  SlabAITool,
+  ThreeYearProfitSimulator,
+} from "@/components/slabai/tool";
 
 export const metadata: Metadata = {
-  title: "同框 Reunion · 让没能同框的人,第一次合影",
+  title:
+    "闪鉴金库 SlabAI · 3秒 AI 光谱评级 × 保税金库 88% 秒回购 × 全球潮玩卡牌跨市套利",
   description:
-    "跨时空全家福:让没能见面的亲人第一次合影,和年轻的爸妈同框,把散落各年的照片拼成一张全家福。情感影像新品类,全球市场空位。",
-  keywords: ["全家福", "老照片", "AI合影", "同框", "Reunion", "纪念", "跨时空", "家人"],
+    "潮玩卡牌界的得物 + 纳斯达克金库：手机 3 秒 AI 光谱评级查中日美欧价差，24 小时 NFC 金砖封装入保税金库，88% 公允价 1 秒现金回购。对标泡泡玛特 130 亿净利与卡游 44.6 亿净利，三年税后净利破十位数（≥10亿）。",
 };
 
-const STATS = [
-  { k: "数字来世市场", v: "$220 亿 → $800 亿", n: "2024 → 2034 预测(Hospice News)" },
-  { k: "美图 2026H1 净利", v: "¥6.5 亿", n: "影像订阅付费 1844 万人 · 类目印钞实证" },
-  { k: "Deep Nostalgia 首周", v: "1,000 万次", n: "老照片动起来,两周破千万(2021)" },
-  { k: "线下全家福均价", v: "¥599+", n: "海马体/天真蓝——我们做到 1/15" },
-];
-
-const WHYS = [
+const PROOF_STATS = [
   {
-    k: "空 位",
-    t: "老玩家集体退场,用户抱着「死链」",
-    d: "MyHeritage 把 Deep Nostalgia 停了、继任者 DeepStory 2025 年也下线;HereAfter AI 2026 年 7 月关站;StoryFile 破产重组转 B 端。数以百万计的家庭,正找不到地方留住念想——这是品类级的空位。",
+    k: "泡泡玛特 2025 税后净利",
+    v: "¥130.1 亿（11位数）",
+    n: "营收 ¥371.2 亿（+185%），净利率 35.1%，美洲暴增 750% —— 潮玩印钞铁证",
   },
   {
-    k: "温 度",
-    t: "只做合影,不做「对话幽灵」",
-    d: "同是怀念,「和逝者聊天」被舆论骂 demonic(2wai 上线即遭围攻),而「一张合影」是温暖的、治疗性的。我们卡在「照片」这条安全的情感刻度上:动人,但不惊悚。",
+    k: "卡游 招股书经调整净利",
+    v: "¥44.66 亿（10位数）",
+    n: "营收 ¥100.57 亿（+278%），净利率高达 44.4% —— 一张小纸片比茅台还赚钱",
   },
   {
-    k: "复 购",
-    t: "不是一锤子买卖,是家庭仪式",
-    d: "妙鸭相机死于「一次拍完就走」。同框不同:清明、母亲节、中秋、圣诞、忌日、生日——一年七八个必须补一张的日子;再加上实体相框礼赠,把爆火变成年金。",
+    k: "Whatnot 2026H1 半年流水",
+    v: "$80 亿（估值 $200亿）",
+    n: "美国卡牌潮玩直播交易平台，年化 GMV $160 亿，综合抽成 12.5%，月留存 80%",
+  },
+  {
+    k: "Courtyard 金库卡秒回购",
+    v: "19 个月暴涨 1,560 倍",
+    n: "评级卡锁金库 + 90% 价格 1 秒回购，月流水从 $5 万冲到 $7,800 万（年化近 $10 亿）",
   },
 ];
 
-const COMPARE = [
-  { who: "MyHeritage / Ancestry", weak: "「家谱网站」心智,年费 $119–299,功能停了没人接手", us: "轻量情感入口,¥38 一张就走,年卡做档案" },
-  { who: "Remini / Lensa", weak: "通用增强/头像工具,没有家庭叙事,用完即走", us: "场景化情绪仪式 + 时光相册留存" },
-  { who: "griefbot 们(2wai/YOV)", weak: "对话式「复活」引发伦理反感与舆论反噬", us: "只做合影——温暖不越界,合规成本也低" },
-  { who: "线下影楼(海马体等)", weak: "¥599+/套,要预约要出门,无法跨时空", us: "30 秒、¥38、随时补拍任何年代" },
+const DEAD_ENDS = [
+  {
+    trap: "❌ 陷阱 1：纯拍照/工具订阅 App（如 Cal AI、Remini、上一版「同框」）",
+    fact: "Cal AI 爆火全网，2026-03 卖身时年收入仅 $4,000 万（≈¥2.8 亿）；同框天花板净利 ~¥1 亿/年。",
+    why: "收几十块工具费，盘子锁死在 9 位数，三年累死也到不了 10 位数（10 亿）税后净利。",
+  },
+  {
+    trap: "❌ 陷阱 2：买量充值微短剧 App（如 ReelShort、DramaBox）",
+    fact: "ReelShort 2025 营收 ¥57.2 亿却净亏 ¥8,580 万；2026 营收破 $10.5 亿，净利仅 $4,000 万（净利率 3.8%）。",
+    why: "75% 的收入拿去抖音/TikTok 买广告流量，看着热闹，纯属给流量平台白打工。",
+  },
+  {
+    trap: "❌ 陷阱 3：大模型套壳与陪伴 App（如 Cursor、Character.AI）",
+    fact: "Cursor 2026-04 ARR 达 $27 亿但毛利率仅 23%；Character.AI 1,200 万月活却每月净亏 $800 万。",
+    why: "用户越用，你交给底层大模型厂的 Token 算力费越多，利润全被算力吃光。",
+  },
+  {
+    trap: "❌ 陷阱 4：只收 2.6% 苦力费的传统二手撮合（如千岛 App）",
+    fact: "千岛 2025 成交额破 ¥100 亿，但仅收 2.6% 佣金；2025-11 曝出「福袋涉赌」，2026-05 人工验货爆仓。",
+    why: "抽成太薄 + 人工肉眼验货成本极重 + 每次交易都要寄快递，赚不到十亿级净利。",
+  },
+];
+
+const FOUR_ENGINES = [
+  {
+    step: "发动机 01 · 零成本爆火钩子",
+    title: "手机 3 秒 AI 光谱查价 → 生成「身价暴击炫耀卡」",
+    desc: "年轻人抽到稀有卡或隐藏款 Labubu，第一反应是用手机扫一扫值多少钱。我们的轻量视觉模型（单次成本 <¥0.01）3 秒测出居中度、四角磨损与真伪光谱，直接弹窗：「国内卖 ¥1,480，美国金库秒出价 ¥2,150（+45%）！」玩家截图晒小红书/抖音/TikTok，带来 70% 零成本自然流量。",
+    tag: "自然流量 ≥ 70%",
+  },
+  {
+    step: "发动机 02 · 78% 高毛利门票",
+    title: "24 小时全自动微距光谱定级 + NFC 黑金砖封装（¥49 / 件）",
+    desc: "寄去美国 PSA 评级要交 $25–$75、苦等 45 天人工肉眼看。我们用工业微距光谱仪 30 秒自动定级，封入带 NFC 芯片与国标 C2PA 防伪指纹的黑金亚克力砖，硬件+扫描成本仅 ¥11，收费 ¥49（海外 $9.9），24 小时出分，毛利率 78%。",
+    tag: "第3年评级收入 ¥13.2亿",
+  },
+  {
+    step: "发动机 03 · 零物流无限换手印钞机",
+    title: "恒温保税金库数字孪生 + 88% 公允价 1 秒现金回购",
+    desc: "这才是三年赚十亿的核武器：封装好的卡直接锁进深圳前海/东京/美国特拉华保税金库，玩家拿到 1:1 数字仓单。急用钱？点一下「88% 公允价 1 秒到账」，平台算法做市商秒收，下一秒按 100% 挂牌卖出——实物躺在金库货架上一厘米没动，0 快递费、0 调包风险，单次净赚 10%–12%！同一张卡一年在金库换手 8 次，平台累计收走这张卡面值 80% 的纯利！",
+    tag: "单卡年换手 8 次 · 0 运费",
+  },
+  {
+    step: "发动机 04 · 跨国信息差暴利",
+    title: "中日美欧四仓保税互联 · 一键吃下 15% 跨国套利差价",
+    desc: "同一张小马宝莉黑背卡、海贼王漫画路飞或 Labubu 隐藏款，国内卖 ¥1,400，美国 Whatnot/Courtyard 买家抢着出 $300（¥2,150）。因为实物已在我们的保税金库验明正身，中国卖家一键挂牌美国盘，平台自动完成汇兑与保税仓单交割，稳抽 15% 跨境清结算差价，卖家还能比国内多赚 20%+！",
+    tag: "第3年做市+套利收入 ¥27.5亿",
+  },
+];
+
+const GLOBAL_COMPETITORS = [
+  {
+    market: "🇺🇸 美国（评级老霸主）",
+    rival: "PSA (Collectors) / BGS / CGC",
+    scale: "年评 ~1,800 万张 · 收费 $15–$75/张 · $43亿私有化",
+    weakness: "慢到绝望（等 45–60 天）；纯人工肉眼看分不准；不懂亚洲潮玩与谷子",
+    us: "手机 3 秒免费预评 + 24 小时自动化光谱出分 + ¥49 ($9.9) 降维打击",
+  },
+  {
+    market: "🇺🇸 美国（金库新物种）",
+    rival: "Courtyard.io / Arena Club",
+    scale: "Courtyard 月流水 $7,800 万（19个月涨 1,560 倍）· 90%秒回购",
+    weakness: "只收美国现成 PSA 老卡；无手机 AI 扫卡流量入口；无中日一手低价货源",
+    us: "用 AI 扫卡暴击卡做百倍大漏斗 + 把中国潮玩/日版宝可梦低价货直供美盘",
+  },
+  {
+    market: "🇺🇸/🇬🇧 欧美（直播交易巨头）",
+    rival: "Whatnot",
+    scale: "2026H1 半年 GMV $80 亿 · 年入 $10 亿+ · 估值 $200 亿",
+    weakness: "每单都要卖家自己打包寄快递，物流慢、假货多；买家买完不能秒级变现",
+    us: "保税金库 0 物流秒交割 + 买完随时可点「88% 公允价 1 秒现金回购」",
+  },
+  {
+    market: "🇨🇳 中国（本土最大二手潮玩）",
+    rival: "千岛 App / 集换社 / 卡淘",
+    scale: "千岛 2025 GMV 破 ¥100 亿（70%潮玩）· 卡牌岛 571 万用户",
+    weakness:
+      "① 抽成仅 2.6% 赚不到大钱；② 人工验货爆仓漏检（2026-05 36氪曝光）；③ 2025-11「福袋涉赌」暴雷",
+    us: "AI 光谱仪替代人工降本 80% + 严守合规绝不做暗箱福袋 + 88%秒回购与跨国套利抽 12%–15%",
+  },
+  {
+    market: "🇯🇵/🇰🇷 日韩 & 🇪🇺 欧洲",
+    rival: "SNKRDUNK / Mercari / Cardmarket",
+    scale: "2026 宝可梦 30 周年引爆全球抢卡；韩国 K-pop 小卡百亿市场",
+    weakness: "秋叶原卡店各自为战、跨国运费比卡贵；爱豆小卡与二次元吧唧无权威评级",
+    us: "东京保税金库直连秋叶原 + 全球首个「卡牌 / 搪胶潮玩 / 谷子吧唧」三合一光学标准",
+  },
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#FAF4E9] text-[#3D2E1E]">
-      {/* header */}
-      <header className="no-print sticky top-0 z-40 border-b border-[#E4D5C3] bg-[#FAF4E9]/92 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[960px] items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#B23A2E] font-serif text-[13px] font-bold text-[#B23A2E]">框</span>
+    <div className="min-h-screen bg-[#090B0E] text-[#F5F3EE]">
+      {/* ── 顶栏 ── */}
+      <header className="no-print sticky top-0 z-40 border-b border-[#1E2633] bg-[#090B0E]/90 backdrop-blur">
+        <div className="mx-auto flex h-15 max-w-[1120px] items-center justify-between px-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[#E5B84B] bg-[#E5B84B]/15 font-mono text-[13px] font-black text-[#E5B84B]">
+              9.5
+            </span>
             <div className="leading-none">
-              <div className="font-serif text-[17px] font-bold tracking-[0.22em]">同框</div>
-              <div className="mt-0.5 text-[9px] font-semibold tracking-[0.32em] text-[#B09A82] uppercase">Reunion</div>
+              <div className="text-[16px] font-extrabold tracking-[0.14em] text-[#F5F3EE]">
+                闪鉴金库 <span className="text-[#E5B84B]">SLAB.AI</span>
+              </div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[0.2em] text-[#94A3B8] uppercase">
+                AI Optical Grading · Free-Trade Vault · 88% Instant Buyback
+              </div>
             </div>
           </div>
-          <a
-            href="#tool"
-            className="rounded-full bg-[#A65B38] px-5 py-2 text-[13px] font-bold text-white transition-transform hover:scale-[1.05]"
-          >
-            免费生成一张 →
-          </a>
+
+          <div className="flex items-center gap-2.5">
+            <a
+              href="#profit-sim"
+              className="hidden rounded-full border border-[#334155] px-4 py-2 text-[12px] font-bold text-[#CBD5E1] hover:border-[#E5B84B] hover:text-[#E5B84B] sm:inline-block"
+            >
+              三年十位数净利账本
+            </a>
+            <a
+              href="#tool"
+              className="rounded-full bg-[#E5B84B] px-5 py-2 text-[12.5px] font-extrabold text-[#090B0E] transition-transform hover:scale-[1.04]"
+            >
+              立即 3 秒闪鉴查价 →
+            </a>
+          </div>
         </div>
       </header>
 
-      {/* hero */}
-      <section className="relative overflow-hidden">
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden border-b border-[#1A2230]">
         <div
-          className="pointer-events-none absolute inset-0 opacity-40"
+          className="pointer-events-none absolute inset-0 opacity-25"
           style={{
-            backgroundImage: "radial-gradient(#D9C6A8 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-            maskImage: "radial-gradient(ellipse 70% 55% at 50% 15%, black 15%, transparent 72%)",
+            backgroundImage:
+              "radial-gradient(#E5B84B 1px, transparent 1px), radial-gradient(#10B981 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+            backgroundPosition: "0 0, 16px 16px",
           }}
         />
-        <div className="relative mx-auto max-w-[960px] px-5 pb-12 pt-16 text-center sm:pt-20">
-          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#E4D5C3] bg-white px-4 py-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#B23A2E]" />
-            <span className="text-[11px] font-semibold tracking-[0.16em] text-[#8A7460]">
-              新兴细分 · 情感影像 × 家庭仪式
+        <div className="relative mx-auto max-w-[1120px] px-5 pb-14 pt-14 text-center sm:pt-20">
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#E5B84B]/40 bg-[#131924] px-4 py-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#10B981]" />
+            <span className="text-[11.5px] font-bold tracking-[0.12em] text-[#E5B84B]">
+              新目标校准：三年内赚到税后净利润十位数以上（≥ ¥1,000,000,000）
             </span>
           </div>
-          <h1 className="mx-auto mt-7 max-w-[16ch] font-serif text-[clamp(2.5rem,7.5vw,4.8rem)] font-bold leading-[1.16]">
-            让没能同框的人,
+
+          <h1 className="mx-auto mt-6 max-w-[20ch] text-[clamp(2.2rem,5.8vw,4.2rem)] font-black leading-[1.12] tracking-tight">
+            潮玩卡牌界的「得物」
             <br />
-            <span className="text-[#A65B38]">第一次合影</span>。
+            加上 <span className="text-[#E5B84B]">88% 秒回购保税金库</span>。
           </h1>
-          <p className="mx-auto mt-6 max-w-[44ch] text-[15.5px] leading-[2.05] text-[#6B5844]">
-            有些合影,迟到了几十年——爷爷没能见到孙女,爸妈年轻时没拍过婚纱,隔着大洋的家人年年说「下次」。
-            <span className="font-semibold text-[#3D2E1E]">同框</span>把两张跨越时空的照片,合成一张温暖的全家福。
-            30 秒生成,截图就能晒。
+
+          <p className="mx-auto mt-6 max-w-[62ch] text-[15.5px] leading-[1.95] text-[#94A3B8]">
+            大白话讲透为什么换掉上一版「同框」：收几十块拍照费的工具 App，全球天花板就是一年净赚 1 个亿（9 位数）。
+            要在<strong className="text-[#F5F3EE]">三年内赚到十位数（10 亿+）税后净利润</strong>，必须切入 2026 年唯一被财报验证过「暴利 + 爆发」的赛道——
+            泡泡玛特和卡游塞进全球年轻人手里的<strong className="text-[#E5B84B]">上千亿卡牌、Labubu 与二次元谷子</strong>。
+            我们用 <strong className="text-[#F5F3EE]">手机 3 秒 AI 光谱查价</strong> 零成本拉新，用{" "}
+            <strong className="text-[#34D399]">保税金库 0 物流秒级换手 + 88% 算法秒回购 + 中美日跨国套利</strong>{" "}
+            把同一件藏品一年转手 8 次，收走 12%–15% 的高毛利做市差价！
           </p>
-          <div className="mt-8 flex justify-center gap-3">
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3.5">
             <a
               href="#tool"
-              className="rounded-full bg-[#A65B38] px-8 py-4 text-[15px] font-bold text-white shadow-[0_16px_34px_-12px_rgba(166,91,56,0.55)] transition-transform hover:scale-[1.03]"
+              className="rounded-full bg-gradient-to-r from-[#E5B84B] to-[#C89628] px-8 py-4 text-[15px] font-extrabold text-[#090B0E] shadow-[0_18px_40px_-12px_rgba(229,184,75,0.55)] transition-transform hover:scale-[1.03]"
             >
-              生成一张「同框」🖼
+              ⚡ 体验「3 秒 AI 光谱闪鉴 + 全球套利终端」
             </a>
             <a
-              href="#pricing"
-              className="rounded-full border-2 border-[#3D2E1E] px-8 py-4 text-[15px] font-bold text-[#3D2E1E] transition-colors hover:bg-[#3D2E1E] hover:text-white"
+              href="#profit-sim"
+              className="rounded-full border-2 border-[#334155] bg-[#11161F] px-8 py-4 text-[15px] font-bold text-[#F5F3EE] transition-colors hover:border-[#E5B84B] hover:text-[#E5B84B]"
             >
-              看看多少钱
+              📊 拨动滑块：亲手算三年 24.4 亿税后净利
             </a>
           </div>
         </div>
       </section>
 
-      {/* stats */}
-      <section className="mx-auto max-w-[960px] px-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.k} className="rounded-2xl border border-[#E4D5C3] bg-white px-5 py-5">
-              <div className="text-[10.5px] font-semibold tracking-[0.12em] text-[#B09A82] uppercase">{s.k}</div>
-              <div className="mt-2 font-serif text-[21px] font-bold leading-tight text-[#A65B38]">{s.v}</div>
-              <div className="mt-2 text-[11px] leading-relaxed text-[#8A7460]">{s.n}</div>
+      {/* ── 四个真实财报铁证 ── */}
+      <section className="mx-auto max-w-[1120px] px-5 pt-12">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          {PROOF_STATS.map((s) => (
+            <div
+              key={s.k}
+              className="rounded-2xl border border-[#222C3C] bg-[#11161F] p-5"
+            >
+              <div className="text-[11px] font-bold tracking-[0.1em] text-[#94A3B8] uppercase">
+                {s.k}
+              </div>
+              <div className="mt-2 font-mono text-[21px] font-black text-[#E5B84B]">
+                {s.v}
+              </div>
+              <div className="mt-2 text-[12px] leading-relaxed text-[#94A3B8]">
+                {s.n}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* tool */}
-      <section id="tool" className="mx-auto max-w-[960px] scroll-mt-16 px-5 pt-16">
-        <div className="text-center">
-          <div className="text-[11px] font-bold tracking-[0.22em] text-[#A65B38] uppercase">Live Demo</div>
-          <h2 className="mt-4 font-serif text-[clamp(1.75rem,4.2vw,2.6rem)] font-bold">
-            来,补上那张迟到的合影
+      {/* ── Live Demo：AI 微距光谱闪鉴台 ── */}
+      <section id="tool" className="mx-auto max-w-[1120px] scroll-mt-16 px-5 pt-16">
+        <div className="mb-7 text-center">
+          <div className="text-[11px] font-bold tracking-[0.24em] text-[#E5B84B] uppercase">
+            LIVE INTERACTIVE PRODUCT · 产品实机演示
+          </div>
+          <h2 className="mt-2 text-[clamp(1.7rem,3.6vw,2.5rem)] font-black">
+            来，试一下让全球 3 亿藏家上瘾的「扫卡暴击 + 1 秒变现」
           </h2>
-          <p className="mx-auto mt-3 max-w-[42ch] text-[14px] leading-[1.9] text-[#8A7460]">
-            照片只在你的浏览器里处理,不上传、不留存。四个场景,总有一个是你家的故事。
+          <p className="mx-auto mt-2 max-w-[58ch] text-[14px] text-[#94A3B8]">
+            点选下方任意热门藏品（或上传你自己的照片），体验从「3 秒微距定级」到「发现美国盘溢价 +45%」再到「88% 秒回购变现」的完整赚钱闭环。
           </p>
         </div>
-        <div className="mt-9">
-          <ReunionTool />
-        </div>
+
+        <SlabAITool />
       </section>
 
-      {/* why now */}
-      <section className="mx-auto max-w-[960px] px-5 pt-24">
-        <div className="text-center">
-          <div className="text-[11px] font-bold tracking-[0.22em] text-[#A65B38] uppercase">Why Now</div>
-          <h2 className="mt-4 font-serif text-[clamp(1.75rem,4vw,2.5rem)] font-bold">
-            为什么是现在,为什么是我们
-          </h2>
-        </div>
-        <div className="mt-9 grid gap-4 lg:grid-cols-3">
-          {WHYS.map((c) => (
-            <div key={c.k} className="rounded-[18px] border border-[#E4D5C3] bg-white p-7">
-              <div className="inline-block rounded-full border border-[#A65B38] px-3 py-1 text-[11px] font-bold tracking-[0.18em] text-[#A65B38]">
-                {c.k}
-              </div>
-              <h3 className="mt-4 font-serif text-[18px] font-bold leading-relaxed">{c.t}</h3>
-              <p className="mt-3 text-[13px] leading-[2] text-[#6B5844]">{c.d}</p>
-            </div>
-          ))}
-        </div>
+      {/* ── 交互式「三年十位数净利」沙盘 ── */}
+      <section
+        id="profit-sim"
+        className="no-print mx-auto max-w-[1120px] scroll-mt-16 px-5 pt-20"
+      >
+        <ThreeYearProfitSimulator />
       </section>
 
-      {/* pricing */}
-      <section id="pricing" className="mx-auto max-w-[960px] scroll-mt-16 px-5 pt-24">
+      {/* ── 白话拆解：为什么前三个方案不够格，而这四台发动机能赚十亿？ ── */}
+      <section className="no-print mx-auto max-w-[1120px] px-5 pt-20">
         <div className="text-center">
-          <div className="text-[11px] font-bold tracking-[0.22em] text-[#A65B38] uppercase">Pricing</div>
-          <h2 className="mt-4 font-serif text-[clamp(1.75rem,4vw,2.5rem)] font-bold">
-            比一顿火锅便宜的团圆
+          <div className="text-[11px] font-bold tracking-[0.22em] text-[#E5B84B] uppercase">
+            PLAIN-LANGUAGE UNIT ECONOMICS · 文科生一秒看懂的暴利逻辑
+          </div>
+          <h2 className="mt-2 text-[clamp(1.65rem,3.5vw,2.4rem)] font-black">
+            为什么 99% 的爆款 App 赚不到十位数净利？我们先排掉四个死胡同
           </h2>
         </div>
-        <div className="mt-9 grid gap-4 lg:grid-cols-3">
-          {PRICING.map((p) => (
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {DEAD_ENDS.map((d) => (
             <div
-              key={p.name}
-              className={`rounded-[20px] border-2 p-7 ${
-                p.highlight
-                  ? "border-[#A65B38] bg-white shadow-[0_24px_60px_-24px_rgba(166,91,56,0.45)]"
-                  : "border-[#E4D5C3] bg-white"
-              }`}
+              key={d.trap}
+              className="rounded-2xl border border-[#2B222C] bg-[#131118] p-5"
             >
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <div className="font-serif text-[20px] font-bold">{p.name}</div>
-                  <div className="mt-1 text-[10px] tracking-[0.3em] text-[#B09A82] uppercase">{p.en}</div>
-                </div>
-                {p.highlight && (
-                  <span className="rounded-full bg-[#A65B38] px-3 py-1 text-[10px] font-bold text-white">
-                    最多人选
-                  </span>
-                )}
+              <div className="text-[14px] font-extrabold text-[#FB7185]">
+                {d.trap}
               </div>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-serif text-[38px] font-bold leading-none text-[#A65B38]">{p.price}</span>
-                <span className="text-[13px] text-[#B09A82]">{p.unit}</span>
+              <div className="mt-2 text-[12.5px] font-semibold text-[#F5F3EE]">
+                2026 真实账面：{d.fact}
               </div>
-              <ul className="mt-6 space-y-2.5">
-                {p.items.map((it) => (
-                  <li key={it} className="flex gap-2.5 text-[12.5px] leading-relaxed text-[#6B5844]">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A65B38]" />
-                    {it}
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-1.5 text-[12.5px] leading-relaxed text-[#94A3B8]">
+                死因：{d.why}
+              </div>
             </div>
           ))}
         </div>
-        <p className="mt-5 text-center text-[11.5px] text-[#B09A82]">
-          首次生成免费(带水印预览)· 所有 AI 生成内容按《AI生成合成内容标识办法》标注「AI 生成」
-        </p>
+
+        <div className="mt-14 text-center">
+          <h3 className="text-[clamp(1.5rem,3vw,2.1rem)] font-black text-[#F5F3EE]">
+            「闪鉴金库 SlabAI」的四台印钞发动机（怎么把一张卡赚出 8 份钱）
+          </h3>
+        </div>
+
+        <div className="mt-7 grid gap-4 lg:grid-cols-2">
+          {FOUR_ENGINES.map((e) => (
+            <div
+              key={e.step}
+              className="rounded-2xl border border-[#222C3C] bg-[#11161F] p-6"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold tracking-[0.16em] text-[#E5B84B] uppercase">
+                  {e.step}
+                </span>
+                <span className="rounded-full bg-[#10B981]/15 px-3 py-0.5 text-[11px] font-bold text-[#34D399]">
+                  {e.tag}
+                </span>
+              </div>
+              <h4 className="mt-3 text-[17px] font-extrabold text-[#F5F3EE]">
+                {e.title}
+              </h4>
+              <p className="mt-2.5 text-[13px] leading-[1.9] text-[#94A3B8]">
+                {e.desc}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* vs */}
-      <section className="mx-auto max-w-[960px] px-5 pt-24">
+      {/* ── 全球六大市场竞争对手全调查 ── */}
+      <section className="no-print mx-auto max-w-[1120px] px-5 pt-20">
         <div className="text-center">
-          <div className="text-[11px] font-bold tracking-[0.22em] text-[#A65B38] uppercase">Why Us</div>
-          <h2 className="mt-4 font-serif text-[clamp(1.75rem,4vw,2.4rem)] font-bold">
-            全球对照,一眼看清空位
+          <div className="text-[11px] font-bold tracking-[0.22em] text-[#E5B84B] uppercase">
+            GLOBAL COMPETITIVE LANDSCAPE · 2026 全球竞品全调查
+          </div>
+          <h2 className="mt-2 text-[clamp(1.65rem,3.5vw,2.4rem)] font-black">
+            美国有 PSA 和 Whatnot，中国有千岛，我们靠什么成为全球龙头？
           </h2>
+          <p className="mx-auto mt-2 max-w-[60ch] text-[13.5px] text-[#94A3B8]">
+            完整深度调研报告已写入仓库{" "}
+            <code className="rounded bg-[#1A2230] px-2 py-0.5 font-mono text-[#E5B84B]">
+              docs/slabai/competitive-landscape.md
+            </code>
+            ，下表为一图看懂核心降维打击点：
+          </p>
         </div>
-        <div className="mt-9 overflow-hidden rounded-[18px] border border-[#E4D5C3]">
-          <table className="w-full text-left">
+
+        <div className="mt-8 overflow-x-auto rounded-2xl border border-[#222C3C] bg-[#11161F]">
+          <table className="w-full min-w-[760px] text-left">
             <thead>
-              <tr className="border-b border-[#E4D5C3] bg-[#F2E6D2]">
-                <th className="px-5 py-3.5 text-[11.5px] font-semibold text-[#8A7460]">全球对手</th>
-                <th className="px-5 py-3.5 text-[11.5px] font-semibold text-[#8A7460]">他们的问题</th>
-                <th className="px-5 py-3.5 text-[11.5px] font-semibold text-[#A65B38]">同框</th>
+              <tr className="border-b border-[#222C3C] bg-[#161D29] text-[11.5px] font-bold text-[#94A3B8]">
+                <th className="px-5 py-4">全球各大市场</th>
+                <th className="px-5 py-4">代表竞争对手</th>
+                <th className="px-5 py-4">2025–2026 真实体量</th>
+                <th className="px-5 py-4">他们的致命软肋</th>
+                <th className="px-5 py-4 text-[#E5B84B]">闪鉴金库 SlabAI 降维打法</th>
               </tr>
             </thead>
-            <tbody>
-              {COMPARE.map((r) => (
-                <tr key={r.who} className="border-b border-[#EDE1D0] bg-white last:border-0">
-                  <td className="px-5 py-4 text-[12.5px] font-semibold">{r.who}</td>
-                  <td className="px-5 py-4 text-[12px] leading-relaxed text-[#8A7460]">{r.weak}</td>
-                  <td className="px-5 py-4 text-[12px] font-semibold leading-relaxed text-[#A65B38]">{r.us}</td>
+            <tbody className="divide-y divide-[#1E2633] text-[12.5px]">
+              {GLOBAL_COMPETITORS.map((c) => (
+                <tr key={c.rival} className="hover:bg-[#151C28]">
+                  <td className="px-5 py-4 font-bold text-[#F5F3EE]">
+                    {c.market}
+                  </td>
+                  <td className="px-5 py-4 font-semibold text-[#CBD5E1]">
+                    {c.rival}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-[12px] text-[#94A3B8]">
+                    {c.scale}
+                  </td>
+                  <td className="px-5 py-4 leading-relaxed text-[#FB7185]">
+                    {c.weakness}
+                  </td>
+                  <td className="px-5 py-4 font-semibold leading-relaxed text-[#34D399]">
+                    {c.us}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -236,24 +373,46 @@ export default function Home() {
         </div>
       </section>
 
-      {/* footer */}
-      <footer className="mt-24 border-t border-[#E4D5C3] bg-[#F2E6D2]">
-        <div className="mx-auto max-w-[960px] px-5 py-12">
-          <div className="text-center">
-            <div className="font-serif text-[26px] font-bold tracking-[0.3em]">同框 · REUNION</div>
-            <p className="mt-3 text-[13px] leading-[1.95] text-[#8A7460]">
-              有些合影,等了几十年。今天补上。
-              <br />
-              演示版为排版合成示例;正式版提供生成式影像融合,带「AI 生成」显式与隐式标识,需照片授权确认。
-            </p>
-          </div>
-          <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-[#E0CFB4] pt-6 text-[11px] text-[#B09A82] sm:flex-row">
-            <span>
-              全球竞品调研与「一年净利过亿」计划见 docs/reunion/ · 旧作:
-              <a href="./petdaily/index.html" className="underline hover:text-[#A65B38]">毛孩日报</a> /
-              <a href="./landed/index.html" className="underline hover:text-[#A65B38]">到岸</a>
-            </span>
-            <span className="font-mono tracking-[0.12em]">REUNION · DEMO · 2026</span>
+      {/* ── 页脚与历史归档 ── */}
+      <footer className="no-print mt-24 border-t border-[#1E2633] bg-[#06080B]">
+        <div className="mx-auto max-w-[1120px] px-5 py-12">
+          <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+            <div>
+              <div className="text-[18px] font-black tracking-[0.18em] text-[#F5F3EE]">
+                闪鉴金库 · <span className="text-[#E5B84B]">SLAB.AI</span>
+              </div>
+              <p className="mt-2 max-w-[58ch] text-[12.5px] leading-relaxed text-[#64748B]">
+                潮玩卡牌界的得物 + 纳斯达克保税金库。100% 明牌已评级实物仓单交割，严格遵守《人工智能生成合成内容标识办法》（GB 45438-2025），坚决不做暗箱概率福袋。
+              </p>
+            </div>
+            <div className="text-left text-[12px] text-[#94A3B8] sm:text-right">
+              <div className="font-bold text-[#E5B84B]">
+                三年税后净利十位数计划书：docs/slabai/competitive-landscape.md
+              </div>
+              <div className="mt-2 flex flex-wrap gap-3 sm:justify-end">
+                <span className="text-[#64748B]">历史版本归档：</span>
+                <a
+                  href="./reunion/index.html"
+                  className="underline hover:text-[#E5B84B]"
+                >
+                  第3版：同框 Reunion（一年净利过亿版）
+                </a>
+                <span>·</span>
+                <a
+                  href="./petdaily/index.html"
+                  className="underline hover:text-[#E5B84B]"
+                >
+                  第2版：毛孩日报 PetDaily
+                </a>
+                <span>·</span>
+                <a
+                  href="./landed/index.html"
+                  className="underline hover:text-[#E5B84B]"
+                >
+                  第1版：到岸 Landed
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
