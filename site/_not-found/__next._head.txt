@@ -1,6 +1,0 @@
-1:"$Sreact.fragment"
-2:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"ViewportBoundary"]
-3:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-5:I[27201,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"IconMark"]
-0:{"rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"闪鉴金库 SlabAI · 3秒 AI 光谱评级 × 保税金库 88% 秒回购 × 全球潮玩卡牌跨市套利"}],["$","meta","1",{"name":"description","content":"潮玩卡牌界的得物 + 纳斯达克金库：手机拍一下 3 秒测出卡牌/Labubu/谷子微米级评分与中、日、美、欧四地实时价差；顺丰入保税金库换 NFC 金砖，88% 公允价 1 秒现金回购，零物流高频换手，三年税后净利剑指十位数（≥10亿）。"}],["$","meta","2",{"name":"keywords","content":"SlabAI,闪鉴金库,卡牌评级,PSA,泡泡玛特,Labubu,卡游,宝可梦,海贼王,谷子,千岛,Whatnot,Courtyard"}],["$","link","3",{"rel":"icon","href":"../favicon.ico?favicon.0x3dzn~oxb6tn.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","4",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"d0nptj6A9a0waO1hyipoT"}
