@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"ViewportBoundary"]
+3:I[97367,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+5:I[27201,["../_next/static/chunks/0dbhjjzl8qfwv.js"],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"到岸 App · 一句话生成到岸表(演示版)"}],["$","meta","1",{"name":"description","content":"说一句话,48 小时拿到 5 家经核验工厂的全包比价单:报价、关税、运保杂、合规、过往记录,到手成本一目了然。现在就能试的演示版。"}],["$","meta","2",{"name":"keywords","content":"Landed,到岸,AI 贸易,跨境贸易,到岸表,贸易银行,AI 原生,$10B,$100B"}],["$","link","3",{"rel":"icon","href":"../favicon.ico?favicon.0x3dzn~oxb6tn.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","4",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"K3YrwDItA90UvkqQD018Q"}
