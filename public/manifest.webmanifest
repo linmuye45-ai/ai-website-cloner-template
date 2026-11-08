@@ -1,0 +1,16 @@
+{
+  "name": "DeepScholar Global White-Label OS",
+  "short_name": "DeepScholar",
+  "description": "Global Multi-Country Lifelong AI Tutoring & White-Label Revenue OS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9F5",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

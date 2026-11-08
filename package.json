@@ -1,8 +1,8 @@
 {
-  "name": "ai-website-clone-template",
-  "version": "0.3.1",
+  "name": "deepscholar-whitelabel-os",
+  "version": "1.0.0",
   "private": true,
-  "description": "Clone any website into a clean, modern Next.js codebase using AI coding agents",
+  "description": "知微智教 DeepScholar OS — 基于港大 DeepTutor (Apache-2.0) 与清华 OpenMAIC (MIT) 架构融合的个性化伴学与教师提效 B2B2C 白标商业系统",
   "author": "JCodesMore",
   "license": "MIT",
   "repository": {
@@ -24,11 +24,12 @@
     "shadcn-ui"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
+    "build:static": "STATIC_EXPORT=1 next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -38,7 +39,9 @@
     "@base-ui/react": "^1.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "geist": "^1.8.2",
     "lucide-react": "^1.6.0",
+    "motion": "^14.10.0",
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
