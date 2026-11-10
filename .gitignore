@@ -47,3 +47,9 @@ next-env.d.ts
 
 # Local temp files
 temp/
+
+# Runtime SQLite database files (auto-seeded from src/server/)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
