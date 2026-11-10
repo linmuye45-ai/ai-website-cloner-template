@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { UI_COPY } from "@/lib/i18n-ui";
 import type { LocaleCode, WorkspaceTab } from "@/types/platform";
 
@@ -10,6 +10,7 @@ interface CommandPaletteModalProps {
   locale: LocaleCode;
   onClose: () => void;
   onSelectTab: (tab: WorkspaceTab) => void;
+  onSelectOfficialSite: () => void;
   onSwitchLocale: (locale: LocaleCode) => void;
   onToggleDark: () => void;
   onDownloadStandalone: () => void;
@@ -29,6 +30,7 @@ export function CommandPaletteModal({
   locale,
   onClose,
   onSelectTab,
+  onSelectOfficialSite,
   onSwitchLocale,
   onToggleDark,
   onDownloadStandalone,
@@ -38,15 +40,29 @@ export function CommandPaletteModal({
   const [activeIndex, setActiveIndex] = useState(0);
   const t = UI_COPY[locale];
 
+  const officialSiteLabel = {
+    zh: "返回官网首页",
+    en: "Official flagship homepage",
+    ja: "公式サイトトップ",
+    es: "Sitio oficial principal",
+  }[locale];
+
   const overviewLabel = {
-    zh: "01 真题精改台",
-    en: "01 Exam Grading Desk",
-    ja: "01 答案添削デスク",
-    es: "01 Mesa de Corrección",
+    zh: "真题精改台",
+    en: "Exam grading desk",
+    ja: "答案添削デスク",
+    es: "Mesa de corrección",
   }[locale];
 
   const items: CommandItem[] = useMemo(
     () => [
+      {
+        id: "nav-official",
+        group: t.cmdk.groupNavigate,
+        label: officialSiteLabel,
+        hint: "0",
+        run: () => onSelectOfficialSite(),
+      },
       {
         id: "nav-overview",
         group: t.cmdk.groupNavigate,
@@ -140,8 +156,10 @@ export function CommandPaletteModal({
       },
     ],
     [
+      officialSiteLabel,
       overviewLabel,
       t,
+      onSelectOfficialSite,
       onSelectTab,
       onSwitchLocale,
       onToggleDark,
@@ -195,7 +213,7 @@ export function CommandPaletteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-foreground/30 px-4 pt-[14vh] backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-[14vh] backdrop-blur-xs"
       onClick={onClose}
     >
       <div
@@ -203,10 +221,13 @@ export function CommandPaletteModal({
         aria-modal="true"
         aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
-        className="overlay-shadow w-full max-w-lg overflow-hidden rounded-lg border border-border bg-popover text-[13px]"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-popover p-2 surface-elevated"
       >
-        <div className="flex items-center gap-2.5 border-b border-border px-3.5 py-2.5">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+        <div className="flex items-center gap-2.5 border-b border-border px-3 py-2.5">
+          <MagnifyingGlass
+            className="h-4 w-4 shrink-0 text-muted-foreground"
+            weight="bold"
+          />
           <input
             type="text"
             autoFocus
@@ -216,21 +237,21 @@ export function CommandPaletteModal({
               setActiveIndex(0);
             }}
             placeholder={t.cmdk.placeholder}
-            className="w-full bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="w-full bg-transparent body-6 text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          <kbd className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+          <kbd className="rounded-md border border-border bg-card px-2 py-0.5 font-mono caption-4 text-muted-foreground">
             ESC
           </kbd>
         </div>
 
-        <div className="max-h-80 overflow-y-auto p-1.5">
+        <div className="max-h-80 overflow-y-auto pt-1">
           {filtered.map((item, idx) => {
             const active = idx === clampedIndex;
             const prevGroup = idx > 0 ? filtered[idx - 1].group : null;
             return (
               <div key={item.id}>
                 {item.group !== prevGroup && (
-                  <div className="px-2.5 pb-1 pt-2 text-[11px] font-medium text-muted-foreground">
+                  <div className="px-3 pt-2.5 pb-1 caption-3 text-muted-foreground">
                     {item.group}
                   </div>
                 )}
@@ -241,14 +262,14 @@ export function CommandPaletteModal({
                     item.run();
                     onClose();
                   }}
-                  className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left transition-colors duration-75 ${
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left body-5 transition-colors duration-200 motion-decel ${
                     active
                       ? "bg-accent text-accent-foreground"
-                      : "text-foreground/90"
+                      : "text-foreground/90 hover:bg-card"
                   }`}
                 >
                   <span>{item.label}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
+                  <span className="font-mono caption-4 text-muted-foreground">
                     {item.hint}
                   </span>
                 </button>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "deepscholar-clean-v9";
+const CACHE_NAME = "deepscholar-clean-v10";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -47,7 +47,7 @@ self.addEventListener("fetch", (event) => {
         if (
           response &&
           response.status === 200 &&
-          url.pathname.startsWith("/images/")
+          url.pathname.includes("/images/")
         ) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {

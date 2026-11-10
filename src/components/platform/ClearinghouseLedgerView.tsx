@@ -385,17 +385,17 @@ export function ClearinghouseLedgerView({
           </div>
 
           {/* Right 6 Cols: 4-Engine Revenue Waterfall Breakdown */}
-          <div className="obsidian-metal-card overflow-hidden rounded-xl lg:col-span-6">
-            <div className="relative h-28 w-full overflow-hidden border-b border-white/10">
+          <div className="overflow-hidden rounded-xl border border-[#313131] bg-[#1f1f1f] lg:col-span-6">
+            <div className="relative h-28 w-full overflow-hidden border-b border-[#313131]">
               <Image
-                src={withBasePath("/images/centicorn-globe-core.jpg")}
-                alt="全球实测人才与AI数据清算网"
+                src={withBasePath("/images/editorial-global-clearing.jpg")}
+                alt="全球实测人才与推理验证研究院"
                 fill
                 sizes="(max-width: 1024px) 100vw, 520px"
                 className="object-cover"
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1b202b] via-[#1b202b]/25 to-transparent" />
-              <div className="absolute bottom-2.5 left-4 right-4 flex justify-between font-mono text-xs text-white/90">
+              <div className="pointer-events-none absolute inset-0 bg-black/45" />
+              <div className="absolute bottom-2.5 left-4 right-4 flex justify-between font-mono text-xs text-white/95 tnum">
                 <span>
                   {locale === "zh" ? "四项收入贡献拆解" : "4-Stream ARR Breakdown"}
                 </span>

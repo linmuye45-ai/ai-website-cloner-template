@@ -1,48 +1,46 @@
-name: Deploy Permanent Global Site to GitHub Pages
+name: Deploy DeepScholar to GitHub Pages
 
 on:
   push:
     branches:
-      - master
-      - "arena/**"
+      - arena/e1c73596-ai-website-cloner-template
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "pages-deploy"
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  build-and-publish:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Zero-Server Static Bundle for GitHub Pages
+      - run: npm ci
+      - name: Build static website
         env:
           STATIC_EXPORT: "1"
-          GITHUB_PAGES_BASE_PATH: "/ai-website-cloner-template"
+          GITHUB_PAGES_BASE_PATH: /ai-website-cloner-template
         run: |
           npm run build
           touch out/.nojekyll
-
-      - name: Publish Static Bundle to gh-pages Branch
-        uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          publish_branch: gh-pages
-          force_orphan: true
-          enable_jekyll: false
+          path: out
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

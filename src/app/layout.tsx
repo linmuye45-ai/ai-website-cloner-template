@@ -3,11 +3,27 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
-  title: "知微 DeepScholar — 真题逐行精改、步骤验算与实测人才结算平台",
+  title: "知微 DeepScholar · 主观题逐行精改与全球闭卷能力清算平台",
   description:
-    "面向高难度考试的逐行批改、代数微积分步骤验算、1:150 教师督学组卷与高分人才审校结算系统。",
-  manifest: `${process.env.NEXT_PUBLIC_BASE_PATH || ""}/manifest.webmanifest`,
+    "对照官方阅卷细则定位丢分步骤，通过两次苏格拉底分步提示引导闭卷掌握，支持学校 1:150 督学白标部署与实测人才清算。",
+  manifest: `${basePath}/manifest.webmanifest`,
+  openGraph: {
+    title: "知微 DeepScholar · 主观题逐行精改与全球闭卷能力清算平台",
+    description:
+      "从单题逐行批改、学校 1:150 白标督学到全球实测人才与前沿推理数据清算网络。",
+    type: "website",
+    images: [`${basePath}/images/editorial-library-desk.jpg`],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "知微 DeepScholar",
+    description:
+      "把丢分的那一步找出来，练到闭卷也能一次写对。",
+    images: [`${basePath}/images/editorial-library-desk.jpg`],
+  },
 };
 
 const SW_PURGE_BOOTSTRAP = `
@@ -17,7 +33,7 @@ const SW_PURGE_BOOTSTRAP = `
       caches.keys().then(function(keys) {
         var hadLegacy = false;
         keys.forEach(function(k) {
-          if (k.indexOf("eternal") !== -1 || k !== "deepscholar-clean-v9") {
+          if (k.indexOf("eternal") !== -1 || k !== "deepscholar-clean-v10") {
             hadLegacy = true;
             caches.delete(k);
           }
@@ -25,8 +41,8 @@ const SW_PURGE_BOOTSTRAP = `
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(regs) {
             regs.forEach(function(r) { r.unregister(); });
-            if (hadLegacy && !sessionStorage.getItem("ds_v9_purged")) {
-              sessionStorage.setItem("ds_v9_purged", "1");
+            if (hadLegacy && !sessionStorage.getItem("ds_v10_purged")) {
+              sessionStorage.setItem("ds_v10_purged", "1");
               window.location.reload();
             }
           });
@@ -51,12 +67,6 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: SW_PURGE_BOOTSTRAP }} />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground">
-        <a
-          href="#main-workspace"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-xs focus:font-medium text-foreground focus:ring-2 focus:ring-ring"
-        >
-          跳转至主工作区
-        </a>
         {children}
       </body>
     </html>

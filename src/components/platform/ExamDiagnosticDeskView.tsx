@@ -419,7 +419,7 @@ const DESK_TRACKS: TrackDeskData[] = [
     paperCode: "Vignette #412 · Cardiogenic Compensation",
     scoreBefore: "224",
     scoreAfter: "258",
-    photoSrc: "/images/track-clinical-bio.jpg",
+    photoSrc: "/images/editorial-clinical-notes.jpg",
     photoCaption: {
       zh: "心输出量、前负荷与外周血管阻力代偿关系",
       en: "Cardiac output, preload & systemic vascular resistance",
@@ -1395,17 +1395,17 @@ export function ExamDiagnosticDeskView({
             </div>
           </div>
 
-          <div className="obsidian-metal-card overflow-hidden rounded-xl lg:col-span-5">
-            <div className="relative h-32 w-full overflow-hidden border-b border-white/10">
+          <div className="overflow-hidden rounded-xl border border-[#313131] bg-[#1f1f1f] lg:col-span-5">
+            <div className="relative h-32 w-full overflow-hidden border-b border-[#313131]">
               <Image
-                src={withBasePath("/images/centicorn-globe-core.jpg")}
+                src={withBasePath("/images/editorial-global-clearing.jpg")}
                 alt="四流向多币种结算网"
                 fill
                 sizes="(max-width: 1024px) 100vw, 440px"
                 className="object-cover"
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1b202b] via-transparent to-transparent" />
-              <div className="absolute bottom-2.5 left-4 right-4 flex justify-between font-mono text-[11px] text-white/90">
+              <div className="pointer-events-none absolute inset-0 bg-black/45" />
+              <div className="absolute bottom-2.5 left-4 right-4 flex justify-between font-mono text-xs text-white/95 tnum">
                 <span>4 REVENUE STREAMS</span>
                 <span>YEAR 8 ARR: $6.80B</span>
               </div>

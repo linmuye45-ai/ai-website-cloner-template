@@ -8,10 +8,14 @@ import { triggerDownloadStandaloneHtml } from "@/lib/standalone-exporter";
 import { CheckoutCashierModal } from "@/components/platform/CheckoutCashierModal";
 import { ClearinghouseLedgerView } from "@/components/platform/ClearinghouseLedgerView";
 import { CommandPaletteModal } from "@/components/platform/CommandPaletteModal";
-import { EditorialSpineNav } from "@/components/platform/EditorialSpineNav";
 import { ExamDiagnosticDeskView } from "@/components/platform/ExamDiagnosticDeskView";
+import {
+  FloatingFlagshipHeader,
+  type AppSurfaceMode,
+} from "@/components/platform/FloatingFlagshipHeader";
 import { ImmersiveTutorView } from "@/components/platform/ImmersiveTutorView";
 import { InteractiveClassroomView } from "@/components/platform/InteractiveClassroomView";
+import { OfficialFlagshipSite } from "@/components/platform/OfficialFlagshipSite";
 import { SchoolOperationsView } from "@/components/platform/SchoolOperationsView";
 import type {
   DocumentSection,
@@ -24,7 +28,8 @@ import type {
 } from "@/types/platform";
 
 export function DeepScholarApp() {
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [surfaceMode, setSurfaceMode] = useState<AppSurfaceMode>("official");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("workbench");
   const [brand, setBrand] = useState<WhiteLabelConfig>(
     GLOBAL_BRAND_PRESETS.zh[0]
   );
@@ -86,7 +91,7 @@ export function DeepScholarApp() {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  // Global ⌘K + 1-5 room shortcuts
+  // Global ⌘K + 0 (official site) + 1-5 studio shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -109,6 +114,11 @@ export function DeepScholarApp() {
         return;
       }
 
+      if (e.key === "0") {
+        setSurfaceMode("official");
+        return;
+      }
+
       const shortcutMap: Record<string, WorkspaceTab> = {
         "1": "overview",
         "2": "workbench",
@@ -119,6 +129,7 @@ export function DeepScholarApp() {
       const next = shortcutMap[e.key];
       if (next) {
         setActiveTab(next);
+        setSurfaceMode("studio");
       }
     };
 
@@ -174,17 +185,21 @@ export function DeepScholarApp() {
     setProofs((prev) => [proof, ...prev]);
   };
 
-  const handleEnterStudio = (courseId?: string) => {
+  const handleOpenStudioTab = (tab: WorkspaceTab, courseId?: string) => {
     if (courseId) {
       setSelectedCourseId(courseId);
     }
-    setActiveTab("workbench");
+    setActiveTab(tab);
+    setSurfaceMode("studio");
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleExportWorkspaceJson = () => {
     const payload = JSON.stringify(
       {
-        version: "9.0-editorial-desk",
+        version: "10.0-flagship-hectocorn",
         brand,
         customSectionsByCourse,
         proofs,
@@ -226,11 +241,13 @@ export function DeepScholarApp() {
   return (
     <div
       data-brand={brand.theme}
-      className="flex min-h-dvh flex-col bg-background text-foreground lg:flex-row"
+      className="flex min-h-dvh flex-col bg-background text-foreground"
     >
-      <EditorialSpineNav
+      <FloatingFlagshipHeader
+        surfaceMode={surfaceMode}
+        onChangeSurfaceMode={setSurfaceMode}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectStudioTab={setActiveTab}
         brand={brand}
         onSwitchLocale={handleSwitchLocale}
         courses={localeCourses}
@@ -248,73 +265,93 @@ export function DeepScholarApp() {
       />
 
       <main id="main-workspace" className="min-w-0 flex-1">
-        {activeTab === "overview" && (
-          <ExamDiagnosticDeskView
-            key={`${brand.locale}-desk`}
+        {surfaceMode === "official" ? (
+          <OfficialFlagshipSite
             brand={brand}
             courses={localeCourses}
-            activeCourse={selectedCourse}
-            onSelectCourse={setSelectedCourseId}
-            onEnterStudio={handleEnterStudio}
-            onEnterAudioSeminar={() => setActiveTab("seminar")}
-            onEnterSchoolSuite={() => setActiveTab("cohort")}
-            onEnterClearinghouse={() => setActiveTab("talent")}
-            onOpenCashier={(mode = "c_end") => handleOpenCashier(mode)}
-            isProUnlocked={Boolean(activeLicenseBadge)}
-          />
-        )}
-
-        {activeTab === "workbench" && (
-          <ImmersiveTutorView
-            key={`${selectedCourse.id}-${brand.id}`}
-            brand={brand}
-            selectedCourse={selectedCourse}
-            customSections={customSectionsByCourse[selectedCourse.id] ?? []}
-            onAddCustomSection={handleAddCustomSection}
-            gateway={gateway}
-            onRecordMemoryNote={handleRecordMemoryNote}
-            onMintProof={handleMintProof}
-          />
-        )}
-
-        {activeTab === "seminar" && (
-          <InteractiveClassroomView
-            key={`${selectedCourse.id}-${brand.locale}-seminar`}
-            brand={brand}
-            selectedCourse={selectedCourse}
-          />
-        )}
-
-        {(activeTab === "cohort" || activeTab === "enterprise") && (
-          <SchoolOperationsView
-            key={`${selectedCourse.id}-${brand.locale}-school`}
-            mode={activeTab === "enterprise" ? "enterprise" : "cohort"}
-            onSwitchMode={setActiveTab}
-            brand={brand}
-            onUpdateBrand={setBrand}
-            selectedCourse={selectedCourse}
-            memoryLog={[
-              ...extraL1Traces,
-              ...selectedCourse.studentProfile.l1Traces,
-            ]}
-            gateway={gateway}
-            onUpdateGateway={setGateway}
+            onOpenStudioTab={handleOpenStudioTab}
+            onOpenCashier={handleOpenCashier}
             onDownloadStandalone={() =>
               triggerDownloadStandaloneHtml(brand, localeCourses)
             }
-            onExportWorkspaceJson={handleExportWorkspaceJson}
-            onImportWorkspaceJson={handleImportWorkspaceJson}
-            onOpenCashier={handleOpenCashier}
+            onMintProof={handleMintProof}
+            isProUnlocked={Boolean(activeLicenseBadge)}
           />
-        )}
+        ) : (
+          <>
+            {activeTab === "overview" && (
+              <ExamDiagnosticDeskView
+                key={`${brand.locale}-desk`}
+                brand={brand}
+                courses={localeCourses}
+                activeCourse={selectedCourse}
+                onSelectCourse={setSelectedCourseId}
+                onEnterStudio={(courseId) =>
+                  handleOpenStudioTab("workbench", courseId)
+                }
+                onEnterAudioSeminar={() => handleOpenStudioTab("seminar")}
+                onEnterSchoolSuite={() => handleOpenStudioTab("cohort")}
+                onEnterClearinghouse={() => handleOpenStudioTab("talent")}
+                onOpenCashier={(mode = "c_end") => handleOpenCashier(mode)}
+                isProUnlocked={Boolean(activeLicenseBadge)}
+              />
+            )}
 
-        {activeTab === "talent" && (
-          <ClearinghouseLedgerView
-            locale={brand.locale}
-            proofs={proofs}
-            onGoToStudio={() => setActiveTab("workbench")}
-            onGoToSchoolSuite={() => setActiveTab("cohort")}
-          />
+            {activeTab === "workbench" && (
+              <ImmersiveTutorView
+                key={`${selectedCourse.id}-${brand.id}`}
+                brand={brand}
+                selectedCourse={selectedCourse}
+                customSections={
+                  customSectionsByCourse[selectedCourse.id] ?? []
+                }
+                onAddCustomSection={handleAddCustomSection}
+                gateway={gateway}
+                onRecordMemoryNote={handleRecordMemoryNote}
+                onMintProof={handleMintProof}
+              />
+            )}
+
+            {activeTab === "seminar" && (
+              <InteractiveClassroomView
+                key={`${selectedCourse.id}-${brand.locale}-seminar`}
+                brand={brand}
+                selectedCourse={selectedCourse}
+              />
+            )}
+
+            {(activeTab === "cohort" || activeTab === "enterprise") && (
+              <SchoolOperationsView
+                key={`${selectedCourse.id}-${brand.locale}-school`}
+                mode={activeTab === "enterprise" ? "enterprise" : "cohort"}
+                onSwitchMode={setActiveTab}
+                brand={brand}
+                onUpdateBrand={setBrand}
+                selectedCourse={selectedCourse}
+                memoryLog={[
+                  ...extraL1Traces,
+                  ...selectedCourse.studentProfile.l1Traces,
+                ]}
+                gateway={gateway}
+                onUpdateGateway={setGateway}
+                onDownloadStandalone={() =>
+                  triggerDownloadStandaloneHtml(brand, localeCourses)
+                }
+                onExportWorkspaceJson={handleExportWorkspaceJson}
+                onImportWorkspaceJson={handleImportWorkspaceJson}
+                onOpenCashier={handleOpenCashier}
+              />
+            )}
+
+            {activeTab === "talent" && (
+              <ClearinghouseLedgerView
+                locale={brand.locale}
+                proofs={proofs}
+                onGoToStudio={() => handleOpenStudioTab("workbench")}
+                onGoToSchoolSuite={() => handleOpenStudioTab("cohort")}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -322,7 +359,11 @@ export function DeepScholarApp() {
         open={cmdkOpen}
         locale={brand.locale}
         onClose={() => setCmdkOpen(false)}
-        onSelectTab={setActiveTab}
+        onSelectTab={(tab) => handleOpenStudioTab(tab)}
+        onSelectOfficialSite={() => {
+          setSurfaceMode("official");
+          setCmdkOpen(false);
+        }}
         onSwitchLocale={handleSwitchLocale}
         onToggleDark={() => setIsDark((prev) => !prev)}
         onDownloadStandalone={() =>
