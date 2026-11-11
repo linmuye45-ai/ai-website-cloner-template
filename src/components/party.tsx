@@ -54,7 +54,7 @@ export function Party() {
   function connect(action:"create"|"join") {
     if (!name.trim()) {setError("先输入你的昵称");return;}
     if (action === 'join' && !/^[A-F0-9]{10}$/i.test(code.trim())) {setError("请输入 10 位房间码");return;}
-    setError(''); ws.current?.close();
+    setError(''); setShareLink(''); ws.current?.close();
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/party`); ws.current = socket;
     socket.onopen = () => socket.send(JSON.stringify(action === 'create' ? {type:'create',name,spec:normalizeSpec(spec)} : {type:'join',name,code:code.trim()}));
     socket.onmessage = e => { try {const msg = JSON.parse(e.data); if(msg.type === 'joined') setPlayerId(msg.playerId); if(msg.type === 'state') {setRoom(msg.room); setOffset(msg.serverNow-Date.now()); setSolo(null); setError('');} if(msg.type === 'error') setError(msg.message); if(msg.type === 'left') {setRoom(null);setPlayerId('');socket.close();}} catch {setError('服务器返回了无法识别的数据');} };
