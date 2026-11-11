@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
+import { normalizeSpec } from '../src/lib/party-spec.mjs';
 
 const root = resolve(process.env.SITE_DIR || 'site');
 const rooms = new Map();
@@ -12,10 +13,8 @@ const colors = ['#ff886b', '#91b8ff', '#eabf5f', '#b8a3fa'];
 const id = () => randomBytes(4).toString('hex');
 const code = () => randomBytes(5).toString('hex').toUpperCase();
 const safeName = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16) || '玩家' : '玩家';
-const integer = (value, fallback, min, max) => Number.isInteger(value) ? Math.min(max, Math.max(min, value)) : fallback;
-const specFrom = value => ({ title: safeName(value?.title || '星光争夺战'), targetScore: integer(value?.targetScore, 10, 3, 25), seconds: integer(value?.seconds, 30, 15, 90) });
 function publicRoom(room) {
-  return { code: room.code, spec: room.spec, phase: room.phase, endAt: room.endAt, target: room.target, players: [...room.players.values()].map(({id, name, score, color}) => ({id, name, score, color})), host: room.host };
+  return { code: room.code, spec: room.spec, phase: room.phase, reason: room.reason, endAt: room.endAt, target: room.target, players: [...room.players.values()].map(({id, name, score, color}) => ({id, name, score, color})), host: room.host };
 }
 function send(ws, data) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
 function broadcast(room) { const message = { type: 'state', room: publicRoom(room), serverNow: Date.now() }; for (const p of room.players.values()) send(p.ws, message); }
@@ -26,12 +25,13 @@ function leave(ws) {
   room.players.delete(ws.playerId); ws.roomCode = null;
   if (!room.players.size) { clearRound(room); rooms.delete(room.code); return; }
   if (room.host === ws.playerId) room.host = room.players.keys().next().value;
-  if (room.phase === 'playing' && room.players.size < 2) { clearRound(room); room.phase = 'finished'; room.endAt = null; }
+  if (room.phase === 'playing' && (room.players.size < 2 || room.spec.mode === 'team')) { clearRound(room); room.phase = 'finished'; room.reason = 'disconnected'; room.endAt = null; }
   broadcast(room);
 }
 function newTarget(last = -1) { let next; do { next = randomInt(9); } while (next === last); return next; }
 function addPlayer(ws, room, name) {
-  const player = { id: id(), name: safeName(name), score: 0, color: colors[[...room.players.values()].length], ws };
+  const used = new Set([...room.players.values()].map(p => p.color));
+  const player = { id: id(), name: safeName(name), score: 0, color: colors.find(color => !used.has(color)) || colors[0], ws };
   room.players.set(player.id, player); ws.playerId = player.id; ws.roomCode = room.code;
   if (!room.host) room.host = player.id;
   send(ws, { type: 'joined', playerId: player.id, code: room.code }); broadcast(room);
@@ -49,12 +49,17 @@ const server = http.createServer(async (req, res) => {
 });
 const wss = new WebSocketServer({ noServer:true, maxPayload:2048 });
 server.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/api/party') { socket.destroy(); return; }
+  if (req.url !== '/api/party' || wss.clients.size >= 500) { socket.destroy(); return; }
   // Same-origin browser requests only; server-to-server tests may omit Origin.
   if (req.headers.origin) { try { if (new URL(req.headers.origin).host !== req.headers.host) { socket.destroy(); return; } } catch { socket.destroy(); return; } }
   wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
 });
+const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 30000);
+heartbeat.unref();
 wss.on('connection', ws => {
+  ws.isAlive = true; ws.on('pong', () => { ws.isAlive = true; });
+  const joinDeadline = setTimeout(() => { if (!ws.roomCode) ws.close(1008, 'Join timeout'); }, 30000);
+  joinDeadline.unref();
   let count = 0; let windowStart = Date.now();
   ws.on('message', data => {
     if (Date.now() - windowStart > 1000) { count = 0; windowStart = Date.now(); }
@@ -65,7 +70,7 @@ wss.on('connection', ws => {
       if (ws.roomCode) return sendError(ws, '请先离开当前房间');
       if (rooms.size >= MAX_ROOMS) return sendError(ws, '服务器房间已满');
       let roomCode; do { roomCode = code(); } while (rooms.has(roomCode));
-      const room = { code:roomCode, spec:specFrom(msg.spec), players:new Map(), host:null, phase:'lobby', target:0, endAt:null, timer:null };
+      const room = { code:roomCode, spec:normalizeSpec(msg.spec), players:new Map(), host:null, phase:'lobby', reason:null, target:0, endAt:null, timer:null };
       rooms.set(roomCode, room); addPlayer(ws, room, msg.name); return;
     }
     if (msg.type === 'join') {
@@ -83,18 +88,19 @@ wss.on('connection', ws => {
       if (room.players.size < 2) return sendError(ws, '至少需要 2 名玩家');
       if (room.phase === 'playing') return;
       for (const p of room.players.values()) p.score = 0;
-      room.phase = 'playing'; room.target = newTarget(); room.endAt = Date.now() + room.spec.seconds * 1000;
-      clearRound(room); room.timer = setTimeout(() => { room.phase = 'finished'; room.endAt = null; broadcast(room); }, room.spec.seconds * 1000); broadcast(room); return;
+      room.phase = 'playing'; room.reason = null; room.target = newTarget(); room.endAt = Date.now() + room.spec.seconds * 1000;
+      clearRound(room); room.timer = setTimeout(() => { room.phase = 'finished'; room.reason = 'timeout'; room.endAt = null; broadcast(room); }, room.spec.seconds * 1000); broadcast(room); return;
     }
     if (msg.type === 'tap') {
       if (room.phase !== 'playing' || Date.now() >= room.endAt || !Number.isInteger(msg.cell) || msg.cell !== room.target) return;
       player.score++; room.target = newTarget(room.target);
-      if (player.score >= room.spec.targetScore) { clearRound(room); room.phase = 'finished'; room.endAt = null; }
+      const currentScore = room.spec.mode === 'team' ? [...room.players.values()].reduce((sum, p) => sum + p.score, 0) : player.score;
+      if (currentScore >= room.spec.targetScore) { clearRound(room); room.phase = 'finished'; room.reason = 'goal'; room.endAt = null; }
       broadcast(room);
     }
   });
-  ws.on('close', () => leave(ws)); ws.on('error', () => leave(ws));
+  ws.on('close', () => { clearTimeout(joinDeadline); leave(ws); }); ws.on('error', () => leave(ws));
 });
 const port = Number(process.env.PORT || 3000);
 server.listen(port, '0.0.0.0', () => console.log(`Party prototype listening on 0.0.0.0:${port} (site: ${root})`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { for (const room of rooms.values()) clearRound(room); wss.clients.forEach(client => client.terminate()); server.close(() => process.exit(0)); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { clearInterval(heartbeat); for (const room of rooms.values()) clearRound(room); wss.clients.forEach(client => client.terminate()); server.close(() => process.exit(0)); });

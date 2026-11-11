@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test game protocol and rule links
+        run: npm run test:party
+
       - name: Build Static Bundle for GitHub Pages
         env:
           GITHUB_PAGES: "1"

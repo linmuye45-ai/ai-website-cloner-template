@@ -34,7 +34,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
     "party": "node server/party.mjs",
-    "test:party": "node --test tests/party.test.mjs"
+    "test:party": "node --test tests/party*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
