@@ -1,0 +1,15 @@
+import { EchoGame } from '@/components/echo-game';
+import { ArrowDown, ArrowRight, Sparkles, RotateCcw, Compass, Swords } from 'lucide-react';
+import './echo.css';
+
+export const metadata = { title: 'The Last Echo · 最后的回响', description: '一个关于时间、勇气与第二次机会的 3D 动作游戏。' };
+
+export default function EchoPage() {
+  return <main className="echo-page">
+    <header className="echo-nav"><a className="brand" href="#top"><span className="brand-mark">✳</span><span>THE LAST ECHO<small>最后的回响</small></span></a><nav><a href="#story">世界观</a><a href="#how">玩法</a><a href="#game">开始游戏 <ArrowRight size={14}/></a></nav></header>
+    <section className="hero" id="top" style={{backgroundImage:"linear-gradient(90deg, rgba(5,18,22,.83) 0%, rgba(5,18,22,.32) 55%, rgba(5,18,22,.05) 100%), linear-gradient(0deg, #0a1a1c 0%, transparent 44%), url('../images/echoes-cover.png')"}}><div className="hero-content"><div className="eyebrow"><span/> AN ORIGINAL BROWSER GAME <span> / </span> 序章现已开放</div><p className="hero-kicker">THE LAST ECHO</p><h1>最后的<span>回响</span></h1><p className="hero-copy">在时间破碎的世界里，<br/>你不是孤身一人。</p><p className="hero-detail">回到过去，遇见另一个自己。<br/>一起找回失落的光，走出这片遗迹。</p><div className="hero-actions"><a className="primary" href="#game">进入回响之境 <ArrowRight size={17}/></a><a className="secondary" href="#how">探索玩法 <ArrowDown size={15}/></a></div><div className="hero-foot"><span>✦ &nbsp; 原创 3D 动作冒险</span><span>✦ &nbsp; 无需下载，即刻游玩</span></div></div><div className="hero-side">A JOURNEY THROUGH TIME <span>01 — 03</span></div></section>
+    <section className="intro section" id="story"><div className="section-index">01 / THE STORY</div><div><span className="section-kicker">A LIGHT WORTH FINDING</span><h2>失落的时间，<br/><em>留下了光。</em></h2></div><p>当世界的时间停止流动，记忆化作碎片散落在遗迹之中。你将穿越荒芜的回响之境，躲避暗处的追猎者，找回八枚碎片，点亮归途。<br/><br/>而你最强大的武器，是曾经的自己。</p></section>
+    <section className="play-section section" id="game"><div className="section-heading"><div><div className="section-index">02 / PLAY THE PROLOGUE</div><h2>现在，<em>进入这个世界。</em></h2><p>一场只需浏览器就能开始的冒险。</p></div><span className="edition">CHAPTER 01 <br/><b>THE AWAKENING</b></span></div><EchoGame/></section>
+    <section className="how-section section" id="how"><div className="section-heading"><div><div className="section-index">03 / HOW TO PLAY</div><h2>时间，是你的<em>盟友。</em></h2><p>简单上手，每一次决定都很重要。</p></div></div><div className="feature-grid"><article><Compass/><span>01 / EXPLORE</span><h3>寻找遗失的记忆</h3><p>探索遗迹，收集 8 枚散落的碎片。全部集齐后，回到中央光环逃离。</p></article><article><Swords/><span>02 / SURVIVE</span><h3>在追猎中生存</h3><p>角色会自动攻击附近敌人。保持移动，在危险逼近时冲刺躲避。</p></article><article><RotateCcw/><span>03 / REWIND</span><h3>与过去的自己并肩</h3><p>回溯到几秒前，恢复那时的生命，同时留下重演你的轨迹并自动攻击的回响。</p></article></div><div className="closing"><Sparkles size={18}/><p>有些路，值得再走一次。</p><a href="#game">开始你的旅程 <ArrowRight size={16}/></a></div></section><footer><div className="brand"><span className="brand-mark">✳</span><span>THE LAST ECHO<small>最后的回响</small></span></div><p>一个关于时间与第二次机会的故事。</p><span>© 2026 THE LAST ECHO · PLAYABLE PROTOTYPE</span></footer>
+  </main>;
+}
