@@ -48,6 +48,14 @@ jobs:
       - name: Browser smoke test (desktop and mobile)
         run: node tests/veil.browser.cjs
 
+      - name: Save visual smoke-test captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veil-preview-captures
+          path: test-artifacts/
+          if-no-files-found: ignore
+
       - name: Publish Static Bundle to gh-pages Branch
         uses: peaceiris/actions-gh-pages@v4
         with:
