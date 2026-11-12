@@ -96,8 +96,8 @@ function T(key: string, l: Lang) {
       ja: "エビデンス製剤集・腎機能減量",
     },
     role1Desc: {
-      "zh-CN": "eGFR 阈值、KDIGO 2024、NRDL 定价、多药配伍禁忌核验。",
-      "zh-TW": "eGFR 閾值、KDIGO 2024、NRDL 定價、多藥配伍禁忌核驗。",
+      "zh-CN": "eGFR 阈值，KDIGO 2024，NRDL 定价，多药配伍禁忌核验。",
+      "zh-TW": "eGFR 閾值，KDIGO 2024，NRDL 定價，多藥配伍禁忌核驗。",
       en: "eGFR cutoffs · KDIGO 2024 · NRDL pricing · multi-drug DDI checks.",
       ja: "eGFR カットオフ · KDIGO 2024 · NRDL 価格 · 多薬相互作用チェック。",
     },
@@ -108,8 +108,8 @@ function T(key: string, l: Lang) {
       ja: "退院後音声フォローアップ",
     },
     role2Desc: {
-      "zh-CN": "32 路发声前否决 · 1.6 秒护师转接 · CTCAE v5.0。",
-      "zh-TW": "32 路發聲前否決 · 1.6 秒護師轉接 · CTCAE v5.0。",
+      "zh-CN": "32 路发声前否决，1.6 秒护师转接，CTCAE v5.0。",
+      "zh-TW": "32 路發聲前否決，1.6 秒護師轉接，CTCAE v5.0。",
       en: "32 pre-speech veto gates · 1.6s RN bridge · CTCAE v5.0.",
       ja: "32 の発話前否決ゲート · 1.6 秒 RN ブリッジ · CTCAE v5.0。",
     },
@@ -120,8 +120,8 @@ function T(key: string, l: Lang) {
       ja: "音声アンカー SOAP & FHIR R4",
     },
     role3Desc: {
-      "zh-CN": "ICD-10 自动编码 · DRG 权重 · 一键医师签字。",
-      "zh-TW": "ICD-10 自動編碼 · DRG 權重 · 一鍵醫師簽字。",
+      "zh-CN": "ICD-10 自动编码，DRG 权重，一键医师签字。",
+      "zh-TW": "ICD-10 自動編碼，DRG 權重，一鍵醫師簽字。",
       en: "ICD-10 auto-coding · DRG weights · 1-click clinician sign.",
       ja: "ICD-10 自動コーディング · DRG ウェイト · 1 クリック医師サイン。",
     },
@@ -174,28 +174,28 @@ export function HeroSection() {
   return (
     <section className="bg-zj-white border-b border-zj-border/50 relative overflow-hidden">
       {/* Geometric glow decorations — original, no stock imagery */}
-      <div className="geom-circle w-[600px] h-[600px] bg-zj-cyan-bright top-[-25%] left-[-10%]"></div>
-      <div className="geom-circle w-[500px] h-[500px] bg-zj-safe-bright bottom-[-20%] right-[-10%]"></div>
+      <div className="geom-circle w-[700px] h-[700px] bg-zj-cyan-bright top-[-20%] left-[-10%]"></div>
+      <div className="geom-circle w-[600px] h-[600px] bg-zj-safe-bright bottom-[-15%] right-[-10%]"></div>
       <div className="geom-grid inset-0 pointer-events-none"></div>
 
-      <div className="relative section-container pt-20 pb-32 lg:pt-28 lg:pb-40">
+      <div className="relative section-container pt-24 pb-40 lg:pt-32 lg:pb-48">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
 
           {/* Left: Editorial */}
           <div className="lg:col-span-7 flex flex-col justify-center reveal">
-            <span className="eyebrow text-zj-cyan-bright mb-6 block">
+            <span className="eyebrow text-zj-cyan-bright mb-8 block">
               {get("eyebrow")}
             </span>
 
-            <h1 className="font-serif-editorial text-[44px] sm:text-[64px] lg:text-[80px] xl:text-[96px] leading-[1.05] tracking-[-0.05em] text-zj-ink font-normal mb-8">
-              {get("headline")}
+            <h1 className="font-serif-editorial text-[40px] sm:text-[56px] lg:text-[72px] xl:text-[88px] leading-[1.02] tracking-[-0.04em] text-zj-ink font-normal mb-10">
+              <span className="block">{get("headline")}</span>
             </h1>
 
-            <p className="max-w-[55ch] text-[18px] leading-[1.9] text-zj-slate mb-12">
+            <p className="max-w-[58ch] text-[18px] leading-[2] text-zj-slate mb-14">
               {get("sub")}
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 mb-12">
+            <div className="flex flex-wrap items-center gap-5 mb-14">
               <button
                 type="button"
                 onClick={() => {
@@ -218,7 +218,7 @@ export function HeroSection() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 border border-zj-border/40 bg-zj-mist rounded-[12px] p-6 sm:p-8 shadow-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-7 border border-zj-border/40 bg-zj-mist rounded-[14px] p-8 shadow-sm">
               {[
                 { label: get("stat1Label"), value: "3.68亿", sub: get("stat1Sub") },
                 { label: get("stat2Label"), value: "0 例", sub: get("stat2Sub") },
@@ -226,19 +226,19 @@ export function HeroSection() {
                 { label: get("stat4Label"), value: "99.91%", sub: get("stat4Sub") },
               ].map((s) => (
                 <div key={s.label}>
-                  <div className="stat-value text-[24px] sm:text-[32px] leading-none text-zj-ink mb-1">
+                  <div className="stat-value text-[26px] sm:text-[36px] leading-none text-zj-ink mb-2">
                     {s.value}
                   </div>
-                  <div className="text-[10px] font-medium tracking-wider text-zj-cobalt uppercase mb-0.5">
+                  <div className="text-[10px] font-medium tracking-wider text-zj-cobalt uppercase mb-1.5">
                     {s.label}
                   </div>
                   <div className="text-[10px] text-zj-muted">{s.sub}</div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-6 flex items-center gap-2.5">
               <span className="w-3 h-3 rounded-full bg-zj-muted shrink-0" />
-              <span className="text-[9.5px] text-zj-muted">
+              <span className="text-[10px] text-zj-muted">
                 {isZh ? "数据来自试点科室审计 · 第三方验证进行中" : "Data from pilot department audits · Third-party validation in progress"}
               </span>
             </div>
@@ -246,27 +246,27 @@ export function HeroSection() {
 
           {/* Right: Workbench entry cards */}
           <div className="lg:col-span-5">
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-7">
               {ROLES.map((role) => {
                 const Icon = role.icon;
                 return (
                   <Card
                     key={role.tab}
                     variant="default"
-                    padding="lg"
+                    padding="xl"
                     hover="lift"
                     className="group cursor-pointer border-zj-border/60"
                     onClick={() => launchEngine(role.tab)}
                   >
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="w-11 h-11 rounded-[8px] bg-zj-cobalt-soft flex items-center justify-center shrink-0 group-hover:bg-zj-cobalt transition-colors">
-                        <Icon className="w-6 h-6 text-zj-cobalt group-hover:text-white transition-colors" />
+                    <div className="flex items-center justify-between mb-7">
+                      <div className="w-12 h-12 rounded-[10px] bg-zj-cobalt-soft flex items-center justify-center shrink-0 group-hover:bg-zj-cobalt transition-colors duration-300">
+                        <Icon className="w-6 h-6 text-zj-cobalt group-hover:text-white transition-colors duration-300" />
                       </div>
                     </div>
-                    <h3 className="text-[16px] font-semibold text-zj-ink mb-3 leading-snug">
+                    <h3 className="text-[17px] font-semibold text-zj-ink mb-3.5 leading-snug">
                       {isZh ? T(role.titleKey, l) : T(role.titleKey, l)}
                     </h3>
-                    <p className="text-[14px] leading-[1.7] text-zj-slate mb-5">
+                    <p className="text-[14.5px] leading-[1.8] text-zj-slate mb-7">
                       {isZh ? T(role.descKey, l) : T(role.descKey, l)}
                     </p>
                     <div className="flex items-center gap-3 text-[11px] font-mono-hud text-zj-muted">

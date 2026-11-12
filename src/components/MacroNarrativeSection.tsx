@@ -24,10 +24,10 @@ function T(key: string, l: Lang) {
       ja: "政策・コンプライアンス・効率。三つのウィンドウが同時に開く。",
     },
     sub: {
-      "zh-CN": "医疗AI落地不是技术问题，是时机问题。",
-      "zh-TW": "醫療AI落地不是技術問題，是時機問題。",
-      en: "Clinical AI adoption is not a technology problem. It is a timing problem.",
-      ja: "臨床AIの導入は技術問題ではない。タイミングの問題だ。",
+      "zh-CN": "政策窗口开了，合规要求到了，医院急着用。时候到了。",
+      "zh-TW": "政策窗口開了，合規要求到了，醫院急著用。時候到了。",
+      en: "The policy window is open. Compliance requirements are here. Hospitals need it now. The time has come.",
+      ja: "政策の窓が開いた。コンプライアンス要件が整った。病院が必要としている。時は来た。",
     },
     w1Title: {
       "zh-CN": "DRG/DIP 支付方式改革",
@@ -36,8 +36,8 @@ function T(key: string, l: Lang) {
       ja: "DRG/DIP 診療報酬改革",
     },
     w1Desc: {
-      "zh-CN": "全国推进疾病诊断相关分组付费，医院需要精准的 ICD-10 编码与 DRG 权重模拟，控制医疗成本，优化医保结算。",
-      "zh-TW": "全國推進疾病診斷相關分組付費，醫院需要精確的 ICD-10 編碼與 DRG 權重模擬，控制醫療成本，優化醫療保險結算。",
+      "zh-CN": "全国推进疾病诊断相关分组付费。医院需要精准的 ICD-10 编码与 DRG 权重模拟，控制医疗成本，优化医保结算。",
+      "zh-TW": "全國推進疾病診斷相關分組付費。醫院需要精確的 ICD-10 編碼與 DRG 權重模擬，控制醫療成本，優化醫療保險結算。",
       en: "Nationwide DRG/DIP payment reform. Hospitals need precise ICD-10 coding and DRG weight simulation to control costs and optimize insurance settlement.",
       ja: "全国的DRG/DIP診療報酬改革。病院はICD-10コーディングとDRGウェイトシミュレーションを必要とし、医療費を制御し保険審査を最適化する。",
     },
@@ -94,11 +94,11 @@ function T(key: string, l: Lang) {
 }
 
 const WINDOWS = [
-  { key: "w1", icon: TrendingUp, titleKey: "w1Title", descKey: "w1Desc" },
-  { key: "w2", icon: Shield, titleKey: "w2Title", descKey: "w2Desc" },
-  { key: "w3", icon: FileText, titleKey: "w3Title", descKey: "w3Desc" },
-  { key: "w4", icon: Clock, titleKey: "w4Title", descKey: "w4Desc" },
-  { key: "w5", icon: Building2, titleKey: "w5Title", descKey: "w5Desc" },
+  { key: "w1", icon: TrendingUp, titleKey: "w1Title", descKey: "w1Desc", accent: "bg-zj-cobalt-soft" },
+  { key: "w2", icon: Shield, titleKey: "w2Title", descKey: "w2Desc", accent: "bg-zj-safe-soft" },
+  { key: "w3", icon: FileText, titleKey: "w3Title", descKey: "w3Desc", accent: "bg-zj-aqua-soft" },
+  { key: "w4", icon: Clock, titleKey: "w4Title", descKey: "w4Desc", accent: "bg-zj-amber-soft" },
+  { key: "w5", icon: Building2, titleKey: "w5Title", descKey: "w5Desc", accent: "bg-zj-mint-soft" },
 ];
 
 export function MacroNarrativeSection() {
@@ -109,9 +109,9 @@ export function MacroNarrativeSection() {
   const get = (key: string) => T(key, l);
 
   return (
-    <section id="why-now" className="bg-zj-mist border-b border-zj-border py-20 lg:py-28 reveal">
+    <section id="why-now" className="bg-zj-mist border-b border-zj-border py-20 lg:py-32 reveal">
       <div className="relative section-container">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-zj-cyan-bright/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-zj-cyan-bright/10 rounded-full blur-[120px] pointer-events-none" />
 
         <SectionHeader
           eyebrow={get("eyebrow")}
@@ -119,24 +119,31 @@ export function MacroNarrativeSection() {
           subtitle={get("sub")}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-          {WINDOWS.map((w) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+          {WINDOWS.map((w, i) => {
             const Icon = w.icon;
             return (
               <Card
                 key={w.key}
                 variant="default"
-                padding="lg"
+                padding="xl"
                 hover="lift"
-                className="border-zj-border/60"
+                className={`border-zj-border/60 bg-zj-white ${i === 0 ? "border-zj-cobalt/60 shadow-sm" : ""}`}
               >
-                <div className="w-12 h-12 rounded-[8px] bg-zj-cobalt-soft flex items-center justify-center mb-5 shrink-0">
-                  <Icon className="w-6 h-6 text-zj-cobalt" />
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`w-11 h-11 rounded-[8px] ${w.accent} flex items-center justify-center shrink-0`}>
+                    <Icon className="w-6 h-6 text-zj-cobalt" />
+                  </div>
+                  <span className={`text-[10px] font-bold tracking-wide uppercase ${
+                    i === 0 ? "text-zj-cobalt" : "text-zj-muted"
+                  }`}>
+                    {i + 1}
+                  </span>
                 </div>
-                <h3 className="text-[15px] font-semibold text-zj-ink mb-2.5 leading-snug">
+                <h3 className="text-[16px] font-semibold text-zj-ink mb-3.5 leading-snug">
                   {isZh ? T(w.titleKey, l) : T(w.titleKey, l)}
                 </h3>
-                <p className="text-[13.5px] leading-[1.7] text-zj-slate">
+                <p className="text-[14px] leading-[1.8] text-zj-slate">
                   {isZh ? T(w.descKey, l) : T(w.descKey, l)}
                 </p>
               </Card>

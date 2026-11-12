@@ -13,6 +13,7 @@ import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
 import "./globals.css";
 import { I18nProvider } from "@/context/i18n-context";
+import { RevealScroller } from "@/components/RevealScroller";
 
 export const metadata: Metadata = {
   title: "中净医疗 | 临床级非诊断医患语音与院外随访系统",
@@ -32,6 +33,7 @@ export default function RootLayout({
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-zj-white text-zj-ink">
         <I18nProvider>{children}</I18nProvider>
+        <RevealScroller />
       </body>
     </html>
   );

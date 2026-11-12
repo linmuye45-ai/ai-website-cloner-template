@@ -16,10 +16,10 @@ function T(key: string, l: Lang) {
       ja: "導入を開始する",
     },
     title: {
-      "zh-CN": "不销售软件，只交付临床结果",
-      "zh-TW": "不銷售軟體，只交付臨床結果",
-      en: "Not Selling Software. Delivering Clinical Outcomes.",
-      ja: "ソフトウェアを販売しない。臨床アウトカムを提供する。",
+      "zh-CN": "不卖软件。交付临床结果。",
+      "zh-TW": "不賣軟體。交付臨床結果。",
+      en: "Not selling software. Delivering clinical outcomes.",
+      ja: "ソフトウェアは売らない。臨床アウトカムを提供する。",
     },
     sub: {
       "zh-CN": "预约一次 30 分钟演示，在您的试点科室体验真实的临床工作流。无需全院合同，无需公有云。",

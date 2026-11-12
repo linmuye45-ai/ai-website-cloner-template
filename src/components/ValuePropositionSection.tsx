@@ -24,10 +24,10 @@ function T(key: string, l: Lang) {
       ja: "病院が支払う四つのこと",
     },
     sub: {
-      "zh-CN": "不讲宏大叙事，只讲院长、信息科主任、科室主任在会议室里能说明白的事。",
-      "zh-TW": "不講宏大敘事，只講院長、資訊科主任、科室主任在會議室裡能說明白的事。",
-      en: "No grand narratives. Only what a hospital president, IT director, and department head can explain clearly in a meeting room.",
-      ja: "壮大な物語は語らない。病院長、IT責任者、診療部長が会議室で説明できることだけを語る。",
+      "zh-CN": "院长、信息科主任、科室主任坐在会议室里，能说明白的事。",
+      "zh-TW": "院長、資訊科主任、科室主任坐在會議室裡，能說明白的事。",
+      en: "The president, IT director, and department head sitting in a meeting room can explain it clearly.",
+      ja: "病院長、IT責任者、診療部長が会議室に座って説明できること。",
     },
     p1Title: { "zh-CN": "患者安全至上", "zh-TW": "患者安全至上", en: "Patient Safety First", ja: "患者安全を最優先" },
     p1Desc: {

@@ -25,9 +25,9 @@ function T(key: string, l: Lang) {
       ja: "三層。それ以上はない。",
     },
     sub: {
-      "zh-CN": "不做孤立功能插件，而是构建可嵌入医院工作流的临床 AI 操作系统，支持分层交付与渐进式扩展。",
+      "zh-CN": "不做孤立插件。做嵌入医院工作流的系统。按层交付，逐步扩展。",
       "zh-TW": "不做孤立機能プラグイン，而是構建可嵌入醫院ワークフロー的臨床 AI 操作系統，支持分層交付與漸進式擴展。",
-      en: "Not isolated feature plugins, but a clinical AI operating system embeddable into hospital workflows — layered delivery, progressive extension.",
+      en: "No isolated plugins. A system embedded in hospital workflows. Layered delivery, step by step.",
       ja: "孤立した機能プラグインではなく、病院ワークフローに組み込める臨床AIオペレーティングシステム。段階的な納品、段階的な拡張。",
     },
     platform: { "zh-CN": "平台层", "zh-TW": "平台層", en: "Platform", ja: "プラットフォーム" },

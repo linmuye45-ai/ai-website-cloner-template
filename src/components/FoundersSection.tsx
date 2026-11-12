@@ -24,10 +24,10 @@ function T(key: string, l: Lang) {
       ja: "臨床、技術、コンプライアンス。三人の人間、三つの背景。",
     },
     sub: {
-      "zh-CN": "不是职业经理人叠加，是一线做过的医生、信安负责人、语音AI科学家。",
-      "zh-TW": "不是職業經理人疊加，是一線做過的醫師、資安負責人、語音AI科學家。",
-      en: "Not professional managers stacked together. Frontline doctors, information security leads, and voice AI scientists who have actually done the work.",
-      ja: "プロ経営者の積み重ねではない。現場でやってきた医師、情報セキュリティ責任者、音声AI科学者たちだ。",
+      "zh-CN": "张明主导过三甲医院信息化。李强负责过大型医疗机构信安部门。王敏训练过数百万级临床语音模型。",
+      "zh-TW": "張明主導過三甲醫院資訊化。李強負責過大型醫療機構資安部門。王敏訓練過數百萬級臨床語音模型。",
+      en: "Zhang Ming led hospital informatics at Tier-3 hospitals. Li Qiang ran information security at a major medical institution. Wang Min trained million-record clinical voice models.",
+      ja: "張明は三次救急病院の院内情報化を主導。李強は大型医療機関の情報セキュリティ部門を担当。王敏は数百万レベルの臨床音声モデルを訓練。",
     },
     f1Name: { "zh-CN": "张明", "zh-TW": "張明", en: "Zhang Ming", ja: "張 明" },
     f1Role: { "zh-CN": "创始人兼首席执行官", "zh-TW": "創始人兼首席執行官", en: "Founder & CEO", ja: "創設者兼CEO" },
@@ -58,22 +58,21 @@ function T(key: string, l: Lang) {
 }
 
 const FOUNDERS = [
-  { key: "f1", icon: User, nameKey: "f1Name", roleKey: "f1Role", bioKey: "f1Bio" },
-  { key: "f2", icon: ShieldCheck, nameKey: "f2Name", roleKey: "f2Role", bioKey: "f2Bio" },
-  { key: "f3", icon: Mic, nameKey: "f3Name", roleKey: "f3Role", bioKey: "f3Bio" },
+  { key: "f1", icon: User, nameKey: "f1Name", roleKey: "f1Role", bioKey: "f1Bio", accent: "bg-zj-cobalt-soft", text: "text-zj-cobalt" },
+  { key: "f2", icon: ShieldCheck, nameKey: "f2Name", roleKey: "f2Role", bioKey: "f2Bio", accent: "bg-zj-safe-soft", text: "text-zj-safe" },
+  { key: "f3", icon: Mic, nameKey: "f3Name", roleKey: "f3Role", bioKey: "f3Bio", accent: "bg-zj-aqua-soft", text: "text-zj-cyan" },
 ];
 
 export function FoundersSection() {
   const { locale } = useI18n();
   const l: Lang = LOCALES.includes(locale as Lang) ? (locale as Lang) : "en";
-  const isZh = l === "zh-CN" || l === "zh-TW";
 
   const get = (key: string) => T(key, l);
 
   return (
-    <section id="founders" className="bg-zj-white border-b border-zj-border py-20 lg:py-28 reveal">
+    <section id="founders" className="bg-zj-white border-b border-zj-border py-20 lg:py-32 reveal">
       <div className="relative section-container">
-        <div className="absolute left-0 top-0 w-64 h-64 bg-zj-safe-bright/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute left-0 top-0 w-[500px] h-[500px] bg-zj-safe-bright/10 rounded-full blur-[120px] pointer-events-none" />
 
         <SectionHeader
           eyebrow={get("eyebrow")}
@@ -88,21 +87,21 @@ export function FoundersSection() {
               <Card
                 key={f.key}
                 variant="default"
-                padding="lg"
+                padding="xl"
                 hover="lift"
-                className="border-zj-border/60"
+                className={`border-zj-border/60 bg-zj-white ${f.accent && "border-zj-cobalt/40"}`}
               >
-                <div className="w-12 h-12 rounded-[8px] bg-zj-cobalt-soft flex items-center justify-center mb-5 shrink-0">
-                  <Icon className="w-6 h-6 text-zj-cobalt" />
+                <div className={`w-14 h-14 rounded-[10px] ${f.accent} flex items-center justify-center shrink-0 mb-7`}>
+                  <Icon className={`w-7 h-7 ${f.text}`} />
                 </div>
-                <h3 className="text-[15px] font-semibold text-zj-ink mb-1 leading-snug">
-                  {isZh ? T(f.nameKey, l) : T(f.nameKey, l)}
+                <h3 className="text-[17px] font-semibold text-zj-ink mb-2 leading-snug">
+                  {T(f.nameKey, l)}
                 </h3>
-                <p className="text-[12px] font-medium text-zj-cobalt mb-3">
-                  {isZh ? T(f.roleKey, l) : T(f.roleKey, l)}
+                <p className={`text-[12px] font-medium mb-4 ${f.text}`}>
+                  {T(f.roleKey, l)}
                 </p>
-                <p className="text-[13.5px] leading-[1.7] text-zj-slate">
-                  {isZh ? T(f.bioKey, l) : T(f.bioKey, l)}
+                <p className="text-[14px] leading-[1.8] text-zj-slate">
+                  {T(f.bioKey, l)}
                 </p>
               </Card>
             );

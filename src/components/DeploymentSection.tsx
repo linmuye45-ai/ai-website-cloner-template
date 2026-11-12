@@ -47,6 +47,7 @@ function T(key: string, l: Lang) {
     c3Desc: { "zh-CN": "审计留存", "zh-TW": "審計留存", en: "Audit retention", ja: "監査証跡保持" },
     c4Label: { "zh-CN": "Zero", "zh-TW": "Zero", en: "Zero", ja: "ゼロ" },
     c4Desc: { "zh-CN": "云上传", "zh-TW": "雲上傳", en: "Cloud uploads", ja: "クラウドアップロード" },
+    featured: { "zh-CN": "推荐", "zh-TW": "推薦", en: "Recommended", ja: "推奨" },
   };
   return map[key][l] || key;
 }
@@ -92,7 +93,7 @@ export function DeploymentSection() {
                     <Icon className="w-5 h-5 text-zj-cobalt" />
                     {featured && (
                       <span className="ml-auto text-[10px] font-bold text-zj-cyan-bright uppercase tracking-wider">
-                        {isZh ? "推荐" : "Recommended"}
+                        {isZh ? T("featured", l) : T("featured", l)}
                       </span>
                     )}
                     <Badge variant="soft">{isZh ? T(tier.badgeKey, l) : T(tier.badgeKey, l)}</Badge>
