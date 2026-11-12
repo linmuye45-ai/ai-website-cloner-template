@@ -30,7 +30,9 @@ jobs:
         run: npm ci
 
       - name: Test game protocol and rule links
-        run: npm run test:party
+        run: |
+          npm run test:party
+          node --test tests/veil.test.mjs
 
       - name: Build Static Bundle for GitHub Pages
         env:
@@ -42,6 +44,9 @@ jobs:
           cp -r site/petdaily out/petdaily
           cp -r site/landed out/landed
           touch out/.nojekyll
+
+      - name: Browser smoke test (desktop and mobile)
+        run: node tests/veil.browser.cjs
 
       - name: Publish Static Bundle to gh-pages Branch
         uses: peaceiris/actions-gh-pages@v4
