@@ -46,8 +46,6 @@ jobs:
           touch out/.nojekyll
 
       - name: Browser smoke test (desktop and mobile)
-        env:
-          DEBUG_CAPTURE: "1"
         run: node tests/veil.browser.cjs
 
       - name: Save visual smoke-test captures
