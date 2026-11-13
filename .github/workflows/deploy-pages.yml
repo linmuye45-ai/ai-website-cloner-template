@@ -32,7 +32,7 @@ jobs:
       - name: Test game protocol and rule links
         run: |
           npm run test:party
-          node --test tests/veil.test.mjs
+          node --test tests/veil.test.mjs tests/veil-assets.test.mjs
 
       - name: Build Static Bundle for GitHub Pages
         env:

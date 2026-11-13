@@ -36,7 +36,7 @@ function addPlayer(ws, room, name) {
   if (!room.host) room.host = player.id;
   send(ws, { type: 'joined', playerId: player.id, code: room.code }); broadcast(room);
 }
-const types = { '.html': 'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.ico':'image/x-icon', '.woff2':'font/woff2', '.txt':'text/plain; charset=utf-8', '.svg':'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.glb':'model/gltf-binary', '.ico':'image/x-icon', '.woff2':'font/woff2', '.txt':'text/plain; charset=utf-8', '.svg':'image/svg+xml' };
 const server = http.createServer(async (req, res) => {
   if (req.url?.split('?')[0] === '/api/health') { res.writeHead(200, {'content-type':'application/json','cache-control':'no-store'}); res.end(JSON.stringify({ok:true, multiplayer:'prototype'})); return; }
   try {

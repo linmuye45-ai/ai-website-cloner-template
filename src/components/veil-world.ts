@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CHAPTERS } from '@/lib/veil-game.mjs';
+import { mountWorldAssets } from './veil-assets';
 
 // Geometry is deliberately laid out from the same circular obstacles as the rules.
 // Columns sit beyond the playable boundary; no decorative geometry blocks the route.
@@ -16,14 +17,15 @@ export function makeWorld(index:number) {
  const ground=new THREE.Mesh(new THREE.PlaneGeometry(95,110),floor);ground.rotation.x=-Math.PI/2;ground.position.y=-.06;root.add(ground);
  // Inlaid stone slabs sit above the floor rather than overlapping it.
  for(let z=3;z>=-30;z-=3.5){box(root,15,.025,.045,dark,0,-.025,z);for(let x=-6;x<=6;x+=3)box(root,.045,.025,3.45,dark,x,-.025,z-1.72);}
- for(let z=5;z>=-30;z-=8){for(const side of [-1,1]){const x=side*11.4;box(root,1.3,7,1.3,stone,x,3.5,z);box(root,1.8,.5,1.8,stone,x,.25,z);box(root,1.8,.5,1.8,stone,x,6.75,z);const lamp=new THREE.Mesh(new THREE.OctahedronGeometry(.19),ember);lamp.position.set(side*10.5,3.1,z);root.add(lamp);}}
+ const environmentFallback=new THREE.Group();root.add(environmentFallback);
+ for(let z=5;z>=-30;z-=8){for(const side of [-1,1]){const x=side*11.4;box(environmentFallback,1.3,7,1.3,stone,x,3.5,z);box(environmentFallback,1.8,.5,1.8,stone,x,.25,z);box(environmentFallback,1.8,.5,1.8,stone,x,6.75,z);const lamp=new THREE.Mesh(new THREE.OctahedronGeometry(.19),ember);lamp.position.set(side*10.5,3.1,z);environmentFallback.add(lamp);}}
  // Each arch ends exactly at the column centers, instead of crossing them.
- if(index!==2){for(let z=5;z>=-30;z-=8){const arch=new THREE.Mesh(new THREE.TorusGeometry(11.4,.2,8,48,Math.PI),stone);arch.position.set(0,7,z);root.add(arch);}}
- if(index===0){for(let z=2;z>=-30;z-=4){for(const side of [-1,1]){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.9),dark);rock.scale.set(1.4,.6,1.1);rock.position.set(side*(14+(Math.abs(z)%3)),.2,z);root.add(rock);}}}
- if(index===1){for(let z=0;z>=-25;z-=7){for(const side of [-1,1]){const x=side*13;box(root,2,6,3.2,wood,x,3,z);for(let y=1;y<6;y+=1.15){box(root,2.1,.12,3.3,trim,x,y,z);for(let i=0;i<6;i++){const book=box(root,.18,.65,.35,i%2?stone:ember,x+(i-2.5)*.27,y+.39,z+.8);book.rotation.z=(i%3-1)*.04;}}}}}
- if(index===2){for(let z=3;z>=-30;z-=5){for(const side of [-1,1]){const x=side*(14+Math.abs(z)%3);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.27,.55,5,7),wood);trunk.position.set(x,2.5,z);trunk.rotation.z=side*.12;root.add(trunk);for(let k=0;k<3;k++){const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,1),k%2?stone:dark);leaves.position.set(x+(k-1)*1.3,5.3+k*.45,z+(k%2)*1.1);root.add(leaves);}}}}
+ if(index!==2){for(let z=5;z>=-30;z-=8){const arch=new THREE.Mesh(new THREE.TorusGeometry(11.4,.2,8,48,Math.PI),stone);arch.position.set(0,7,z);environmentFallback.add(arch);}}
+ if(index===0){for(let z=2;z>=-30;z-=4){for(const side of [-1,1]){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.9),dark);rock.scale.set(1.4,.6,1.1);rock.position.set(side*(14+(Math.abs(z)%3)),.2,z);environmentFallback.add(rock);}}}
+ if(index===1){for(let z=0;z>=-25;z-=7){for(const side of [-1,1]){const x=side*13;box(environmentFallback,2,6,3.2,wood,x,3,z);for(let y=1;y<6;y+=1.15){box(environmentFallback,2.1,.12,3.3,trim,x,y,z);for(let i=0;i<6;i++){const book=box(environmentFallback,.18,.65,.35,i%2?stone:ember,x+(i-2.5)*.27,y+.39,z+.8);book.rotation.z=(i%3-1)*.04;}}}}}
+ if(index===2){for(let z=3;z>=-30;z-=5){for(const side of [-1,1]){const x=side*(14+Math.abs(z)%3);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.27,.55,5,7),wood);trunk.position.set(x,2.5,z);trunk.rotation.z=side*.12;environmentFallback.add(trunk);for(let k=0;k<3;k++){const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,1),k%2?stone:dark);leaves.position.set(x+(k-1)*1.3,5.3+k*.45,z+(k%2)*1.1);environmentFallback.add(leaves);}}}}
  // Layered silhouettes and suspended fragments add depth outside the playable path.
- for(let z=1;z>=-28;z-=7){for(const side of [-1,1]){const baseX=side*15.5;const slab=box(root,2.2,.45,2.4,stone,baseX,.22,z);slab.rotation.y=side*.12;const broken=new THREE.Mesh(new THREE.CylinderGeometry(.45,.75,3.5,7),stone);broken.position.set(baseX,1.95,z);broken.rotation.z=side*.12;root.add(broken);}}
+ for(let z=1;z>=-28;z-=7){for(const side of [-1,1]){const baseX=side*15.5;const slab=box(environmentFallback,2.2,.45,2.4,stone,baseX,.22,z);slab.rotation.y=side*.12;const broken=new THREE.Mesh(new THREE.CylinderGeometry(.45,.75,3.5,7),stone);broken.position.set(baseX,1.95,z);broken.rotation.z=side*.12;environmentFallback.add(broken);}}
  // The collision circles match these isolated landmarks.
  cfg.obstacles.forEach((o:{x:number;z:number;r:number})=>{const group=new THREE.Group();group.position.set(o.x,0,o.z);if(index===0){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(o.r),stone);rock.scale.set(.85,1.55,.85);rock.position.y=o.r*1.05;group.add(rock);}
  else if(index===1){box(group,1.5,3.2,1.5,wood,0,1.6,0);for(let y=.8;y<3;y+=.65)box(group,1.55,.08,1.55,trim,0,y,0);}
@@ -35,6 +37,7 @@ export function makeWorld(index:number) {
  const sun=new THREE.Group();sun.visible=false;sun.position.set(0,15,-60);const disk=new THREE.Mesh(new THREE.CircleGeometry(6.5,64),new THREE.MeshBasicMaterial({color:0x0b1110,side:THREE.DoubleSide}));const rim=new THREE.Mesh(new THREE.TorusGeometry(6.8,.15,8,64),ember);sun.add(disk,rim);root.add(sun);
  const dustGeo=new THREE.BufferGeometry();const positions=new Float32Array(450);let seed=index+123;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};for(let i=0;i<positions.length;i+=3){positions[i]=(rand()-.5)*27;positions[i+1]=rand()*10;positions[i+2]=rand()*40-31;}dustGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xc8d8c4,size:.055,transparent:true,opacity:.55}));root.add(dust);
  const lights=new THREE.Group();lights.add(new THREE.HemisphereLight(index===2?0xb5d6aa:0xb8cdc7,0x29302a,2.2));const sunLight=new THREE.DirectionalLight(0xe5d8bb,2);sunLight.position.set(-8,16,5);lights.add(sunLight);const local=new THREE.PointLight(palette.accent,18,11);local.position.set(cfg.beacon.x,3,cfg.beacon.z);lights.add(local);root.add(lights);
+ mountWorldAssets(root,environmentFallback,index);
  return {root,flame,halo,fragment,portal,dust,rim,ember,ghost};
 }
 export function makeEnemy(type:string){
@@ -58,4 +61,4 @@ export function makeEnemy(type:string){
  const barBack=box(group,.85,.09,.025,0,2.65,0,cloth);const bar=box(group,.8,.055,.03,0,2.65,.02,new THREE.MeshBasicMaterial({color:0xe6a475}));
  return {group,body,tell,bar,barBack,rightArm,leftArm,leftLeg,rightLeg};
 }
-export function disposeWorld(root:THREE.Object3D){const geometries=new Set<THREE.BufferGeometry>(),materials=new Set<THREE.Material>();root.traverse(o=>{if(o instanceof THREE.Mesh||o instanceof THREE.Points){geometries.add(o.geometry);(Array.isArray(o.material)?o.material:[o.material]).forEach((m:THREE.Material)=>materials.add(m));}});geometries.forEach(g=>g.dispose());materials.forEach(m=>{if(m instanceof THREE.MeshStandardMaterial||m instanceof THREE.MeshBasicMaterial){if(m.map)m.map.dispose();}m.dispose();});}
+export function disposeWorld(root:THREE.Object3D){const geometries=new Set<THREE.BufferGeometry>(),materials=new Set<THREE.Material>();root.traverse(o=>{o.userData.veilDisposed=true;if(o.userData.animation?.mixer)o.userData.animation.mixer.stopAllAction();if(o instanceof THREE.Mesh||o instanceof THREE.Points){geometries.add(o.geometry);(Array.isArray(o.material)?o.material:[o.material]).forEach((m:THREE.Material)=>materials.add(m));}});geometries.forEach(g=>g.dispose());materials.forEach(m=>{if(m instanceof THREE.MeshStandardMaterial||m instanceof THREE.MeshBasicMaterial){if(m.map)m.map.dispose();}m.dispose();});}
