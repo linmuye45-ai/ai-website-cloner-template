@@ -1,20 +1,9 @@
-# 蚀日残响 · 3D 素材清单与授权
+# 蚀日残响：写实素材试验
 
-## 实际状态
-本次导入并校验 **227 个 GLB 文件**：KayKit 地牢包 203 个、KayKit 骷髅角色 4 个、Kenney 自然包精选 20 个。文件数不是独立设计数：颜色、模型变体可能重复。当前三个场景合计摆放 63 个场景道具实例，并按敌人类型加载 3 种角色；并非 227 个模型都出现在游戏里，更不是已经引用或集成 10,000 个素材。
+用户明确要求不用低多边形卡通风格。本版本已撤下 KayKit、Kenney 的卡通模型，改用更偏写实的素材；不代表已达到 3A 质量。
 
-## 来源与许可
-- KayKit Dungeon Remastered，Kay Lousberg：CC0-1.0；作者原仓库 `KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0`，固定 commit `b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07`。原作者许可在 `KayKit-Dungeon-LICENSE.txt`。
-- KayKit Character Pack Skeletons，Kay Lousberg：CC0-1.0；作者原仓库 `KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0`，固定 commit `15b62b9bad122f72926c10fb14d622c73819fa54`。原作者许可在 `KayKit-Skeletons-LICENSE.txt`。为控制体积，每个角色保留 6 个动画，去掉其他 89 个动作；网格与贴图保留。
-- Kenney Nature Kit 2.1，Kenney：CC0-1.0；原始来源 https://kenney.nl/assets/nature-kit ，使用 `RezLala/Render3DLibrary` 镜像 commit `be6a028ef6a948ce67f636c5c5ddd79a733418ef` 的 20 个 GLB；镜像说明曾删除空辅助节点链接，几何不变。原作者许可在 `Kenney-Nature-LICENSE.txt`。
+- 环境：Poly Haven 的 Rock Moss Set 01（Kless Gyzen，CC0，实物扫描），使用固定版本第三方网页优化 GLB，含纹理。每章摆放 8 组，属于重复实例，不是 24 个不同素材。详见 `PolyHaven-SOURCE.md`。
+- 敌人：MakeHuman 系统 CC0 资产生成的人体、外套、裤子、靴子，来源 `kblood/CharacterCreator` 固定 commit `852e48f316b90a0937234886630e4fb4cdfd1f78` 的 `output/`。项目的源码为 GPL，但作者对这些生成的 GLB 明确标注 CC0（见 `MakeHuman-LICENSE-NOTES.md`）。动画为其程序生成的动作，暂用行走、待机等，**没有真正的刀剑攻击动作**；服装是现代长外套，暂不是幻想盔甲。
+- 石面贴图为本次 AI 生成；远景仍是 2D 背景图，不是真正可探索的远景。遗迹、任务物件和部分障碍仍是简单程序化几何体，有待换成写实模型。
 
-这些素材是风格化、低多边形资产，并非写实 3A 扫描资产。感谢两位创作者，CC0 不要求署名，但我们主动保留署名。
-
-## 系统与再生产
-- `public/models/veil/catalog.json` 对每个导入文件记录固定来源、作者、许可、路径、文件大小、SHA-256、当前用途；不要把单个文件或一个模型的多个格式/摆放实例混算成多个独立作品。
-- `src/lib/veil-asset-layout.mjs` 是场景摆放与角色映射；3D 文件按需、从本站加载，不依赖第三方 CDN。加载失败会保留程序化后备场景和角色。
-- 调整资产后运行 `node scripts/build-veil-asset-catalog.mjs`，再运行 `node --test tests/veil-assets.test.mjs`。测试检查许可文件、哈希、GLB 格式、内嵌资源、引用与布局边界。
-- 面向 10,000+ 素材，应分批索引、去重、人工审核每个资产及商业许可、记录版本和来源，并按场景筛选加载；不可一次把数万个模型塞进网页。当前只完成了一个可扩展起点，未完成万件素材的检索、授权审核、风格统一或集成，也不能据此承诺游戏品质或销量。
-
-## 尚未完成
-没有 50 个可玩场景、4–6 小时剧情、完整动画/配音/任务系统；没有实机性能预算验证、系统性美术验收或商业发行准备。
+`public/models/veil/catalog.json` 保存五个当前使用的 GLB 文件、来源、许可及 SHA-256；`node scripts/build-veil-asset-catalog.mjs` 可重建，`node --test tests/veil-assets.test.mjs` 核验。**并未研究或导入一万个素材**，也不是完整 50 个场景、4–6 小时游戏。本次是方向修正，不是最终交付。
