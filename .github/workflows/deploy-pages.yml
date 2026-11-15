@@ -1,0 +1,71 @@
+name: Deploy to GitHub Pages
+
+# Builds the fully static export (out/) and publishes it to GitHub Pages,
+# giving the game a permanent public URL that survives any local/sandbox
+# shutdown. Enable once: repository Settings → Pages → Source: GitHub Actions.
+on:
+  push:
+    branches:
+      - master
+      - "arena/**"
+  workflow_dispatch:
+    inputs:
+      base_path:
+        description: "Optional asset base path (project sites use /repo-name)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time, but don't cancel in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Static export
+        env:
+          # Project Pages sites serve under /<repo-name>; custom domains can
+          # set repository variable BASE_PATH to an empty string instead.
+          NEXT_PUBLIC_BASE_PATH: ${{ github.event.inputs.base_path || vars.BASE_PATH || format('/{0}', github.event.repository.name) }}
+          # Repository variable SITE_URL overrides the default Pages address.
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

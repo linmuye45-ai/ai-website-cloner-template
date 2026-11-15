@@ -47,3 +47,8 @@ next-env.d.ts
 
 # Local temp files
 temp/
+
+# headless smoke test build
+.smoke-build/
+scripts/*.ppm
+scripts/*.png

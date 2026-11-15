@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": ".smoke-build",
+    "rootDir": "src/game",
+    "incremental": false,
+    "isolatedModules": false
+  },
+  "include": ["src/game/**/*.ts"],
+  "exclude": ["node_modules", ".smoke-build"]
+}
