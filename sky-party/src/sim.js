@@ -1,0 +1,8 @@
+export const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+export function createGame(){return {player:{x:0,z:5,y:0,vy:0,dx:0,dz:-1},ball:{x:0,z:1,vx:0,vz:0},pad:null,charged:false,score:0,time:150,over:false,flash:0}}
+export function action(s,a){if(s.over)return;const p=s.player,b=s.ball;if(a==='jump'&&p.y===0)p.vy=5.8;if(a==='pad'){const gx=-b.x,gz=-6.3-b.z,n=Math.hypot(gx,gz)||1;s.pad={x:clamp(b.x+gx/n*2,-7.4,7.4),z:clamp(b.z+gz/n*2,-7.4,7.4),cooldown:0};}if(a==='kick'){const dx=b.x-p.x,dz=b.z-p.z,d=Math.hypot(dx,dz);if(d<2.3){const n=Math.max(d,.01);b.vx=dx/n*8+p.dx*1.5;b.vz=dz/n*8+p.dz*1.5;}}}
+export function update(s,input,dt){if(s.over)return;dt=Math.min(Math.max(dt,0),.05);s.time=Math.max(0,s.time-dt);if(!s.time){s.over=true;return}let p=s.player,b=s.ball;let x=input.x||0,z=input.z||0;const len=Math.hypot(x,z);if(len){x/=len;z/=len;p.dx=x;p.dz=z;p.x=clamp(p.x+x*4.7*dt,-7.5,7.5);p.z=clamp(p.z+z*4.7*dt,-7.5,7.5)}p.y=Math.max(0,p.y+p.vy*dt);if(p.y>0)p.vy-=14*dt;else p.vy=0;
+ b.x+=b.vx*dt;b.z+=b.vz*dt;const friction=Math.pow(.4,dt);b.vx*=friction;b.vz*=friction;if(Math.abs(b.x)>7.5){b.x=clamp(b.x,-7.5,7.5);b.vx*=-.7}if(Math.abs(b.z)>7.7){b.z=clamp(b.z,-7.7,7.7);b.vz*=-.7}
+ if(s.pad){s.pad.cooldown=Math.max(0,s.pad.cooldown-dt);let dx=b.x-s.pad.x,dz=b.z-s.pad.z;if(Math.hypot(dx,dz)<1.05&&!s.pad.cooldown){s.charged=true;s.pad.cooldown=1;let gx=-b.x,gz=-6.3-b.z,n=Math.hypot(gx,gz)||1;b.vx=gx/n*7;b.vz=gz/n*7;s.flash=1;}}
+ if(s.charged&&Math.hypot(b.x,b.z+6.3)<1.25){s.score++;s.charged=false;s.pad=null;s.flash=1;b.x=0;b.z=1;b.vx=b.vz=0;p.x=0;p.z=5;p.dx=0;p.dz=-1;}s.flash=Math.max(0,s.flash-dt*2);
+}
