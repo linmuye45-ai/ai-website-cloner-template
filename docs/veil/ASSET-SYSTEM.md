@@ -1,9 +1,12 @@
-# 蚀日残响：写实素材试验
+# 蚀日残响：纯立体场景试验
 
-用户明确要求不用低多边形卡通风格。本版本已撤下 KayKit、Kenney 的卡通模型，改用更偏写实的素材；不代表已达到 3A 质量。
+用户要求不使用低多边形卡通风格或贴图充当场景。本版从游戏移除了远景图片平面、图片地面和首页封面图；游戏内采用真实网格、实体石板、建筑、树木、光照和远处的立体日蚀。导入模型的图片材质通道也在渲染前移除；不是指游戏已达到照片级真实。
 
-- 环境：Poly Haven 的 Rock Moss Set 01（Kless Gyzen，CC0，实物扫描），使用固定版本第三方网页优化 GLB，含纹理。每章摆放 8 组，属于重复实例，不是 24 个不同素材。详见 `PolyHaven-SOURCE.md`。
-- 敌人：MakeHuman 系统 CC0 资产生成的人体、外套、裤子、靴子，来源 `kblood/CharacterCreator` 固定 commit `852e48f316b90a0937234886630e4fb4cdfd1f78` 的 `output/`。项目的源码为 GPL，但作者对这些生成的 GLB 明确标注 CC0（见 `MakeHuman-LICENSE-NOTES.md`）。动画为其程序生成的动作，暂用行走、待机等，**没有真正的刀剑攻击动作**；服装是现代长外套，暂不是幻想盔甲。
-- 石面贴图为本次 AI 生成；远景仍是 2D 背景图，不是真正可探索的远景。遗迹、任务物件和部分障碍仍是简单程序化几何体，有待换成写实模型。
+三个区域使用不同几何组合：墓岸立柱与残拱、藏书馆拱廊与实体书、庭园枝干与冠层。地景装饰放在可通行走廊外；现有规则中的障碍继续有对应视觉。场景不是所有地方都能走，战斗仍发生在原有三个线性区域。
 
-`public/models/veil/catalog.json` 保存五个当前使用的 GLB 文件、来源、许可及 SHA-256；`node scripts/build-veil-asset-catalog.mjs` 可重建，`node --test tests/veil-assets.test.mjs` 核验。**并未研究或导入一万个素材**，也不是完整 50 个场景、4–6 小时游戏。本次是方向修正，不是最终交付。
+## 模型和授权
+- 岩石网格：Poly Haven Rock Moss Set 01，Kless Gyzen，CC0；固定版本见 `PolyHaven-SOURCE.md`。每章摆放 8 组是重复实例，不是 24 个不同素材。本版不使用其内嵌图片材质。
+- 人体及衣物网格：MakeHuman 系统 CC0 资产，由 Kasper Olesen 生成；`kblood/CharacterCreator` 固定 commit `852e48f316b90a0937234886630e4fb4cdfd1f78`。本版移除图片材质，并增加程序化武器及依据战斗状态的抬臂动作。行走和待机来自模型本身。生成的 GLB 作者标注 CC0，项目代码为 GPL，见 `MakeHuman-LICENSE-NOTES.md`。这些仍是临时角色、现代衣服，并非幻想盔甲或专业动作捕捉。
+- `public/models/veil/catalog.json` 记录五个 GLB 文件的来源、授权、校验值和用途；`node scripts/build-veil-asset-catalog.mjs` 可重建，`node --test tests/veil-assets.test.mjs` 核验。
+
+未完成 10,000 个素材的研究或审核；也没有实现 50 个独立场景、4–6 小时剧情、全面的互动、真实设备性能测试或商业发行标准。现有地形与细节由程序几何体组成，仍需美术设计与实机验收。

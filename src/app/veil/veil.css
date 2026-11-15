@@ -7,3 +7,6 @@
 @media(max-width:420px){.v-touch{padding:12px 8px;gap:5px}.v-dpad{grid-template-columns:repeat(3,43px);grid-template-rows:repeat(2,44px)}.v-action-buttons{grid-template-columns:repeat(3,48px)}.v-touch-caption{display:none}.v-screen{height:440px}.v-objective small{font-size:8px}.v-overlay h3{margin:10px 0}.v-overlay p{line-height:1.6}.v-overlay .v-overlay-note{margin-top:9px}}
 .v-map{position:absolute;right:25px;top:118px;width:110px;height:110px;pointer-events:none;filter:drop-shadow(0 4px 8px #0007)}.v-overlay button.v-continue{background:transparent;color:#e4dfcd;border:1px solid #a79576;margin-left:8px}.v-message{background:#0b1711a8;padding:5px 12px;border-radius:3px}.v-hud{z-index:1}.v-map{z-index:1}
 @media(max-width:750px){.v-map{top:100px;right:14px;width:80px;height:80px}.v-overlay button.v-continue{margin:8px 0 0}.v-overlay-note{font-size:9px!important}}
+
+/* The introduction uses CSS lighting, not an image pretending to be the game world. */
+.veil-hero{background:radial-gradient(circle at 76% 40%,#a8794355 0 2%,#101a18 2.5% 7%,#c69a5b77 7.3%,transparent 7.8%),radial-gradient(ellipse at 70% 65%,#293b30,#101814 45%,#080d0b 80%)}
