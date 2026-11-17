@@ -12,3 +12,24 @@ test('three real areas progress in order; final guardian gates ending',()=>{cons
 test('retry keeps the current chapter and restores a fresh checkpoint',()=>{const g=playing();g.chapter=1;g.hp=0;g.phase='lost';retryChapter(g);assert.equal(g.phase,'playing');assert.equal(g.chapter,1);assert.equal(g.hp,100);assert.equal(g.beaconLit,false);assert.equal(g.enemies.length,CHAPTERS[1].enemies.length);});
 
 test('checkpoint restores chapter and difficulty and rejects corrupt data',()=>{const g=playing('challenge');g.chapter=2;const save=checkpointFor(g);const restored=restoreCheckpoint(JSON.parse(JSON.stringify(save)));assert.equal(restored.chapter,2);assert.equal(restored.difficulty,'challenge');assert.equal(restored.phase,'playing');assert.equal(restored.hp,100);assert.equal(restoreCheckpoint({version:1,chapter:99,difficulty:'story'}),null);assert.equal(restoreCheckpoint({version:1,chapter:0,difficulty:'__proto__'}),null);assert.equal(restoreCheckpoint(null),null);});
+test('time echo replays a past attack once against the enemy in its current position',()=>{
+ const g=playing();g.enemies=[{id:1,x:0,z:1,hp:15,maxHp:15,type:'guard',state:'stagger',timer:100,flash:0}];advance(g,10);assert.equal(slash(g),true);assert.equal(g.enemies[0].hp,14);advance(g,8);g.enemies[0].state='stagger';g.enemies[0].timer=100;assert.ok(focus(g));assert.equal(g.charges,1);assert.equal(focus(g),false);advance(g,5);assert.equal(g.enemies[0].hp,14);advance(g,12);assert.equal(g.enemies[0].hp,13);advance(g,30);assert.equal(g.enemies[0].hp,13);assert.equal(g.echo,null);
+});
+test('time echo cannot strike enemies who have moved out of the recorded attack arc',()=>{
+ const g=playing();g.enemies=[{id:1,x:0,z:1,hp:10,maxHp:10,type:'guard',state:'stagger',timer:100,flash:0}];advance(g,10);slash(g);advance(g,8);g.enemies[0].x=8;g.enemies[0].state='stagger';g.enemies[0].timer=100;focus(g);advance(g,30);assert.equal(g.enemies[0].hp,9);
+});
+test('echo and player occupy opposite resonance circles for a one-time reward',()=>{
+ const g=playing();g.enemies=[];const [a,b]=CHAPTERS[0].resonance;g.x=a.x;g.z=a.z;advance(g,8);for(let i=0;i<36;i++)stepVeil(g,.05,{x:1,z:0});assert.ok(Math.hypot(g.x-b.x,g.z-b.z)<1.15);g.hp=50;assert.ok(focus(g));stepVeil(g,.05);assert.equal(g.resonanceSolved,true);assert.equal(g.hp,75);assert.equal(g.charges,2);advance(g,20);assert.equal(g.hp,75);assert.equal(g.charges,2);
+});
+test('history is bounded and cleared on retry and chapter transition',()=>{
+ const g=playing();g.enemies=[];advance(g,200);assert.ok(g.history.length<=500);assert.ok(g.time-g.history[0].t<=4.1);focus(g);assert.ok(g.echo);retryChapter(g);assert.equal(g.echo,null);assert.equal(g.history.length,0);assert.equal(g.historyActions.length,0);assert.equal(g.resonanceSolved,false);
+});
+test('guard blocks frontal light attacks, but a heavy attack breaks guard',()=>{
+ const g=playing();g.enemies=[{id:1,x:0,z:1,hp:8,maxHp:8,type:'guard',state:'chase',timer:0,flash:0}];assert.equal(slash(g),false);assert.equal(g.enemies[0].hp,8);assert.equal(g.eventType,'guardBlock');g.attack=0;assert.equal(slash(g,true),true);assert.equal(g.enemies[0].hp,5);assert.equal(g.enemies[0].state,'stagger');
+});
+test('guardian windup reaches farther than a regular hunter',()=>{
+ const g=playing();g.enemies=[{id:1,x:0,z:.5,hp:8,maxHp:8,type:'warden',state:'windup',timer:.01,flash:0}];stepVeil(g,.05);assert.equal(g.hp,70);
+});
+test('an echo can flank a shield guard while the player stands behind it',()=>{
+ const g=playing();g.x=0;g.z=2;g.enemies=[{id:1,x:0,z:0,hp:5,maxHp:5,type:'guard',state:'windup',timer:100,flash:0}];assert.equal(slash(g),false);assert.equal(g.enemies[0].hp,5);g.z=-2;assert.ok(focus(g));stepVeil(g,.05);assert.equal(g.enemies[0].hp,4);
+});

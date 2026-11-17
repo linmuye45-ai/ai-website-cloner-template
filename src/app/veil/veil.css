@@ -10,3 +10,7 @@
 
 /* The introduction uses CSS lighting, not an image pretending to be the game world. */
 .veil-hero{background:radial-gradient(circle at 76% 40%,#a8794355 0 2%,#101a18 2.5% 7%,#c69a5b77 7.3%,transparent 7.8%),radial-gradient(ellipse at 70% 65%,#293b30,#101814 45%,#080d0b 80%)}
+
+.v-bars .v-record{color:#87cbbc;font-size:10px;margin-top:6px;letter-spacing:.04em}
+
+.v-impact.echoHit{background:radial-gradient(ellipse,transparent 38%,#56efd078)}
