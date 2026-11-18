@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHAPTERS,DIFFICULTIES,createVeilGame,startVeil,stepVeil,slash,parry,dodge,focus,heal,interact,retryChapter,setDifficulty,checkpointFor,restoreCheckpoint} from '../src/lib/veil-game.mjs';
+import {CHAPTERS,DIFFICULTIES,createVeilGame,startVeil,stepVeil,slash,parry,dodge,focus,heal,interact,retryChapter,setDifficulty,checkpointFor,restoreCheckpoint,chooseMemory} from '../src/lib/veil-game.mjs';
 const playing=(difficulty='balanced')=>{const g=createVeilGame(difficulty);startVeil(g);return g;};
 const advance=(g,n=20,input={x:0,z:0})=>{for(let i=0;i<n;i++)stepVeil(g,.05,input);};
 test('movement follows view and cannot pass through a landmark',()=>{const g=playing();g.yaw=Math.PI/2;stepVeil(g,.05,{x:0,z:1});assert.ok(g.x>.2);const o=CHAPTERS[0].obstacles[0];g.x=o.x;g.z=o.z+o.r+.4;g.yaw=0;advance(g,10,{x:0,z:1});assert.ok(Math.hypot(g.x-o.x,g.z-o.z)>=o.r+.36-1e-6);});
@@ -32,4 +32,22 @@ test('guardian windup reaches farther than a regular hunter',()=>{
 });
 test('an echo can flank a shield guard while the player stands behind it',()=>{
  const g=playing();g.x=0;g.z=2;g.enemies=[{id:1,x:0,z:0,hp:5,maxHp:5,type:'guard',state:'windup',timer:100,flash:0}];assert.equal(slash(g),false);assert.equal(g.enemies[0].hp,5);g.z=-2;assert.ok(focus(g));stepVeil(g,.05);assert.equal(g.enemies[0].hp,4);
+});
+
+test('switch action replays at the vault; player chooses once and checkpoint keeps it',()=>{
+ const g=playing();g.enemies=[];g.x=-5;g.z=-2;stepVeil(g,.05);assert.equal(interact(g),true);
+ for(let i=0;i<42;i++)stepVeil(g,.05,{x:1,z:0});assert.ok(Math.hypot(g.x-6,g.z+2)<1.55);assert.equal(interact(g),false);
+ assert.ok(focus(g));for(let i=0;i<25&&g.sealPulse<=0;i++)stepVeil(g,.05);assert.ok(g.sealPulse>0);assert.equal(interact(g),true);assert.equal(g.choiceOpen,true);
+ const before=g.time;stepVeil(g,1);assert.equal(g.time,before);assert.equal(slash(g),false);assert.equal(chooseMemory(g,'bad'),false);assert.equal(chooseMemory(g,'keep'),true);assert.equal(g.choices[0],'keep');assert.equal(g.charges,2);assert.equal(chooseMemory(g,'burn'),false);
+ const saved=checkpointFor(g),restored=restoreCheckpoint(JSON.parse(JSON.stringify(saved)));assert.equal(restored.choices[0],'keep');assert.equal(restored.sealOpened,true);retryChapter(restored);assert.equal(restored.sealOpened,true);assert.equal(restoreCheckpoint({...saved,choices:['evil',null,null]}),null);
+});
+test('burning a memory gives a limited reward; past gate interactions are not replayed',()=>{
+ const g=playing();g.enemies=[];g.x=-5;g.z=-2;interact(g);g.x=5;g.z=-2;g.sealPulse=1;g.hp=25;g.heals=1;assert.ok(interact(g));assert.ok(chooseMemory(g,'burn'));assert.equal(g.hp,70);assert.equal(g.heals,2);assert.equal(g.choices[0],'burn');assert.equal(interact(g),false);
+ const other=playing();other.enemies=[];other.x=CHAPTERS[0].memoryPos.x;other.z=CHAPTERS[0].memoryPos.z;assert.ok(interact(other));assert.equal(other.historyActions.length,0);
+});
+test('the replay puzzle is reachable with normal movement in every chapter',()=>{
+ for(let chapter=0;chapter<3;chapter++){
+  const g=playing();g.chapter=chapter;retryChapter(g);g.enemies=[];g.x=-5;g.z=-2;stepVeil(g,.05);assert.equal(interact(g),true);
+  advance(g,42,{x:1,z:0});assert.ok(Math.hypot(g.x-6,g.z+2)<1.55,`chapter ${chapter}`);assert.ok(focus(g));for(let i=0;i<30&&g.sealPulse<=0;i++)stepVeil(g,.05);assert.ok(g.sealPulse>0,`chapter ${chapter}`);assert.ok(interact(g));assert.ok(chooseMemory(g,'keep'));
+ }
 });
