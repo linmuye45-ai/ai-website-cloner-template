@@ -47,8 +47,8 @@ jobs:
 
       - name: Browser smoke test (desktop and mobile)
         run: |
-          node tests/veil.browser.cjs
           node tests/heist.browser.cjs
+          node tests/veil.browser.cjs
 
       - name: Save visual smoke-test captures
         if: always()
