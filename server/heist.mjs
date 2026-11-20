@@ -1,0 +1,18 @@
+// Separate WebSocket protocol so the older Party Lab remains unchanged.
+import {randomBytes} from 'node:crypto';
+import {WebSocketServer,WebSocket} from 'ws';
+import {createGame,addPlayer,removePlayer,startGame,input,grab,stepGame,snapshot} from '../src/lib/heist.mjs';
+const rooms=new Map(), colors=['#ffb16a','#87dfd1','#c2a4ff','#ff88a6','#f6e17d','#92c2ff'];
+const id=()=>randomBytes(5).toString('hex');
+const code=()=>randomBytes(3).toString('hex').toUpperCase();
+const name=v=>typeof v==='string'?(v.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,14)||'玩家'):'玩家';
+const send=(ws,data)=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data));};
+const state=room=>{const data={type:'state',code:room.code,host:room.host,game:snapshot(room.game)};for(const ws of room.clients.values())send(ws,data);};
+export function installHeist(server){const wss=new WebSocketServer({noServer:true,maxPayload:1024});
+ server.on('upgrade',(req,socket,head)=>{if(req.url!=='/api/heist')return;if(wss.clients.size>=500){socket.destroy();return;}if(req.headers.origin){try{if(new URL(req.headers.origin).host!==req.headers.host){socket.destroy();return;}}catch{socket.destroy();return;}}wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));});
+ wss.on('connection',ws=>{let room=null,playerId=null,count=0,windowStart=Date.now(),alive=true;const deadline=setTimeout(()=>{if(!room)ws.close(1008,'Join timeout');},30000);deadline.unref();ws.on('pong',()=>alive=true);ws.on('message',data=>{if(Date.now()-windowStart>1000){windowStart=Date.now();count=0;}if(++count>35){ws.close(1008,'Rate limit');return;}let msg;try{msg=JSON.parse(data.toString());}catch{return;}if(!msg||typeof msg!=='object')return;
+  if(msg.type==='create'||msg.type==='join'){if(room)return;if(msg.type==='create'){if(rooms.size>=100){send(ws,{type:'error',message:'房间已满，请稍后再试'});return;}let c;do{c=code();}while(rooms.has(c));room={code:c,host:null,game:createGame(),clients:new Map()};rooms.set(c,room);}else{room=rooms.get(typeof msg.code==='string'?msg.code.toUpperCase():'')||null;if(!room){send(ws,{type:'error',message:'房间不存在或服务已重启'});return;}}
+   playerId=id();if(!addPlayer(room.game,playerId,name(msg.name),colors.find(c=>!room.game.players.some(p=>p.color===c))||colors[0])){send(ws,{type:'error',message:'房间已满或游戏已开始'});room=null;return;}room.clients.set(playerId,ws);if(!room.host)room.host=playerId;send(ws,{type:'joined',id:playerId,code:room.code});state(room);return;}
+  if(!room)return;if(msg.type==='start'&&room.host===playerId){if(!startGame(room.game))send(ws,{type:'error',message:'至少需要两位玩家'});state(room);}else if(msg.type==='input'){if(input(room.game,playerId,msg.x,msg.z))ws._lastInput=Date.now();}else if(msg.type==='grab'){grab(room.game,playerId);state(room);}
+ });ws.on('close',()=>{clearTimeout(deadline);if(!room)return;removePlayer(room.game,playerId);room.clients.delete(playerId);if(!room.clients.size)rooms.delete(room.code);else{if(room.host===playerId)room.host=room.clients.keys().next().value;state(room);}});ws.on('error',()=>{});ws._heistPing=()=>{if(!alive){ws.terminate();return;}alive=false;ws.ping();};});
+ const tick=setInterval(()=>{for(const room of rooms.values())if(room.game.phase==='playing'){for(const [pid,client] of room.clients)if(Date.now()-(client._lastInput||0)>500)input(room.game,pid,0,0);stepGame(room.game,.05);state(room);}},50);const ping=setInterval(()=>{for(const ws of wss.clients)ws._heistPing?.();},30000);tick.unref();ping.unref();return ()=>{clearInterval(tick);clearInterval(ping);wss.clients.forEach(ws=>ws.terminate());wss.close();};}

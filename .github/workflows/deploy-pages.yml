@@ -32,7 +32,7 @@ jobs:
       - name: Test game protocol and rule links
         run: |
           npm run test:party
-          node --test tests/veil.test.mjs tests/veil-assets.test.mjs
+          node --test tests/veil.test.mjs tests/veil-assets.test.mjs tests/heist.test.mjs tests/heist-network.test.mjs
 
       - name: Build Static Bundle for GitHub Pages
         env:
@@ -46,7 +46,9 @@ jobs:
           touch out/.nojekyll
 
       - name: Browser smoke test (desktop and mobile)
-        run: node tests/veil.browser.cjs
+        run: |
+          node tests/veil.browser.cjs
+          node tests/heist.browser.cjs
 
       - name: Save visual smoke-test captures
         if: always()

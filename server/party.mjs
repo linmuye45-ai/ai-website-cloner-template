@@ -5,6 +5,7 @@ import { resolve, extname, sep } from 'node:path';
 import { randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { normalizeSpec } from '../src/lib/party-spec.mjs';
+import { installHeist } from './heist.mjs';
 
 const root = resolve(process.env.SITE_DIR || 'site');
 const rooms = new Map();
@@ -49,7 +50,8 @@ const server = http.createServer(async (req, res) => {
 });
 const wss = new WebSocketServer({ noServer:true, maxPayload:2048 });
 server.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/api/party' || wss.clients.size >= 500) { socket.destroy(); return; }
+  if (req.url !== '/api/party') return;
+  if (wss.clients.size >= 500) { socket.destroy(); return; }
   // Same-origin browser requests only; server-to-server tests may omit Origin.
   if (req.headers.origin) { try { if (new URL(req.headers.origin).host !== req.headers.host) { socket.destroy(); return; } } catch { socket.destroy(); return; } }
   wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
@@ -101,6 +103,7 @@ wss.on('connection', ws => {
   });
   ws.on('close', () => { clearTimeout(joinDeadline); leave(ws); }); ws.on('error', () => leave(ws));
 });
+const closeHeist=installHeist(server);
 const port = Number(process.env.PORT || 3000);
 server.listen(port, '0.0.0.0', () => console.log(`Party prototype listening on 0.0.0.0:${port} (site: ${root})`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { clearInterval(heartbeat); for (const room of rooms.values()) clearRound(room); wss.clients.forEach(client => client.terminate()); server.close(() => process.exit(0)); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { clearInterval(heartbeat); closeHeist(); for (const room of rooms.values()) clearRound(room); wss.clients.forEach(client => client.terminate()); server.close(() => process.exit(0)); });
