@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[97367,["./_next/static/chunks/0dbhjjzl8qfwv.js"],"ViewportBoundary"]
+3:I[97367,["./_next/static/chunks/0dbhjjzl8qfwv.js"],"MetadataBoundary"]
+4:"$Sreact.suspense"
+5:I[27201,["./_next/static/chunks/0dbhjjzl8qfwv.js"],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"同框 Reunion · 让没能同框的人,第一次合影"}],["$","meta","1",{"name":"description","content":"跨时空全家福:让没能见面的亲人第一次合影,和年轻的爸妈同框,把散落各年的照片拼成一张全家福。情感影像新品类,全球市场空位。"}],["$","meta","2",{"name":"keywords","content":"全家福,老照片,AI合影,同框,Reunion,纪念,跨时空,家人"}],["$","link","3",{"rel":"icon","href":"./favicon.ico?favicon.0x3dzn~oxb6tn.ico","sizes":"256x256","type":"image/x-icon"}],["$","$L5","4",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"iRjfaM2OqLcc3IqXbemVJ"}

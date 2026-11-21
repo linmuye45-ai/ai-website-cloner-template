@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[74813,["/ai-website-cloner-template/_next/static/chunks/0dbhjjzl8qfwv.js","/ai-website-cloner-template/_next/static/chunks/0l3ji3ni.ulxl.js","/ai-website-cloner-template/_next/static/chunks/01pe~yjhg4c4m.js"],"HeistGame"]
+3:I[97367,["/ai-website-cloner-template/_next/static/chunks/0dbhjjzl8qfwv.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+:HL["/ai-website-cloner-template/_next/static/chunks/0d0amfui0_k~z.css","style"]
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{}],[["$","link","0",{"rel":"stylesheet","href":"/ai-website-cloner-template/_next/static/chunks/0d0amfui0_k~z.css","precedence":"next"}],["$","script","script-0",{"src":"/ai-website-cloner-template/_next/static/chunks/0l3ji3ni.ulxl.js","async":true}],["$","script","script-1",{"src":"/ai-website-cloner-template/_next/static/chunks/01pe~yjhg4c4m.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"6q3-9N1A6x4aPYC56OcDO"}
+5:null
