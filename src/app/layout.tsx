@@ -1,33 +1,14 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Website Clone",
-  description: "Pixel-perfect website clone",
+ applicationName: "The Dream Station",
+ title: "The Dream Station",
+ description: "A small interactive story for the quieter hours.",
+ manifest: "/manifest.webmanifest",
+ robots: { index: false, follow: false },
+ appleWebApp: { capable: true, statusBarStyle: "default", title: "Dream Station" },
+ icons: { icon: "/icon.svg", apple: "/icon.svg" }
 };
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
-    </html>
-  );
-}
+export const viewport: Viewport = { themeColor: "#f7f2e9", width: "device-width", initialScale: 1, maximumScale: 1 };
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body>{children}</body></html>; }
