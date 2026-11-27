@@ -61,7 +61,13 @@ edit('apps/web/src/lib/config.ts',s=>{
  s=rep(s,'return `${window.location.protocol}//${window.location.hostname}:2567`;',"return import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:2567` : '';","config.ts");
  return all(s,"|| 'Mini-Games'","|| 'PlayMesh'");
 });
-edit('apps/web/vite.config.ts',s=>rep(s,"base: process.env.VITE_BASE_PATH ?? (command === 'build' || isPreview ? '/Mini-Games/' : '/'),","base: process.env.VITE_BASE_PATH ?? '/',",'vite.config.ts'));
+edit('apps/web/vite.config.ts',s=>{
+ s=rep(s,"export default defineConfig(({ command, isPreview }) => ({","export default defineConfig(() => ({",'vite.config.ts');
+ s=all(s,"/**\n * GitHub Pages project sites are served from /<repo>/, so the base path is injected at build\n * time (VITE_BASE_PATH=/<repo>/). Production builds default to /Mini-Games/ (see below).\n * Routing uses the hash (#/...) so no server rewrites are needed.\n */","/** PlayMesh deploys at the origin root; VITE_BASE_PATH remains available for subpath hosting. */");
+ s=all(s,"// Production builds target https://trazhub.github.io/Mini-Games/. Override with VITE_BASE_PATH\n  // (e.g. for a fork). Local dev serves from \"/\".","// PlayMesh is deployed at the origin root; VITE_BASE_PATH remains available for subpath hosting.");
+ s=rep(s,"base: process.env.VITE_BASE_PATH ?? (command === 'build' || isPreview ? '/Mini-Games/' : '/'),","base: process.env.VITE_BASE_PATH ?? '/',",'vite.config.ts');
+ return s;
+});
 edit('apps/web/index.html',s=>{
  s=all(s,'content="#f6f1e8"','content="#f7f8fc"');
  s=all(s,'Free multiplayer mini-games you can play with friends in your browser. No download, no sign-up: share a room code and play.','PlayMesh is a social game space for quick multiplayer games. Create a room, invite friends with one link, and play in your browser.');
