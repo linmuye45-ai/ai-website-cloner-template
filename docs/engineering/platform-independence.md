@@ -53,7 +53,7 @@ No agent is allowed to push directly to the production branch. Each task must pr
 
 ## Current engineering debt
 
-- The NEXORA branch has no package-lock.json; CI warns and uses npm install until a lockfile is committed.
+- The NEXORA and VESTI/NEXUS operations branches now have committed package-lock.json files; quality gates use npm ci. The original production branches remain unchanged until their draft PRs are approved and merged.
 - The VESTI/NEXUS branch documents a dedicated Supabase project but does not yet have that project wired into its Vercel environment.
 - Signal Atlas is currently an inline/static Vercel deployment rather than a GitHub-controlled source branch. Recover or recreate its complete source before treating it as migrated.
 - Existing Vercel projects must not be deleted until their source, environment, domain, storage, database and rollback paths have been verified.
