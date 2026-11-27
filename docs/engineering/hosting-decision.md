@@ -34,3 +34,14 @@ The approved first product is NEXORA (internal project code): a mobile-first, sh
 - Start with static hosting and the smallest paid compute tier only when a server-side workload exists.
 - Configure provider spend limits before enabling public APIs or AI inference.
 - Do not move production traffic until domain, environment variables, authentication (if added), logs, backups and rollback have been tested.
+
+## Verified static-export result
+
+The NEXORA redesign branch now has a merged static-export configuration:
+- Next.js `output: "export"`, `images.unoptimized`.
+- The PWA manifest route is marked `dynamic = "force-static"`.
+- `public/_headers` carries preview security and noindex headers.
+- `wrangler.toml` targets Cloudflare Pages output at `out/`.
+- GitHub Actions passed dependency installation, lint, type-check, unit tests, static production build and the `out/index.html` artifact check after the manifest fix.
+
+The change is merged into `redesign/cinematic-night-atlas-20261128` by PR #5. This verifies build-time static export, not a live Cloudflare deployment or full offline/device QA. Cloudflare account connection, custom domain and production publication remain unconfigured. Do not claim the app is live on Cloudflare.
