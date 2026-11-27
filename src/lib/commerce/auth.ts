@@ -1,0 +1,4 @@
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+export type AuthContext={ok:true;supabase:SupabaseClient;user:User}|{ok:false;status:401|503;code:"UNAUTHENTICATED"|"BACKEND_NOT_CONFIGURED"};
+export async function requireUser():Promise<AuthContext>{const supabase=await createSupabaseServerClient();if(!supabase)return{ok:false,status:503,code:'BACKEND_NOT_CONFIGURED'};const {data,error}=await supabase.auth.getUser();if(error||!data.user)return{ok:false,status:401,code:'UNAUTHENTICATED'};return{ok:true,supabase,user:data.user};}
