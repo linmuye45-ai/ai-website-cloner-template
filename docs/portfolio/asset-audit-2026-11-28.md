@@ -31,3 +31,28 @@ Do not migrate GTEN schema into Signal Atlas. They are different products and da
 ## Portfolio rule
 
 Do not maintain many simultaneous product launches. Keep one primary commercial validation track, one secondary IP experiment and the rest in preservation mode. A project earns further investment only after users demonstrate repeated use and willingness to pay.
+
+
+## Floot-only projects discovered after the initial audit
+
+The connected Floot account contains these project roots and branches:
+
+| Project | Floot project ID | Publish state | Notes |
+|---|---|---|---|
+| Night Signal — Prototype | `cc07ece1-1de1-4061-be46-273d2a2c2cec` | Unpublished | Most recent/highest activity; TRADEPASS exists as a separate branch |
+| TRADEPASS — Prototype | `72cb5093-2644-4621-be89-1531a292eab5` | Unpublished | Branch of Night Signal |
+| MINDMESH | `27ec4443-7fab-4a99-a39c-36e91419ee9d` | Unpublished | KINSHIP exists as a separate branch |
+| KINSHIP — Prototype | `ad0ac641-79ac-4e4d-bc31-ee1f8ea3d550` | Unpublished | Branch of MINDMESH |
+| EBB | `6afb382c-ec23-4ff8-81b4-d2ea196dcddd` | Unpublished | No custom domain |
+| Trust & Action OS | `e64e2ad5-7efd-451d-a67b-3fddf70467d5` | Unpublished | No custom domain |
+| ROOM STUDIO OS | `77843c7b-0fae-4757-8366-4f88dc4c4d37` | Unpublished | No custom domain |
+
+All seven roots/branches returned `published=false`, `paid=false`, Floot plan `free`, no custom domains, and two unused native app builds. Night Signal and MINDMESH previews are available, but no live commercial launch or payment evidence was found.
+
+### Floot migration blocker
+
+At audit time, the Floot account had exhausted its 100 daily build-action allowance. The account-day resets at 2026-11-28 08:00 UTC. File listing, file reads and resource inventory calls were refused by the quota; unmetered status calls still worked. Therefore the source files, dependencies, database schema and environment-resource mappings for these Floot projects have NOT yet been migrated or fully audited.
+
+Do not delete or overwrite any Floot project. After the quota reset, export the project instructions, pages, components, endpoints, static assets, dependencies, database schema and resource names into GitHub. Never copy secret values. Rebuild each project in an independent GitHub branch and run CI before replacing its Floot preview.
+
+No Floot upgrade, paid action boost, project deletion or publication was performed.
