@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, Check, Clock3, Heart, LockKeyhole, Moon, RotateCcw, Share2, Sparkles, X } from "lucide-react";
 import { chapters, emptyTraits, nextTraits, resolveEnding, type Chapter, type Ending, type Trait, type Traits } from "@/lib/story";
 import { KuruIllustration } from "@/components/kuru";
@@ -9,7 +9,47 @@ type View = "home" | "play" | "ending" | "shelf" | "about";
 type SaveData = { completed: string[]; endings: Record<string, Ending>; traits: Traits; lastChapter?: string; lastEnding?: Ending };
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 const STORAGE_KEY = "dream-station-save-v1";
+const AGE_KEY = "dream-station-age-confirmed";
 const defaultSave: SaveData = { completed: [], endings: {}, traits: emptyTraits };
+
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("dream-station-update", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("dream-station-update", callback);
+  };
+}
+function getStorageSnapshot() {
+  try {
+    return JSON.stringify({ raw: window.localStorage.getItem(STORAGE_KEY), age: window.localStorage.getItem(AGE_KEY) === "yes" });
+  } catch {
+    return JSON.stringify({ raw: null, age: false });
+  }
+}
+function getServerStorageSnapshot() { return JSON.stringify({ raw: null, age: false }); }
+function parseStorageSnapshot(snapshot: string) {
+  try {
+    const data = JSON.parse(snapshot) as { raw: string | null; age: boolean };
+    const parsed = data.raw ? JSON.parse(data.raw) as Partial<SaveData> : {};
+    return {
+      age: data.age,
+      hasSave: Boolean(data.raw),
+      save: {
+        completed: Array.isArray(parsed.completed) ? parsed.completed : [],
+        endings: parsed.endings ?? {},
+        traits: parsed.traits ?? emptyTraits,
+        lastChapter: parsed.lastChapter,
+        lastEnding: parsed.lastEnding
+      } as SaveData
+    };
+  } catch {
+    return { age: false, hasSave: false, save: defaultSave };
+  }
+}
+const subscribeNoop = () => () => {};
+const getClientReady = () => true;
+const getServerReady = () => false;
 
 function scrollTop() {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -18,17 +58,29 @@ function scrollTop() {
 
 export default function NightShiftExperience() {
   const [view, setView] = useState<View>("home");
-  const [save, setSave] = useState<SaveData>(defaultSave);
-  const [ready, setReady] = useState(false);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [sessionSave, setSessionSave] = useState<SaveData>(defaultSave);
+  const [ageSessionConfirmed, setAgeSessionConfirmed] = useState(false);
   const [activeChapterId, setActiveChapterId] = useState(chapters[0].id);
   const [sceneIndex, setSceneIndex] = useState(0);
   const [traits, setTraits] = useState<Traits>(emptyTraits);
   const [ending, setEnding] = useState<Ending | null>(null);
   const [toast, setToast] = useState("");
-  const [invite, setInvite] = useState<{ chapterId: string; endingId?: string } | null>(null);
+  const [inviteDismissed, setInviteDismissed] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showReset, setShowReset] = useState(false);
+
+  const storageSnapshot = useSyncExternalStore(subscribeToStorage, getStorageSnapshot, getServerStorageSnapshot);
+  const stored = useMemo(() => parseStorageSnapshot(storageSnapshot), [storageSnapshot]);
+  const save = stored.hasSave ? stored.save : sessionSave;
+  const ageConfirmed = stored.age || ageSessionConfirmed;
+  const ready = useSyncExternalStore(subscribeNoop, getClientReady, getServerReady);
+  const invite = useMemo(() => {
+    if (!ready) return null;
+    const params = new URLSearchParams(window.location.search);
+    const inviteChapter = params.get("invite");
+    if (!inviteChapter || !chapters.some((item) => item.id === inviteChapter)) return null;
+    return { chapterId: inviteChapter, endingId: params.get("ending") ?? undefined };
+  }, [ready]);
 
   const chapter = useMemo(() => chapters.find((item) => item.id === activeChapterId) ?? chapters[0], [activeChapterId]);
   const scene = chapter.scenes[sceneIndex];
@@ -37,30 +89,7 @@ export default function NightShiftExperience() {
   const suggestedChapter = allComplete ? chapters[0] : chapters[completedCount];
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SaveData>;
-        setSave({
-          completed: Array.isArray(parsed.completed) ? parsed.completed : [],
-          endings: parsed.endings ?? {},
-          traits: parsed.traits ?? emptyTraits,
-          lastChapter: parsed.lastChapter,
-          lastEnding: parsed.lastEnding
-        });
-      }
-      setAgeConfirmed(window.localStorage.getItem("dream-station-age-confirmed") === "yes");
-      const params = new URLSearchParams(window.location.search);
-      const inviteChapter = params.get("invite");
-      if (inviteChapter && chapters.some((item) => item.id === inviteChapter)) {
-        setInvite({ chapterId: inviteChapter, endingId: params.get("ending") ?? undefined });
-      }
-      if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-    } catch {
-      setToast("Your story will stay in this session only.");
-    } finally {
-      setReady(true);
-    }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -79,14 +108,21 @@ export default function NightShiftExperience() {
   }, [toast]);
 
   function persist(next: SaveData) {
-    setSave(next);
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-    catch { setToast("This browser could not save your story. You can still finish this chapter."); }
+    setSessionSave(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.dispatchEvent(new Event("dream-station-update"));
+    } catch {
+      setToast("This browser could not save your story. You can still finish this chapter.");
+    }
   }
 
   function confirmAge() {
-    setAgeConfirmed(true);
-    try { window.localStorage.setItem("dream-station-age-confirmed", "yes"); } catch { /* continue for this session */ }
+    setAgeSessionConfirmed(true);
+    try {
+      window.localStorage.setItem(AGE_KEY, "yes");
+      window.dispatchEvent(new Event("dream-station-update"));
+    } catch { /* continue for this session */ }
   }
 
   function startChapter(item: Chapter, replay = false) {
@@ -100,7 +136,6 @@ export default function NightShiftExperience() {
     setSceneIndex(0);
     setTraits(emptyTraits);
     setEnding(null);
-    setInvite(null);
     setView("play");
     scrollTop();
   }
@@ -208,12 +243,12 @@ export default function NightShiftExperience() {
         <button className="install-button" onClick={installApp}><Moon size={14} /> <span>Keep nearby</span></button>
       </header>
 
-      {invite && view === "home" && (
+      {invite && !inviteDismissed && view === "home" && (
         <div className="invite-banner">
           <span className="invite-icon"><Heart size={16} /></span>
           <div><strong>A friend left the night window open.</strong><span>Try their chapter and make a different choice.</span></div>
           <button onClick={() => { const item = chapters.find((entry) => entry.id === invite.chapterId); if (item) startChapter(item, true); }}>Enter <ArrowRight size={15} /></button>
-          <button className="icon-button invite-close" aria-label="Dismiss invitation" onClick={() => setInvite(null)}><X size={16} /></button>
+          <button className="icon-button invite-close" aria-label="Dismiss invitation" onClick={() => setInviteDismissed(true)}><X size={16} /></button>
         </div>
       )}
 
@@ -242,7 +277,7 @@ export default function NightShiftExperience() {
                 <div className="art-caption"><span className="caption-star">✦</span><span><strong>KURU</strong><small>THE DREAM-NIBBLER</small></span><span className="caption-status">ON DUTY</span></div>
               </div>
               <div className="floating-note note-top"><span className="note-moon">☾</span><span>One thought<br />at a time.</span></div>
-              <div className="floating-note note-bottom"><span className="note-dot" /><span>Tonight's small<br />dream treat</span></div>
+              <div className="floating-note note-bottom"><span className="note-dot" /><span>Tonight&apos;s small<br />dream treat</span></div>
             </div>
           </section>
 
@@ -352,7 +387,7 @@ export default function NightShiftExperience() {
           <button className="back-link" onClick={() => setView("home")}><ArrowLeft size={15} /> Back to the station</button><p className="eyebrow">ABOUT THIS SMALL WORLD</p><h1>A story, not a solution.</h1>
           <div className="about-grid">
             <div className="about-copy"><p>The Dream Station is a small interactive-fiction experiment built around KURU, a sleepy night-shift creature who turns little worries into dream treats.</p><p>The chapters are pre-written, finite stories. Your choices change the path and ending. There is no open-ended AI companion, no free-text prompt and no user-generated public feed in this beta.</p><p>This is not therapy, counselling or mental-health support. It does not diagnose, treat or promise to resolve real-life problems.</p></div>
-            <div className="privacy-card"><h3>Your privacy, in plain language</h3><ul><li>No account or sign-in.</li><li>Story progress stays in this browser's local storage.</li><li>No personal story text is requested or sent to a model.</li><li>No global vote counts or audience numbers are shown in this prototype.</li><li>You can clear local progress from your Story Shelf.</li></ul><p>Private beta for adults 18+. Age is self-declared and not independently verified.</p></div>
+            <div className="privacy-card"><h3>Your privacy, in plain language</h3><ul><li>No account or sign-in.</li><li>Story progress stays in this browser&apos;s local storage.</li><li>No personal story text is requested or sent to a model.</li><li>No global vote counts or audience numbers are shown in this prototype.</li><li>You can clear local progress from your Story Shelf.</li></ul><p>Private beta for adults 18+. Age is self-declared and not independently verified.</p></div>
           </div>
         </section>
       )}
