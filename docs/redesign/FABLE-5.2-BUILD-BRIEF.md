@@ -222,3 +222,18 @@ Complete at least two screenshot-based critique/fix rounds. The final report mus
 - final score with evidence
 
 Do not claim revenue, virality, or commercial success from a visual prototype. Do not stop at a polished landing page: the complete story flow must work.
+
+
+## Static hosting and runtime constraints
+
+The redesign branch now passes a Next.js static export build and is prepared for Cloudflare Pages. Preserve this portability:
+
+- Keep the experience static-first: no server actions, route handlers, middleware, request-time cookies/headers, server-side sessions or runtime database calls.
+- Preserve query-string share links (for example `?chapter=...` and `?ending=...`) so a shared URL can load directly from a static host.
+- Keep story state and local progress client-side for this first release. Do not add accounts, payments, public UGC, AI companion chat or live model generation.
+- Keep the PWA manifest route statically generated with `dynamic = "force-static"`; preserve `public/sw.js`, `public/icon.svg`, `public/_headers` and `wrangler.toml`.
+- Do not add dependencies that require a persistent Node server or proprietary Vercel runtime.
+- Required release check: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and verify `out/index.html` exists.
+- Any proposed feature that requires a server must be documented as a separate future decision; do not silently break static export.
+
+The static build has passed on the current code. Fable's redesigned UI must preserve this gate.
