@@ -22,7 +22,7 @@ A merchant should maintain one verified product record and use it to create, rev
 1. Create a dedicated Supabase project for NEXUS. Do not use the unrelated `gten-core` project.
 2. Apply the migration in `supabase/migrations/`.
 3. Copy `.env.example` to `.env.local` and configure Supabase and a server-only LLM API key.
-4. Run `npm install` and `npm run dev`.
+4. Run `npm install`, `npm run check` and `npm run dev`.
 
 Never commit real credentials. Never expose Supabase secret/service-role keys or model API keys to the browser.
 

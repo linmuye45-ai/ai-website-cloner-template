@@ -28,6 +28,8 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
+      - name: Unit tests
+        run: npm run test
       - name: Apply available non-breaking security patches
         run: npm audit fix
       - name: Production dependency audit
