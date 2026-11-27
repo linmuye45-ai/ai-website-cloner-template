@@ -1,46 +1,33 @@
-# VESTI Studio
+# NEXUS Commerce OS
 
-**The operating system for fashion creators.**
+**Cross-channel product truth and AI-assisted commerce operations.**
 
-VESTI brings creator identity, fashion composition, campaign production, digital wardrobe, creator intelligence, and commercial workflows into one considered workspace.
+NEXUS is a neutral operations control layer for China-based cross-border merchants. The first wedge is apparel, footwear and accessories brands that manage product data, localized content and assets across multiple overseas channels.
 
-## Product principles
-- Identity consistency: preserve a creator's recognisable visual language.
-- Structured fashion composition: make model, styling, scene, light, and output format deliberate inputs.
-- Creator publishing: turn one creative direction into a coordinated multi-channel campaign.
-- Creator-owned data: keep creator assets and identity under the creator's control.
+## Product thesis
 
-## Current build
-This branch contains the interactive VESTI Studio frontend preview:
-- Overview dashboard and creator identity profile
-- Fashion Studio with local creative-brief creation
-- Campaign desk with campaign creation
-- Digital Wardrobe sample and add-piece flow
-- Creator Intelligence preview
-- Commercial workspace preview
-- Responsive desktop, tablet, and mobile layouts
+A merchant should maintain one verified product record and use it to create, review, version and distribute channel-specific content. The system connects later performance and quality feedback without pretending to replace the merchant's existing storefront or marketplace.
 
-The current interactions are frontend demo state only. AI image generation, persistent cloud storage, authentication, billing, publishing integrations, and live analytics are not yet connected. No API keys or customer data are stored in this repository.
+## Current branch
 
-## Run locally
-Requires Node.js 24+.
+- `/commerce`: NEXUS merchant console (in active development).
+- `/fashion`: retained VESTI creator surface.
+- Dedicated Supabase schema and RLS migration.
+- CSV import/export as the first integration surface.
+- Server-side OpenAI-compatible provider adapter; DashScope/Qwen default.
+- External channel integrations remain disconnected until official API credentials, approvals and customer authorization exist.
 
-```bash
-npm install
-npm run dev
-```
+## Setup
 
-## Product roadmap
-1. Connect authentication and tenant-scoped persistence.
-2. Integrate a fashion image generation / virtual try-on provider behind explicit user consent and clear credit usage.
-3. Implement identity references and consistency evaluation.
-4. Connect campaign publishing workflows and creator analytics.
-5. Add creator plans, credit metering, and a template marketplace.
+1. Create a dedicated Supabase project for NEXUS. Do not use the unrelated `gten-core` project.
+2. Apply the migration in `supabase/migrations/`.
+3. Copy `.env.example` to `.env.local` and configure Supabase and a server-only LLM API key.
+4. Run `npm install` and `npm run dev`.
 
-## Commercial hypotheses (not validated)
-- Creator: USD $19–29/month
-- Pro: USD $49–79/month
-- Optional generation credits
-- Later: creator templates and recommendation revenue
+Never commit real credentials. Never expose Supabase secret/service-role keys or model API keys to the browser.
 
-Pricing is a hypothesis for testing, not a published offer.
+## Commercial boundary
+
+This branch is a development build. It is not production-ready until a dedicated database is provisioned, migrations and RLS are verified, auth and storage smoke tests pass, provider keys are configured, mainland-China compliance is reviewed, and paid pilot customers validate retention.
+
+See `docs/` for competitive research, architecture, compliance and validation gates.
