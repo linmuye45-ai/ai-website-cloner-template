@@ -79,3 +79,14 @@ Before commercial launch, choose one of these paths:
 - A separate paid application host if the product needs persistent workers or long-running jobs. Keep the database and source code portable.
 
 No billing plan, paid subscription or external account has been changed by this migration.
+
+## Approved product and design-agent boundary
+
+The approved primary product is NEXORA (internal project code): an original-IP interactive micro-narrative network. The first experience is The Dream Station, a mobile-first, shareable 2–5 minute story. KURU is provisional and must pass a rights audit before commercial use. Signal Atlas, GTEN, VESTI/NEXUS and unrelated websites are not parallel primary products.
+
+- Fable 5.2 owns the frontend redesign. Do not hand-write a new frontend or replace the design direction from this repository.
+- The design handoff is in branch `redesign/cinematic-night-atlas-20261128`: root `DESIGN.md` and `docs/redesign/FABLE-5.2-BUILD-BRIEF.md`.
+- Use the maintained MIT component foundation specified in the handoff, then apply the product's own visual tokens. Preserve story runtime, branching, local progress and share-link behaviour.
+- Fable work must remain on a feature/redesign branch and produce a preview only. GitHub CI and browser QA verify the result; production release is a separate decision.
+- AI music is content support; AI game capabilities are one interaction format; MINDMESH is internal creator tooling. None is a separate launch track.
+- The Floot-only prototypes are preservation assets until source and rights audits are complete. Do not spend the remaining Floot action quota on cosmetic iteration.
