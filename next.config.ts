@@ -1,15 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  poweredByHeader: false,
-  async headers() {
-    return [{ source: "/:path*", headers: [
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "X-Frame-Options", value: "DENY" },
-      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-      { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }
-    ]}];
-  }
+  // NEXORA's first release is a static-first Web/PWA. No server-side routes
+  // or authentication are required for the initial validated experience.
+  output: "export",
+  images: {
+    unoptimized: true,
+  },
+  devIndicators: false,
 };
+
 export default nextConfig;
