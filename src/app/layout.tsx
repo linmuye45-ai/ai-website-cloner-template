@@ -6,8 +6,8 @@ const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
 const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "VESTI Studio — The operating system for fashion creators",
-  description: "A considered creative workspace for fashion creators: identity, fashion composition, campaigns, wardrobe, intelligence, and commercial tools.",
+  title: "NEXUS Commerce OS — Cross-channel product operations",
+  description: "One verified product record. Every market. Every channel.",
   applicationName: "VESTI Studio",
 };
 
