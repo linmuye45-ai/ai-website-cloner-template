@@ -68,3 +68,14 @@ A product is considered independently operable only when:
 5. Database schema is represented by migrations and RLS is tested.
 6. Preview and production deployments are separately controlled.
 7. A release can be rolled back without relying on the original AI builder.
+
+## Hosting plan restriction
+
+The connected Vercel team is currently on Hobby. Vercel's current terms restrict Hobby deployments to personal/non-commercial use. The previews created in this engineering migration are for build verification only; do not accept payment, serve a revenue-generating product or run paid commercial workloads from these projects until the hosting plan is changed.
+
+Before commercial launch, choose one of these paths:
+- Vercel Pro for the least disruptive Next.js route; budget from USD 20/month, including USD 20 of usage credit, with metered overages.
+- Cloudflare Pages for static-first products; static asset requests are free and unlimited. Use Workers for server-side routes, with the paid plan starting at USD 5/month. Existing Next.js apps require a compatibility migration and real route tests; Cloudflare currently recommends vinext for new or migrated Next.js workloads.
+- A separate paid application host if the product needs persistent workers or long-running jobs. Keep the database and source code portable.
+
+No billing plan, paid subscription or external account has been changed by this migration.
