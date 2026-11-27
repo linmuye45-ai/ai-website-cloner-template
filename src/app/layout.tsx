@@ -8,7 +8,7 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 export const metadata: Metadata = {
   title: "NEXUS Commerce OS — Cross-channel product operations",
   description: "One verified product record. Every market. Every channel.",
-  applicationName: "VESTI Studio",
+  applicationName: "NEXUS Commerce OS",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, Bell, Bookmark, Check,
+  ArrowRight, ArrowUpRight, Bell, Bookmark, Check,
   ChevronDown, ChevronRight, CircleHelp, Command, Compass, CreditCard,
-  FolderHeart, Gauge, Grid2X2, ImagePlus, Layers3, LayoutDashboard,
+  FolderHeart, Gauge,  ImagePlus, Layers3, LayoutDashboard,
   Menu, MoreHorizontal, Plus, Search, Settings2, Shirt, Sparkles,
   TrendingUp, WandSparkles, X, Zap
 } from "lucide-react";
