@@ -4,6 +4,14 @@ const root=process.argv[2];
 function edit(rel, fn){const p=path.join(root,rel);const before=fs.readFileSync(p,'utf8');const after=fn(before);if(after===before)throw new Error('Expected PlayMesh patch did not change '+rel);fs.writeFileSync(p,after);}
 function rep(s,a,b,rel){if(!s.includes(a))throw new Error('Missing expected text in '+rel+': '+a.slice(0,80));return s.replace(a,b);}
 function all(s,a,b){return s.split(a).join(b);}
+edit('package.json',s=>{
+ const p=JSON.parse(s);p.devDependencies.vitest='5.1.2';
+ p.description='PlayMesh — browser-first social game platform';
+ p.repository={type:'git',url:'https://github.com/linmuye45-ai/ai-website-cloner-template.git'};
+ p.bugs={url:'https://github.com/linmuye45-ai/ai-website-cloner-template/issues'};
+ p.homepage='https://github.com/linmuye45-ai/ai-website-cloner-template/tree/playmesh-foundation/playmesh';
+ return JSON.stringify(p,null,2)+'\\n';
+});
 edit('apps/web/src/components/Layout.tsx',s=>{
  s=all(s,'#ffb12e','#6e63f5');s=all(s,'#d98a00','#5147ce');s=all(s,'#ffe29a','#d5f45a');s=all(s,'#8a5a00','#312a83');
  s=rep(s,'<span>mini-games<span className="wordmark-cursor">_</span></span>','<span>playmesh<span className="wordmark-cursor">.</span></span>','Layout.tsx');

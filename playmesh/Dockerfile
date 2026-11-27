@@ -5,7 +5,15 @@ WORKDIR /app
 RUN git clone --depth 1 --no-checkout https://github.com/trazhub/Mini-Games.git /app \
  && git fetch --depth 1 origin "$MINIGAMEHUB_COMMIT" \
  && git checkout --detach "$MINIGAMEHUB_COMMIT"
-RUN npm ci && npm run build:server
+COPY apply-brand.mjs /tmp/apply-brand.mjs
+COPY playmesh-theme.css /tmp/playmesh-theme.css
+RUN cd /tmp && node /tmp/apply-brand.mjs /app
+WORKDIR /app
+RUN npm install --package-lock-only --ignore-scripts \
+ && npm ci \
+ && npm audit --omit=dev --audit-level=high \
+ && npm run build:server \
+ && npm prune --omit=dev
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=2567
 EXPOSE 2567
 CMD ["node","apps/server/dist/main.js"]

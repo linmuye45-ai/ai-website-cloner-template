@@ -13,6 +13,7 @@ export VITE_APP_NAME="PlayMesh"
 export VITE_BASE_PATH="/"
 export VITE_API_URL="${VITE_API_URL:-}"
 cd "$WORK"
+npm install --package-lock-only --ignore-scripts
 npm ci
 npm audit --json > "$ROOT/.build/audit.json" || true
 node --input-type=module - "$ROOT/.build/audit.json" <<'NODE'
