@@ -84,6 +84,7 @@ export default function NightShiftExperience() {
     return { chapterId: inviteChapter, endingId: params.get("ending") ?? undefined };
   }, [ready]);
 
+  const invitedEnding = useMemo(() => invite?.endingId ? chapters.flatMap((item) => Object.values(item.endings)).find((item) => item.id === invite.endingId) ?? null : null, [invite]);
   const chapter = useMemo(() => chapters.find((item) => item.id === activeChapterId) ?? chapters[0], [activeChapterId]);
   const scene = chapter.scenes[sceneIndex];
   const completedCount = save.completed.length;
@@ -138,6 +139,9 @@ export default function NightShiftExperience() {
     setSceneIndex(0);
     setTraits(emptyTraits);
     setEnding(null);
+    setChoiceEcho(null);
+    setFinalEcho(null);
+    setInviteDismissed(true);
     setView("play");
     scrollTop();
   }
@@ -250,7 +254,7 @@ export default function NightShiftExperience() {
       {invite && !inviteDismissed && view === "home" && (
         <div className="invite-banner">
           <span className="invite-icon"><Heart size={16} /></span>
-          <div><strong>A friend left the night window open.</strong><span>Try their chapter and make a different choice.</span></div>
+          <div><strong>A friend left the night window open.</strong><span>{invitedEnding ? "They found " + invitedEnding.title + ". Try your own path through the same chapter." : "Try their chapter and make a different choice."}</span></div>
           <button onClick={() => { const item = chapters.find((entry) => entry.id === invite.chapterId); if (item) startChapter(item, true); }}>Enter <ArrowRight size={15} /></button>
           <button className="icon-button invite-close" aria-label="Dismiss invitation" onClick={() => setInviteDismissed(true)}><X size={16} /></button>
         </div>
