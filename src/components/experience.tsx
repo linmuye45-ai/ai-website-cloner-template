@@ -64,6 +64,8 @@ export default function NightShiftExperience() {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [traits, setTraits] = useState<Traits>(emptyTraits);
   const [ending, setEnding] = useState<Ending | null>(null);
+  const [choiceEcho, setChoiceEcho] = useState<string | null>(null);
+  const [finalEcho, setFinalEcho] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   const [inviteDismissed, setInviteDismissed] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -140,14 +142,16 @@ export default function NightShiftExperience() {
     scrollTop();
   }
 
-  function choose(trait: Trait, weight: number) {
+  function choose(trait: Trait, weight: number, response: string) {
     const updated = nextTraits(traits, trait, weight);
+    setChoiceEcho(response);
     setTraits(updated);
     if (sceneIndex < chapter.scenes.length - 1) {
       setSceneIndex((value) => value + 1);
       return;
     }
     const result = resolveEnding(chapter.id, updated);
+    setFinalEcho(response);
     setEnding(result);
     const completed = Array.from(new Set([...save.completed, chapter.id]));
     persist({
@@ -337,10 +341,10 @@ export default function NightShiftExperience() {
           <div className="play-main">
             <div className="play-art-panel"><div className="play-art-moon">☾</div><KuruIllustration size={340} className="play-kuru" mood={sceneIndex === 1 ? "curious" : "sleepy"} /><div className="play-art-caption"><span>THE DREAM STATION</span><span>SCENE {sceneIndex + 1} / {chapter.scenes.length}</span></div></div>
             <div className="story-panel">
-              <p className="eyebrow">{scene.eyebrow}</p><h1>{scene.title}</h1><p className="story-body">{scene.body}</p>
+              <p className="eyebrow">{scene.eyebrow}</p>{choiceEcho && <div className="choice-echo"><Sparkles size={13} /><span>{choiceEcho}</span></div>}<h1>{scene.title}</h1><p className="story-body">{scene.body}</p>
               <div className="choice-divider"><span>WHAT SHOULD KURU DO?</span><i /></div>
               <div className="choice-list">
-                {scene.choices.map((choice, index) => <button className="choice-button" key={choice.id} onClick={() => choose(choice.trait, choice.weight)}><span className="choice-index">{String(index + 1).padStart(2, "0")}</span><span className="choice-text"><strong>{choice.label}</strong><small>{choice.response}</small></span><span className="choice-arrow"><ArrowRight size={16} /></span></button>)}
+                {scene.choices.map((choice, index) => <button className="choice-button" key={choice.id} onClick={() => choose(choice.trait, choice.weight, choice.response)}><span className="choice-index">{String(index + 1).padStart(2, "0")}</span><span className="choice-text"><strong>{choice.label}</strong></span><span className="choice-arrow"><ArrowRight size={16} /></span></button>)}
               </div>
               <p className="story-footnote"><Moon size={13} /> Your path is saved only on this device.</p>
             </div>
@@ -354,7 +358,7 @@ export default function NightShiftExperience() {
           <div className="ending-card">
             <div className="ending-art"><div className="ending-glow" /><KuruIllustration size={310} className="ending-kuru" mood="cozy" /><span className="ending-spark ending-spark-one">✦</span><span className="ending-spark ending-spark-two">✧</span></div>
             <div className="ending-copy">
-              <p className="eyebrow">YOUR CHAPTER {chapter.number} ENDING</p><h1>{ending.title}</h1><p className="ending-treat">{ending.treat}</p><p className="ending-description">{ending.description}</p>
+              <p className="eyebrow">YOUR CHAPTER {chapter.number} ENDING</p><h1>{ending.title}</h1><p className="ending-treat">{ending.treat}</p>{finalEcho && <div className="ending-echo"><Sparkles size={13} /><span>{finalEcho}</span></div>}<p className="ending-description">{ending.description}</p>
               <blockquote>“{ending.shareLine}”</blockquote>
               <div className="ending-actions"><button className="button button-primary" onClick={shareEnding}><Share2 size={16} /> Share this ending</button><button className="button button-outline" onClick={() => setView("shelf")}><Bookmark size={16} /> Save on my shelf</button></div>
               <div className="ending-next">
