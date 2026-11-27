@@ -13,10 +13,10 @@ The approved strategy dated 2026-11-27 makes NEXORA (internal project code, not 
 | VESTI / NEXUS | GitHub branch `vesti-platform`; Vercel preview READY; no Vercel environment variables | NEXUS Commerce OS is designed for cross-border merchant operations; VESTI is a static fashion-creator surface with sample data. The README requires a dedicated Supabase project | Preserve code and design assets; pause merchant/B2B development under the current no-B2B constraint |
 | GTEN Agent Control | Vercel production deployment READY with SSO protection; uses Supabase project `gten-core` | Procurement control plane with RFQ/quote/supplier workflows; three live agent roles are read-only or draft-only | Pause as B2B; preserve code and data, no new commercial investment |
 | GTEN Trade Workspace | Vercel production deployment READY; SSO protection is enabled for previews | Supplier and trade workflow interface, connected to the GTEN database | Pause as B2B; keep isolated and do not repurpose its database |
-| SayReady Echo Studio | Vercel staging deployment READY; includes AI, gifts, health and telemetry routes; not a production launch | Potential consumer voice/communication product; requires product, safety, secret and retention review | Preserve; do not scale before a paid-use test |
+| SayReady Echo Studio | Vercel staging deployment READY; includes AI, gifts, health and telemetry routes; not a production launch | Separate prototype with no verified fit to the approved interactive-IP product line | Freeze; preserve source and review the flagged storage-token configuration before any future public exposure |
 | Yingde Consumer Agent | Vercel production deployment READY; deployment source is a single HTML file; no environment variables | Static prototype, not a verified operating consumer agent | Archive as prototype pending a specific use case |
-| Longform, LoopPlay, Scrapswarm, CuePlay | Vercel deployments READY; current deployment packages are single-file HTML prototypes | Useful concept and gameplay experiments; not verified commercial releases | Preserve demos; choose one only after playtest and retention evidence |
-| Sort Shift playable demo | Vercel project exists, but no deployment was returned in this audit | No deployed playable build verified | Do not count as a shippable demo yet |
+| Longform, LoopPlay, Scrapswarm, CuePlay | Vercel deployments READY; current deployment packages are single-file HTML prototypes | Unvalidated standalone content/game concepts; not part of the approved first product | Freeze as reusable IP/interaction experiments; no parallel commercial investment |
+| Sort Shift playable demo | Vercel project exists, but no deployment was returned in this audit | No deployed playable build verified; standalone game is outside the current first-product scope | Preserve the project; do not fund a separate launch while NEXORA is the sole active track |
 
 ## GTEN database audit
 
@@ -49,7 +49,7 @@ The connected Floot account contains these project roots and branches:
 | Trust & Action OS | `e64e2ad5-7efd-451d-a67b-3fddf70467d5` | Unpublished | No custom domain |
 | ROOM STUDIO OS | `77843c7b-0fae-4757-8366-4f88dc4c4d37` | Unpublished | No custom domain |
 
-All seven roots/branches returned `published=false`, `paid=false`, Floot plan `free`, no custom domains, and two unused native app builds. Night Signal and MINDMESH previews are available, but no live commercial launch or payment evidence was found.
+All seven roots/branches returned `published=false`, `paid=false`, Floot plan `free`, no custom domains, and two unused native app builds. Night Signal and MINDMESH previews are available, but no live commercial launch or payment evidence was found. The exact mapping of Night Signal/TRADEPASS and MINDMESH/KINSHIP to the approved NEXORA product has not been established; do not assume they are the primary source or merge their concepts into NEXORA.
 
 ### Floot migration blocker
 
