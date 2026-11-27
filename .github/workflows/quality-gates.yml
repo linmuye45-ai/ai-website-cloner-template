@@ -10,17 +10,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   verify:
     name: Lint, types, tests and production build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -30,14 +30,22 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install dependencies
+      - name: Reconcile package manifest and lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Persist lockfile refresh on the ops branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/ops/platform-independence-20261128'
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            echo "::warning::package-lock.json is missing. Using npm install temporarily; commit a lockfile before commercial release."
-            npm install --no-audit --no-fund
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: add reproducible npm lockfile"
+            git push
           fi
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
