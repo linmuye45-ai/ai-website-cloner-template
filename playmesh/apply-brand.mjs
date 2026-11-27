@@ -7,9 +7,6 @@ function all(s,a,b){return s.split(a).join(b);}
 edit('package.json',s=>{
  const p=JSON.parse(s);p.devDependencies.vitest='5.1.2';
  p.description='PlayMesh — browser-first social game platform';
- p.repository={type:'git',url:'https://github.com/linmuye45-ai/ai-website-cloner-template.git'};
- p.bugs={url:'https://github.com/linmuye45-ai/ai-website-cloner-template/issues'};
- p.homepage='https://github.com/linmuye45-ai/ai-website-cloner-template/tree/playmesh-foundation/playmesh';
  return JSON.stringify(p,null,2)+String.fromCharCode(10);
 });
 edit('packages/game-core/tsconfig.json',s=>{
