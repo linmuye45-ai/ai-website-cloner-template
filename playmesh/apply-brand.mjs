@@ -12,6 +12,10 @@ edit('package.json',s=>{
  p.homepage='https://github.com/linmuye45-ai/ai-website-cloner-template/tree/playmesh-foundation/playmesh';
  return JSON.stringify(p,null,2)+String.fromCharCode(10);
 });
+edit('packages/game-core/tsconfig.json',s=>{
+ const cfg=JSON.parse(s);const libs=new Set(cfg.compilerOptions.lib??[]);libs.add('DOM');cfg.compilerOptions.lib=[...libs];
+ return JSON.stringify(cfg,null,2)+String.fromCharCode(10);
+});
 edit('apps/web/src/components/Layout.tsx',s=>{
  s=all(s,'#ffb12e','#6e63f5');s=all(s,'#d98a00','#5147ce');s=all(s,'#ffe29a','#d5f45a');s=all(s,'#8a5a00','#312a83');
  s=rep(s,'<span>mini-games<span className="wordmark-cursor">_</span></span>','<span>playmesh<span className="wordmark-cursor">.</span></span>','Layout.tsx');
