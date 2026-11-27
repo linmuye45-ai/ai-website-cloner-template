@@ -1,0 +1,9 @@
+{
+  "name": "playmesh",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PlayMesh browser-first social game platform",
+  "scripts": {
+    "build": "bash build.sh"
+  }
+}
