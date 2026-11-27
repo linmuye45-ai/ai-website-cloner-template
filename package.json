@@ -3,25 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "description": "Cross-channel product truth and AI-assisted commerce operations for global merchants",
-  "author": "JCodesMore",
+  "author": "NEXUS Commerce",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JCodesMore/ai-website-cloner-template.git"
+    "url": "https://github.com/linmuye45-ai/ai-website-cloner-template.git"
   },
-  "homepage": "https://github.com/JCodesMore/ai-website-cloner-template",
+  "homepage": "https://github.com/linmuye45-ai/ai-website-cloner-template",
   "bugs": {
-    "url": "https://github.com/JCodesMore/ai-website-cloner-template/issues"
+    "url": "https://github.com/linmuye45-ai/ai-website-cloner-template/issues"
   },
   "keywords": [
-    "claude-code",
-    "website-clone",
-    "reverse-engineering",
-    "nextjs",
-    "ai",
-    "template",
-    "tailwindcss",
-    "shadcn-ui"
+    "cross-border-commerce",
+    "merchant-operations",
+    "product-catalog",
+    "AI-agent",
+    "commerce-data",
+    "global-trade",
+    "nextjs"
   ],
   "engines": {
     "node": ">=24"
