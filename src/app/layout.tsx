@@ -10,5 +10,5 @@ export const metadata: Metadata = {
  appleWebApp: { capable: true, statusBarStyle: "default", title: "Dream Station" },
  icons: { icon: "/icon.svg", apple: "/icon.svg" }
 };
-export const viewport: Viewport = { themeColor: "#f7f2e9", width: "device-width", initialScale: 1, maximumScale: 1 };
+export const viewport: Viewport = { themeColor: "#f7f2e9", width: "device-width", initialScale: 1 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body>{children}</body></html>; }

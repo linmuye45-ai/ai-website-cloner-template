@@ -219,8 +219,6 @@ export default function NightShiftExperience() {
     scrollTop();
   }
 
-  if (!ready) return <main className="boot-screen"><div className="boot-moon"><Moon size={22} /></div><p>Opening the night window…</p></main>;
-
   if (!ageConfirmed) {
     return (
       <main className="age-gate">
