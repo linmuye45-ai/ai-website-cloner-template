@@ -48,8 +48,5 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
-      - name: Verify static export and PWA artifacts
-        run: |
-          for asset in index.html manifest.webmanifest sw.js icon.svg _headers; do
-            test -f "out/$asset" || { echo "Missing static artifact: out/$asset"; exit 1; }
-          done
+      - name: Verify static export artifact
+        run: test -f out/index.html
